@@ -398,10 +398,14 @@
     -webkit-overflow-scrolling: touch;
   }
   table { width: 100%; border-collapse: collapse; }
-  table.data-table {
+  .table-scroll:has(> .data-table) {
     border: 2px solid var(--line-strong);
     border-radius: 8px;
     overflow: hidden;
+  }
+  table.data-table {
+    border: none;
+    border-radius: 0;
     min-width: 720px;
   }
   table.data-table .col-date { white-space: nowrap; width: 7.25rem; }
@@ -417,6 +421,10 @@
     padding: 10px 14px 10px 10px;
   }
   table.data-table thead th {
+    text-align: left;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 600;
     background: var(--surface-muted);
     border-bottom: 2px solid var(--line-strong);
     border-right: 1px solid var(--line-strong);
@@ -424,13 +432,20 @@
   }
   table.data-table thead th:last-child { border-right: none; }
   table.data-table tbody td {
+    padding: 10px 8px;
+    font-size: 15px;
+    vertical-align: middle;
     border-bottom: 1px solid var(--line-strong);
     border-right: 1px solid var(--line-strong);
   }
   table.data-table tbody tr:last-child td { border-bottom: none; }
   table.data-table tbody td:last-child { border-right: none; }
+  table.data-table td.price-cell {
+    white-space: normal;
+    line-height: 1.35;
+  }
 
-  thead th {
+  table:not(.data-table) thead th {
     text-align: left; font-size: 13px; color: var(--ink-soft); font-weight: 600;
     padding: 0 8px 8px; border-bottom: 1px solid var(--line);
   }
@@ -440,8 +455,8 @@
   .sort-icon span { display: block; font-size: 8px; color: var(--line-strong); }
   .sort-icon span.active { color: var(--focus); }
 
-  tbody td { padding: 10px 8px; font-size: 15px; border-bottom: 1px solid var(--line); }
-  tbody tr:last-child td { border-bottom: none; }
+  table:not(.data-table) tbody td { padding: 10px 8px; font-size: 15px; border-bottom: 1px solid var(--line); }
+  table:not(.data-table) tbody tr:last-child td { border-bottom: none; }
   .item-name { font-weight: 500; }
   .price-cell { font-weight: 600; }
   .owner-tag {
