@@ -87,6 +87,14 @@
     font-weight: 600;
   }
   .btn-warehouse:hover { background: var(--rust-hover) !important; color: #fff !important; }
+  .btn-fee-info {
+    background: var(--settle) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-fee-info:hover { background: var(--settle-hover) !important; color: #fff !important; }
 
   .card {
     background: var(--paper-card);
@@ -779,6 +787,27 @@
   }
   .field textarea:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
 
+  .modal-fee { max-width: 520px; }
+  .fee-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .fee-table {
+    width: 100%; border-collapse: collapse; font-size: 14px; background: #fff;
+  }
+  .fee-table th, .fee-table td {
+    padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--line);
+  }
+  .fee-table th {
+    background: linear-gradient(180deg, #6366F1 0%, #4F46E5 100%);
+    color: #fff; font-weight: 600; font-size: 13px;
+  }
+  .fee-table th:first-child { text-align: left; }
+  .fee-table td:first-child { text-align: left; font-weight: 600; color: var(--ink); }
+  .fee-table tr:last-child td { border-bottom: none; }
+  .fee-table tbody tr:nth-child(even) { background: var(--surface-muted); }
+  .fee-note {
+    margin-top: 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.55;
+    padding: 10px 12px; background: var(--settle-soft); border-radius: 8px; border: 1px solid #BFDBFE;
+  }
+
   .stats-section { margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--line-strong); }
   .stats-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
   .stats-section-title { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 10px; }
@@ -919,6 +948,7 @@
     <div class="status-row">
       <span id="statusText">불러오는 중…</span>
       <div class="status-actions">
+        <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
         <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">퉁공대 통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
@@ -1118,6 +1148,40 @@
     <div class="modal-foot">
       <button type="button" class="btn-light" id="xEditCancelBtn">취소</button>
       <button type="button" class="btn-settle btn-sm" id="xEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="feeInfoModal" hidden>
+  <div class="modal modal-fee" role="dialog" aria-labelledby="feeInfoTitle">
+    <h3 id="feeInfoTitle">메소 수수료 (참고)</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">거래액 구간별 수수료율입니다. 거래소 판매 수수료와 분배(교환·택배) 수수료는 별개예요.</p>
+    <div class="fee-table-wrap">
+      <table class="fee-table">
+        <thead>
+          <tr>
+            <th>거래액 구간</th>
+            <th>교환(직거래)</th>
+            <th>택배</th>
+            <th>거래소</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>10만 이상</td><td>0.8%</td><td>1.2%</td><td>5%</td></tr>
+          <tr><td>100만 이상</td><td>1.8%</td><td>2.7%</td><td>5%</td></tr>
+          <tr><td>500만 이상</td><td>3.0%</td><td>4.0%</td><td>5%</td></tr>
+          <tr><td>1,000만 이상</td><td>4.0%</td><td>5.0%</td><td>5%</td></tr>
+          <tr><td>2,500만 이상</td><td>5.0%</td><td>6.0%</td><td>5%</td></tr>
+          <tr><td>1억 이상</td><td>6.0%</td><td>7.0%</td><td>5%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="fee-note">
+      <strong>거래소</strong>: 성사액의 5%가 판매 수수료로 빠지고, 보증금 2,000메소는 돌려받습니다. (예: 100만 판매 → 95만 수령)<br>
+      <strong>교환·택배</strong>: 공대원에게 분배금 보낼 때 적용. 금액이 클수록 %가 올라갑니다. 거래소 5%와는 별도입니다.
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="feeInfoCloseBtn">닫기</button>
     </div>
   </div>
 </div>
@@ -2877,6 +2941,12 @@
   $('resetSortBtn').addEventListener('click', () => {
     sortState = { column: 'date', direction: 'asc' };
     renderLedger();
+  });
+
+  $('feeInfoBtn').addEventListener('click', () => { $('feeInfoModal').hidden = false; });
+  $('feeInfoCloseBtn').addEventListener('click', () => { $('feeInfoModal').hidden = true; });
+  $('feeInfoModal').addEventListener('click', (e) => {
+    if (e.target.id === 'feeInfoModal') $('feeInfoModal').hidden = true;
   });
 
   $('warehouseBtn').addEventListener('click', () => openWarehouseModal());
