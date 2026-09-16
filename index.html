@@ -780,6 +780,61 @@
   .stats-top-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stats-empty { font-size: 14px; color: var(--ink-soft); text-align: center; padding: 16px 8px; }
 
+  .cycle-strip {
+    margin-bottom: 14px; padding: 14px 16px 12px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: linear-gradient(180deg, #fff 0%, var(--surface-muted) 100%);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .cycle-strip-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .cycle-strip-title { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .cycle-view-hint { font-size: 13px; color: var(--ink-soft); flex: 1; text-align: right; min-width: 0; }
+  .cycle-tabs {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch;
+  }
+  .cycle-tab {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    min-width: 108px; max-width: 200px; padding: 10px 12px 9px;
+    border: 2px solid var(--line); border-radius: 10px; background: #fff;
+    cursor: pointer; font-family: inherit; text-align: left;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .cycle-tab:hover { border-color: var(--line-strong); background: var(--surface-muted); }
+  .cycle-tab.active {
+    border-color: var(--settle); box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+    background: #fff;
+  }
+  .cycle-tab--open:not(.active) { border-color: #86EFAC; background: #F0FDF4; }
+  .cycle-tab-top { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .cycle-tab-label { font-weight: 700; font-size: 14px; color: var(--ink); }
+  .cycle-tab-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 2px 7px; border-radius: 100px; white-space: nowrap;
+  }
+  .cycle-tab-badge.open { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+  .cycle-tab-badge.closed { background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; }
+  .cycle-tab-meta { font-size: 11.5px; color: var(--ink-soft); line-height: 1.35; }
+  .cycle-tab-del {
+    margin-left: auto; flex-shrink: 0; width: 26px; height: 26px; padding: 0;
+    border: none; background: transparent; color: var(--ink-soft); font-size: 16px;
+    cursor: pointer; border-radius: 6px; line-height: 1;
+  }
+  .cycle-tab-del:hover { background: var(--rust-soft); color: var(--rust); }
+  .cycle-legacy-banner {
+    margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
+    background: #FFFBEB; border: 1px solid #FDE68A; font-size: 13px; color: #92400E;
+    display: none;
+  }
+  .cycle-legacy-banner.visible { display: block; }
+  .settle-actions--hidden { display: none; }
+  .settle-view-note {
+    font-size: 13px; color: var(--ink-soft); padding: 8px 0 0; display: none;
+  }
+  .settle-view-note.visible { display: block; }
+
   @media (max-width: 720px) {
     .stats-member-grid { grid-template-columns: 1fr; }
     .settle-grid { grid-template-columns: 1fr; }
@@ -816,6 +871,14 @@
       </div>
     </div>
   </header>
+
+  <div class="cycle-strip" id="cycleStrip">
+    <div class="cycle-strip-head">
+      <span class="cycle-strip-title">정산 회차</span>
+      <span class="cycle-view-hint" id="cycleViewHint"></span>
+    </div>
+    <div class="cycle-tabs" id="cycleTabs" role="tablist" aria-label="정산 회차"></div>
+  </div>
 
   <div class="card card-compact card-zone-members">
     <h2>공대원</h2>
@@ -899,15 +962,15 @@
         <div class="settle-grid" id="settleGrid"></div>
       </div>
     </details>
+    <div class="cycle-legacy-banner" id="cycleLegacyBanner">
+      이 회차는 예전에 <strong>요약만</strong> 남겨 둔 기록이에요. 획득·지출 상세는 없고, 아래 「요약 수정」으로 송금·합계만 고칠 수 있어요.
+      <button type="button" class="btn-ghost btn-sm" id="cycleLegacyEditBtn" style="margin-left:8px;">요약 수정</button>
+    </div>
     <div class="settle-block-reason" id="settleBlockReason"></div>
-    <div class="settle-actions">
+    <p class="settle-view-note" id="settleViewNote"></p>
+    <div class="settle-actions" id="settleActionsWrap">
       <button class="btn-settle" id="settleDoneBtn">정산 완료 처리</button>
     </div>
-  </div>
-
-  <div class="card card-zone-history" id="historyCard" style="display:none;">
-    <h2>지난 정산 기록</h2>
-    <div class="history-scroll" id="historyList"></div>
   </div>
 
 </div>
@@ -997,7 +1060,7 @@
 <div class="modal-backdrop" id="statsModal" hidden>
   <div class="modal modal-stats" role="dialog" aria-labelledby="statsModalTitle">
     <h3 id="statsModalTitle">퉁공대 통계</h3>
-    <p style="margin:-8px 0 14px;font-size:13px;color:var(--ink-soft);">지금 장부·지출·정산 기준 (실시간)</p>
+    <p id="statsModalSub" style="margin:-8px 0 14px;font-size:13px;color:var(--ink-soft);">지금 장부·지출·정산 기준 (실시간)</p>
     <div id="statsBody"></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="statsCloseBtn">닫기</button>
@@ -1022,14 +1085,18 @@
   const DEFAULT_MEMBERS = ['나', '친구', '아는형'];
   const DEFAULT_SPLIT = [34, 33, 33];
 
-  let state = { members: [...DEFAULT_MEMBERS], entries: [], expenditures: [], history: [] };
+  let state = {
+    members: [...DEFAULT_MEMBERS],
+    cycles: [],
+    activeCycleId: null,
+    viewCycleId: null
+  };
   let sortState = { column: 'date', direction: 'asc' };
   let currentSplit = [...DEFAULT_SPLIT];
   let currentExpSplit = [...DEFAULT_SPLIT];
   let saveTimeout = null;
   let editingField = false;
   let editingHistoryId = null;
-  const expandedHistoryIds = new Set();
   let editingEntryId = null;
   let editingExpId = null;
   let editEntrySplit = [...DEFAULT_SPLIT];
@@ -1051,6 +1118,162 @@
   const formatMoneyInput = (n) => (n > 0 ? fmtNum(n) : '');
   const todayStr = () => new Date().toISOString().slice(0, 10);
   const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  function mapStoredEntries(arr) {
+    return (arr || []).map((e) => {
+      const status = e.status || (Number(e.price) > 0 ? 'sold' : 'unsold');
+      const entry = {
+        ...e,
+        split: (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT],
+        status,
+        price: status === 'unsold' ? 0 : Number(e.price) || 0
+      };
+      return normalizeEntry(entry);
+    });
+  }
+
+  function mapStoredExpenditures(arr) {
+    return (arr || []).map((x) => ({
+      id: x.id || genId(),
+      desc: x.desc,
+      amount: x.amount,
+      beneficiaryIdx: x.beneficiaryIdx != null ? x.beneficiaryIdx : 0,
+      date: x.date,
+      split: (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT]
+    }));
+  }
+
+  function relabelCycles(cycles) {
+    const closed = cycles.filter((c) => c.status === 'closed').sort((a, b) => {
+      const da = a.closedDate || '0000';
+      const db = b.closedDate || '0000';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+    closed.forEach((c, i) => { c.label = `${i + 1}차`; });
+    cycles.filter((c) => c.status === 'open').forEach((c) => {
+      c.label = `${closed.length + 1}차`;
+    });
+  }
+
+  function normalizeCycle(c) {
+    const entries = mapStoredEntries(c.entries || []);
+    const expenditures = mapStoredExpenditures(c.expenditures || []);
+    const legacySummaryOnly = !!c.legacySummaryOnly
+      || (c.status === 'closed' && entries.length === 0 && expenditures.length === 0
+        && (c.entryTotal != null || c.txList?.length || c.netTotal != null));
+    return {
+      id: c.id || genId(),
+      label: c.label || '',
+      status: c.status === 'closed' ? 'closed' : 'open',
+      closedDate: c.closedDate || c.date || null,
+      entries,
+      expenditures,
+      entryTotal: c.entryTotal,
+      expTotal: c.expTotal,
+      netTotal: c.netTotal,
+      txList: Array.isArray(c.txList) ? c.txList.map((t) => ({ ...t })) : [],
+      legacySummaryOnly
+    };
+  }
+
+  function getActiveCycle() {
+    return (state.cycles || []).find((c) => c.status === 'open') || null;
+  }
+
+  function getViewCycle() {
+    ensureInitialCycle();
+    const cycles = state.cycles || [];
+    if (!cycles.length) return null;
+    let c = cycles.find((x) => x.id === state.viewCycleId);
+    if (!c) c = cycles.find((x) => x.id === state.activeCycleId);
+    if (!c) c = getActiveCycle() || cycles[0];
+    return c;
+  }
+
+  function viewEntries() { return getViewCycle().entries; }
+  function viewExpenditures() { return getViewCycle().expenditures; }
+
+  function isViewingActiveOpen() {
+    const active = getActiveCycle();
+    const view = getViewCycle();
+    return active && view && active.id === view.id && view.status === 'open';
+  }
+
+  function cycleLiveTotals(c) {
+    const entryTotal = c.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const expTotal = c.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    return { entryTotal, expTotal, netTotal: entryTotal - expTotal };
+  }
+
+  function cycleDisplayMeta(c) {
+    if (c.legacySummaryOnly) {
+      const et = c.entryTotal != null ? c.entryTotal : 0;
+      const xt = c.expTotal != null ? c.expTotal : 0;
+      const net = c.netTotal != null ? c.netTotal : (et - xt);
+      return { entryTotal: et, expTotal: xt, netTotal: net };
+    }
+    return cycleLiveTotals(c);
+  }
+
+  function setViewCycleId(id) {
+    if (!(state.cycles || []).some((c) => c.id === id)) return;
+    state.viewCycleId = id;
+    render();
+  }
+
+  function migrateParsedToCycles(parsed) {
+    if (parsed.cycles && Array.isArray(parsed.cycles) && parsed.cycles.length) {
+      const cycles = parsed.cycles.map(normalizeCycle);
+      let activeCycleId = parsed.activeCycleId;
+      if (!cycles.some((c) => c.id === activeCycleId && c.status === 'open')) {
+        activeCycleId = cycles.find((c) => c.status === 'open')?.id || null;
+      }
+      if (!cycles.some((c) => c.status === 'open')) {
+        const newId = genId();
+        cycles.push(normalizeCycle({ id: newId, status: 'open', entries: [], expenditures: [] }));
+        activeCycleId = newId;
+      }
+      relabelCycles(cycles);
+      const viewCycleId = parsed.viewCycleId && cycles.some((c) => c.id === parsed.viewCycleId)
+        ? parsed.viewCycleId
+        : activeCycleId;
+      return {
+        members: parsed.members && parsed.members.length === 3 ? parsed.members : [...DEFAULT_MEMBERS],
+        cycles,
+        activeCycleId,
+        viewCycleId
+      };
+    }
+
+    const cycles = [];
+    (parsed.history || []).forEach((h) => {
+      cycles.push(normalizeCycle({
+        id: h.id || genId(),
+        status: 'closed',
+        closedDate: h.date || todayStr(),
+        entries: h.entries || [],
+        expenditures: (h.expenditures || []).map((x) => ({ ...x, id: x.id || genId() })),
+        entryTotal: h.entryTotal != null ? h.entryTotal : h.total,
+        expTotal: h.expTotal,
+        netTotal: h.netTotal != null ? h.netTotal : h.total,
+        txList: h.txList || []
+      }));
+    });
+    const activeId = genId();
+    cycles.push(normalizeCycle({
+      id: activeId,
+      status: 'open',
+      entries: parsed.entries || [],
+      expenditures: parsed.expenditures || []
+    }));
+    relabelCycles(cycles);
+    return {
+      members: parsed.members && parsed.members.length === 3 ? parsed.members : [...DEFAULT_MEMBERS],
+      cycles,
+      activeCycleId: activeId,
+      viewCycleId: activeId
+    };
+  }
 
   function bindMoneyInput(id) {
     const el = $(id);
@@ -1093,7 +1316,9 @@
   }
 
   function countUnsoldEntries() {
-    return state.entries.filter((e) => entryStatus(e) === 'unsold').length;
+    const c = getViewCycle();
+    if (!c) return 0;
+    return c.entries.filter((e) => entryStatus(e) === 'unsold').length;
   }
 
   function getContributorIdxs(entry) {
@@ -1189,38 +1414,13 @@
 
   function parseStoredState(raw) {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    let historyNeedsId = false;
-    const next = {
-      members: parsed.members && parsed.members.length === 3 ? parsed.members : [...DEFAULT_MEMBERS],
-          entries: (parsed.entries || []).map(e => {
-            const status = e.status || (Number(e.price) > 0 ? 'sold' : 'unsold');
-            const entry = {
-              ...e,
-              split: (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT],
-              status,
-              price: status === 'unsold' ? 0 : Number(e.price) || 0
-            };
-            return normalizeEntry(entry);
-          }),
-      expenditures: (parsed.expenditures || []).map(x => ({
-        id: x.id,
-        desc: x.desc,
-        amount: x.amount,
-        beneficiaryIdx: x.beneficiaryIdx != null ? x.beneficiaryIdx : 0,
-        date: x.date,
-        split: (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT]
-      })),
-      history: (parsed.history || []).map(h => {
-        if (!h.id) historyNeedsId = true;
-        return { ...h, id: h.id || genId() };
-      })
-    };
-    return { next, historyNeedsId };
+    const next = migrateParsedToCycles(parsed);
+    return { next, needsResave: !!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length };
   }
 
-  function applyStateFromRemote(next, historyNeedsId) {
+  function applyStateFromRemote(next, needsResave) {
     state = next;
-    if (historyNeedsId) scheduleSave();
+    if (needsResave) scheduleSave();
     render();
   }
 
@@ -1268,8 +1468,8 @@
         .maybeSingle();
       if (error) throw error;
       if (data && data.data) {
-        const { next, historyNeedsId } = parseStoredState(data.data);
-        applyStateFromRemote(next, historyNeedsId);
+        const { next, needsResave } = parseStoredState(data.data);
+        applyStateFromRemote(next, needsResave);
         return true;
       }
       return false;
@@ -1277,16 +1477,16 @@
     if (storageMode === 'cursor') {
       const res = await window.storage.get(STORAGE_KEY, true);
       if (res && res.value) {
-        const { next, historyNeedsId } = parseStoredState(res.value);
-        applyStateFromRemote(next, historyNeedsId);
+        const { next, needsResave } = parseStoredState(res.value);
+        applyStateFromRemote(next, needsResave);
         return true;
       }
       return false;
     }
     const local = localStorage.getItem(STORAGE_KEY + ':' + ROOM_ID);
     if (local) {
-      const { next, historyNeedsId } = parseStoredState(local);
-      applyStateFromRemote(next, historyNeedsId);
+      const { next, needsResave } = parseStoredState(local);
+      applyStateFromRemote(next, needsResave);
       return true;
     }
     return false;
@@ -1325,8 +1525,8 @@
         const row = payload.new;
         if (!row || !row.data) return;
         try {
-          const { next, historyNeedsId } = parseStoredState(row.data);
-          applyStateFromRemote(next, historyNeedsId);
+          const { next, needsResave } = parseStoredState(row.data);
+          applyStateFromRemote(next, needsResave);
           updateStatusUi();
         } catch (e) { /* ignore bad payload */ }
       })
@@ -1525,7 +1725,7 @@
 
   function getSortedEntries() {
     const dir = sortState.direction === 'asc' ? 1 : -1;
-    return [...state.entries].sort((a, b) => {
+    return [...viewEntries()].sort((a, b) => {
       if (sortState.column === 'date') {
         if (a.date < b.date) return -1 * dir;
         if (a.date > b.date) return 1 * dir;
@@ -1570,7 +1770,8 @@
     });
     body.querySelectorAll('.entry-del-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        state.entries = state.entries.filter((e) => e.id !== btn.dataset.id);
+        const cycleDel = getViewCycle();
+        cycleDel.entries = cycleDel.entries.filter((e) => e.id !== btn.dataset.id);
         scheduleSave();
         renderLedger();
         renderSettlement();
@@ -1579,7 +1780,7 @@
     body.querySelectorAll('.entry-edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => openEntryEdit(btn.dataset.id));
     });
-    const total = state.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const total = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
     $('totalAmount').innerHTML = fmt(total);
   }
 
@@ -1587,7 +1788,7 @@
   function renderExpenditures() {
     const body = $('expBody');
     body.innerHTML = '';
-    const sorted = [...state.expenditures].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const sorted = [...viewExpenditures()].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     $('expEmptyState').style.display = sorted.length === 0 ? 'block' : 'none';
     sorted.forEach((x) => {
       const ben = state.members[x.beneficiaryIdx] || '?';
@@ -1609,7 +1810,8 @@
     });
     body.querySelectorAll('.exp-del-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        state.expenditures = state.expenditures.filter((x) => x.id !== btn.dataset.id);
+        const cycleDelX = getViewCycle();
+        cycleDelX.expenditures = cycleDelX.expenditures.filter((x) => x.id !== btn.dataset.id);
         scheduleSave();
         renderExpenditures();
         renderSettlement();
@@ -1618,14 +1820,14 @@
     body.querySelectorAll('.exp-edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => openExpEdit(btn.dataset.id));
     });
-    const total = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    const total = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     $('expTotalAmount').innerHTML = fmt(total);
   }
 
   // ---------- settlement ----------
   function computeHeld() {
     const held = state.members.map(() => 0);
-    state.entries.forEach(e => {
+    viewEntries().forEach(e => {
       if (!isSoldEntry(e)) return;
       const i = e.ownerIdx != null ? Number(e.ownerIdx) : 0;
       if (i >= 0 && i < held.length) held[i] += Number(e.price);
@@ -1635,12 +1837,12 @@
 
   function computeFairShare() {
     const fair = state.members.map(() => 0);
-    state.entries.forEach(e => {
+    viewEntries().forEach(e => {
       if (!isSoldEntry(e)) return;
       const split = (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { fair[i] += Number(e.price) * (Number(p) / 100); });
     });
-    state.expenditures.forEach(x => {
+    viewExpenditures().forEach(x => {
       const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { fair[i] -= Number(x.amount) * (Number(p) / 100); });
     });
@@ -1649,7 +1851,7 @@
 
   function computeExpShare() {
     const expShare = state.members.map(() => 0);
-    state.expenditures.forEach(x => {
+    viewExpenditures().forEach(x => {
       const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { expShare[i] += Number(x.amount) * (Number(p) / 100); });
     });
@@ -1661,31 +1863,27 @@
     const fair = computeFairShare();
     const diffs = state.members.map((_, i) => held[i] - fair[i]);
     const expShare = computeExpShare();
-    const entryTotal = state.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
-    const expTotal = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
-    const soldCount = state.entries.filter(isSoldEntry).length;
+    const soldCount = viewEntries().filter(isSoldEntry).length;
     const unsoldCount = countUnsoldEntries();
-    const expCount = state.expenditures.length;
-    const settleCount = (state.history || []).length;
-    const historyNet = (state.history || []).reduce((s, h) => {
-      const et = h.entryTotal != null ? h.entryTotal : 0;
-      const xt = h.expTotal != null ? h.expTotal : 0;
-      const net = h.netTotal != null ? h.netTotal : (et - xt);
-      return s + net;
-    }, 0);
+    const expCount = viewExpenditures().length;
+    const closedCycles = (state.cycles || []).filter((c) => c.status === 'closed');
+    const settleCount = closedCycles.length;
+    const historyNet = closedCycles.reduce((s, c) => s + cycleDisplayMeta(c).netTotal, 0);
 
     const memberStats = state.members.map((name, i) => {
-      const asOwner = state.entries.filter((e) => isSoldEntry(e) && Number(e.ownerIdx) === i);
+      const asOwner = viewEntries().filter((e) => isSoldEntry(e) && Number(e.ownerIdx) === i);
       const salesSum = asOwner.reduce((s, e) => s + Number(e.price), 0);
       let contribCount = 0;
-      state.entries.forEach((e) => {
+      viewEntries().forEach((e) => {
         if (getContributorIdxs(e).includes(i)) contribCount++;
       });
       return { name, salesCount: asOwner.length, salesSum, contribCount };
     });
 
-    const topItems = [...state.entries]
+    const topItems = [...viewEntries()]
       .filter(isSoldEntry)
       .sort((a, b) => Number(b.price) - Number(a.price))
       .slice(0, 5);
@@ -1752,7 +1950,21 @@
     `;
   }
 
+  function ensureInitialCycle() {
+    if (state.cycles && state.cycles.length) return;
+    const id = genId();
+    state.cycles = [normalizeCycle({ id, status: 'open', entries: [], expenditures: [] })];
+    state.activeCycleId = id;
+    state.viewCycleId = id;
+    relabelCycles(state.cycles);
+  }
+
   function openStatsModal() {
+    ensureInitialCycle();
+    const view = getViewCycle();
+    if (view) {
+      $('statsModalSub').textContent = `${view.label}${view.status === 'open' ? ' (작성 중)' : ' (완료)'} · 획득·지출·정산 기준`;
+    }
     renderStatsModal();
     $('statsModal').hidden = false;
   }
@@ -1783,10 +1995,10 @@
       if (c.amt <= 1) ci++;
     }
 
-    const entryTotal = state.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
-    const expTotal = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
-    const hasSettleData = state.entries.length > 0 || state.expenditures.length > 0;
+    const hasSettleData = viewEntries().length > 0 || viewExpenditures().length > 0;
 
     $('settleLead').style.display = hasSettleData ? 'block' : 'none';
     $('settleBreakdown').style.display = hasSettleData ? 'block' : 'none';
@@ -1895,7 +2107,7 @@
     state._lastExpTotal = expTotal;
     state._lastNetTotal = entryTotal - expTotal;
     state._lastTxList = txList.map(t => ({ from: t.from, to: t.to, amt: Math.round(t.amt) }));
-    state._lastExpenditures = state.expenditures.map(x => ({
+    state._lastExpenditures = viewExpenditures().map(x => ({
       desc: x.desc,
       amount: Number(x.amount),
       beneficiaryIdx: x.beneficiaryIdx,
@@ -1906,9 +2118,35 @@
   }
 
   function updateSettleButton() {
-    const unsold = countUnsoldEntries();
     const btn = $('settleDoneBtn');
     const box = $('settleBlockReason');
+    const wrap = $('settleActionsWrap');
+    const note = $('settleViewNote');
+    const legacy = $('cycleLegacyBanner');
+    const view = getViewCycle();
+    if (legacy) {
+      legacy.classList.toggle('visible', !!(view && view.legacySummaryOnly));
+    }
+    if (!isViewingActiveOpen()) {
+      wrap.classList.add('settle-actions--hidden');
+      if (view && view.status === 'closed') {
+        const active = getActiveCycle();
+        note.classList.add('visible');
+        note.textContent = active
+          ? `${view.label}는 완료된 회차예요. 장부·지출 수정은 저장돼요. 새 정산 완료는 ${active.label}(작성 중)에서만 할 수 있어요.`
+          : `${view.label}는 완료된 회차예요.`;
+      } else {
+        note.classList.remove('visible');
+        note.textContent = '';
+      }
+      box.style.display = 'none';
+      box.textContent = '';
+      return;
+    }
+    wrap.classList.remove('settle-actions--hidden');
+    note.classList.remove('visible');
+    note.textContent = '';
+    const unsold = countUnsoldEntries();
     if (unsold > 0) {
       btn.disabled = true;
       box.style.display = 'block';
@@ -1937,7 +2175,7 @@
   }
 
   function openEntryEdit(id) {
-    const entry = state.entries.find((x) => x.id === id);
+    const entry = viewEntries().find((x) => x.id === id);
     if (!entry) return;
     editingEntryId = id;
     editingField = true;
@@ -1961,7 +2199,7 @@
 
   function saveEntryEdit() {
     if (!editingEntryId) return;
-    const entry = state.entries.find((x) => x.id === editingEntryId);
+    const entry = viewEntries().find((x) => x.id === editingEntryId);
     if (!entry) return;
     const price = parseMoneyInput($('eEditPrice').value);
     const unsold = price <= 0;
@@ -1983,7 +2221,7 @@
   }
 
   function openExpEdit(id) {
-    const x = state.expenditures.find((row) => row.id === id);
+    const x = viewExpenditures().find((row) => row.id === id);
     if (!x) return;
     editingExpId = id;
     editingField = true;
@@ -2004,7 +2242,7 @@
 
   function saveExpEdit() {
     if (!editingExpId) return;
-    const x = state.expenditures.find((row) => row.id === editingExpId);
+    const x = viewExpenditures().find((row) => row.id === editingExpId);
     if (!x) return;
     const desc = $('xEditDesc').value.trim();
     const amount = parseMoneyInput($('xEditAmount').value);
@@ -2108,12 +2346,12 @@
   }
 
   function openHistoryEdit(id) {
-    const h = state.history.find((x) => x.id === id);
-    if (!h) return;
+    const h = (state.cycles || []).find((x) => x.id === id);
+    if (!h || h.status !== 'closed') return;
     editingHistoryId = id;
     editingField = true;
-    $('hEditDate').value = h.date || todayStr();
-    $('hEditEntryTotal').value = formatMoneyInput(h.entryTotal != null ? h.entryTotal : (h.total || 0));
+    $('hEditDate').value = h.closedDate || todayStr();
+    $('hEditEntryTotal').value = formatMoneyInput(h.entryTotal != null ? h.entryTotal : 0);
     $('hEditExpTotal').value = formatMoneyInput(h.expTotal != null ? h.expTotal : 0);
     updateHEditNetPreview();
     fillHEditTxRows(h.txList || []);
@@ -2129,88 +2367,103 @@
 
   function saveHistoryEdit() {
     if (!editingHistoryId) return;
-    const h = state.history.find((x) => x.id === editingHistoryId);
+    const h = (state.cycles || []).find((x) => x.id === editingHistoryId);
     if (!h) return;
     const entryTotal = parseMoneyInput($('hEditEntryTotal').value);
     const expTotal = parseMoneyInput($('hEditExpTotal').value);
     const netTotal = entryTotal - expTotal;
-    h.date = $('hEditDate').value || todayStr();
+    h.closedDate = $('hEditDate').value || todayStr();
     h.entryTotal = entryTotal;
     h.expTotal = expTotal;
     h.netTotal = netTotal;
-    h.total = netTotal;
     h.txList = collectHEditTxList();
     h.expenditures = collectHEditExpList();
     closeHistoryEdit();
     scheduleSave();
-    renderHistory();
+    renderCycleBar();
   }
 
-  function deleteHistory(id) {
-    if (!confirm('이 정산 기록을 삭제할까요?')) return;
-    state.history = state.history.filter((x) => x.id !== id);
-    expandedHistoryIds.delete(id);
+  function deleteClosedCycle(id) {
+    const c = (state.cycles || []).find((x) => x.id === id);
+    if (!c || c.status !== 'closed') return;
+    if (!confirm(`${c.label} 정산 기록을 삭제할까요? (이 회차 획득·지출 포함)`)) return;
+    state.cycles = state.cycles.filter((x) => x.id !== id);
+    if (state.viewCycleId === id) state.viewCycleId = state.activeCycleId;
+    relabelCycles(state.cycles);
     scheduleSave();
-    renderHistory();
+    render();
   }
 
-  function historyMetaLine(h, netTotal) {
-    const txCount = (h.txList && h.txList.length) || 0;
-    const expCount = (h.expenditures && h.expenditures.length) || 0;
-    const parts = [`나눌 돈 ${fmtNum(netTotal)}`];
-    if (expCount) parts.push(`지출 ${expCount}건`);
-    parts.push(`송금 ${txCount}건`);
-    return parts.join(' · ');
-  }
-
-  // ---------- history ----------
-  function renderHistory() {
-    const card = $('historyCard');
-    const list = $('historyList');
-    if (!state.history || state.history.length === 0) { card.style.display = 'none'; return; }
-    card.style.display = 'block';
-    list.innerHTML = '';
-    [...state.history].reverse().forEach((h) => {
-      const entryTotal = h.entryTotal != null ? h.entryTotal : (h.total || 0);
-      const expTotal = h.expTotal != null ? h.expTotal : 0;
-      const netTotal = h.netTotal != null ? h.netTotal : (entryTotal - expTotal);
-      const chipsHtml = (h.txList && h.txList.length)
-        ? h.txList.map(t => txChipHtml(t.from, t.to, t.amt)).join('')
-        : '<span class="h-empty-chip">송금할 차액 없음</span>';
-      let expBlock = '';
-      if (h.expenditures && h.expenditures.length) {
-        const items = h.expenditures.map(x => {
-          const ben = state.members[x.beneficiaryIdx] || '?';
-          return `<div class="exp-chip"><span class="exp-name">${escapeHtml(x.desc)}</span><span class="exp-amt">${fmtNum(x.amount)}</span><span class="person-badge ben">수혜 ${escapeHtml(ben)}</span><span class="exp-date">${x.date}</span></div>`;
-        }).join('');
-        expBlock = `<div class="section-caption">공동 지출</div><div class="h-exp-grid">${items}</div>`;
-      }
-      const isOpen = expandedHistoryIds.has(h.id);
-      const div = document.createElement('div');
-      div.className = 'history-item' + (isOpen ? ' open' : '');
-      div.dataset.id = h.id;
-      div.innerHTML = `
-        <div class="history-summary">
-          <span class="hist-chevron">▶</span>
-          <span class="hist-line-main">${h.date} 정산</span>
-          <span class="hist-line-meta">${historyMetaLine(h, netTotal)}</span>
-          <div class="h-actions">
-            <button type="button" class="btn-ghost btn-sm hist-edit-btn" data-id="${escapeHtml(h.id)}">수정</button>
-            <button type="button" class="icon-btn hist-del-btn" data-id="${escapeHtml(h.id)}" title="삭제">×</button>
-          </div>
-        </div>
-        <div class="history-detail">
-          ${statPillsHtml(entryTotal, expTotal, netTotal)}
-          ${expBlock}
-          <div class="section-caption">송금 내역</div>
-          <div class="tx-chip-grid">${chipsHtml}</div>
-        </div>
-      `;
-      list.appendChild(div);
+  function renderCycleBar() {
+    if (!state.cycles || !state.cycles.length) return;
+    relabelCycles(state.cycles);
+    const tabs = $('cycleTabs');
+    const hint = $('cycleViewHint');
+    tabs.innerHTML = '';
+    const sorted = [...state.cycles].sort((a, b) => {
+      if (a.status === 'open') return 1;
+      if (b.status === 'open') return -1;
+      const da = a.closedDate || '0000';
+      const db = b.closedDate || '0000';
+      return da < db ? -1 : da > db ? 1 : 0;
     });
+    const viewingId = getViewCycle().id;
+    sorted.forEach((c) => {
+      const meta = cycleDisplayMeta(c);
+      const isActive = c.id === viewingId;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cycle-tab'
+        + (isActive ? ' active' : '')
+        + (c.status === 'open' ? ' cycle-tab--open' : ' cycle-tab--closed');
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      const badge = c.status === 'open'
+        ? '<span class="cycle-tab-badge open">작성 중</span>'
+        : '<span class="cycle-tab-badge closed">완료</span>';
+      let metaLine = '';
+      if (c.status === 'closed') {
+        const d = c.closedDate || '—';
+        metaLine = `${d} · 나눌 돈 ${fmtNum(meta.netTotal)}`;
+      } else {
+        const n = c.entries.length + c.expenditures.length;
+        metaLine = n ? `획득·지출 ${n}건 적음` : '비어 있음 · 여기부터 적어요';
+      }
+      btn.innerHTML = `
+        <div class="cycle-tab-top">
+          <span class="cycle-tab-label">${escapeHtml(c.label)}</span>
+          ${badge}
+          ${c.status === 'closed' ? `<button type="button" class="cycle-tab-del" title="이 회차 삭제" data-del="${escapeHtml(c.id)}">×</button>` : ''}
+        </div>
+        <span class="cycle-tab-meta">${escapeHtml(metaLine)}</span>
+      `;
+      btn.addEventListener('click', (e) => {
+        if (e.target.closest('.cycle-tab-del')) return;
+        setViewCycleId(c.id);
+      });
+      const del = btn.querySelector('.cycle-tab-del');
+      if (del) {
+        del.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteClosedCycle(c.id);
+        });
+      }
+      tabs.appendChild(btn);
+    });
+
+    const active = getActiveCycle();
+    const viewing = getViewCycle();
+    if (viewing.status === 'closed' && active) {
+      hint.textContent = `${active.label} 작성 중 · 지금 ${viewing.label} 보기/수정`;
+    } else if (viewing.status === 'open') {
+      hint.textContent = `${viewing.label} — 획득·지출·정산은 이 회차에만 저장돼요`;
+    } else {
+      hint.textContent = '';
+    }
   }
 
   function render() {
+    ensureInitialCycle();
     renderMembers();
     renderMemberSelects();
     renderSplitFields();
@@ -2218,7 +2471,7 @@
     renderLedger();
     renderExpenditures();
     renderSettlement();
-    renderHistory();
+    renderCycleBar();
   }
 
   $('fDate').value = todayStr();
@@ -2230,27 +2483,9 @@
   $('hEditEntryTotal').addEventListener('input', updateHEditNetPreview);
   $('hEditExpTotal').addEventListener('input', updateHEditNetPreview);
 
-  $('historyList').addEventListener('click', (e) => {
-    const editBtn = e.target.closest('.hist-edit-btn');
-    const delBtn = e.target.closest('.hist-del-btn');
-    if (editBtn) {
-      e.stopPropagation();
-      openHistoryEdit(editBtn.dataset.id);
-      return;
-    }
-    if (delBtn) {
-      e.stopPropagation();
-      deleteHistory(delBtn.dataset.id);
-      return;
-    }
-    const summary = e.target.closest('.history-summary');
-    if (!summary || e.target.closest('.h-actions')) return;
-    const item = summary.closest('.history-item');
-    if (!item) return;
-    const id = item.dataset.id;
-    item.classList.toggle('open');
-    if (item.classList.contains('open')) expandedHistoryIds.add(id);
-    else expandedHistoryIds.delete(id);
+  $('cycleLegacyEditBtn').addEventListener('click', () => {
+    const view = getViewCycle();
+    if (view && view.legacySummaryOnly) openHistoryEdit(view.id);
   });
 
   $('hEditCancelBtn').addEventListener('click', closeHistoryEdit);
@@ -2288,7 +2523,7 @@
     if (Math.abs(sum - 100) > 0.01) { return; }
 
     addContributorSelection = [...contributorIdxs];
-    state.entries.push(normalizeEntry({
+    viewEntries().push(normalizeEntry({
       id: genId(),
       item,
       price: unsold ? 0 : price,
@@ -2324,7 +2559,7 @@
     if (!amount || amount <= 0) { $('fExpAmount').focus(); return; }
     if (Math.abs(sum - 100) > 0.01) { return; }
 
-    state.expenditures.push({ id: genId(), desc, amount, beneficiaryIdx, date, split: [...currentExpSplit] });
+    viewExpenditures().push({ id: genId(), desc, amount, beneficiaryIdx, date, split: [...currentExpSplit] });
 
     $('fExpDesc').value = '';
     $('fExpAmount').value = '';
@@ -2385,22 +2620,30 @@
   });
 
   $('settleDoneBtn').addEventListener('click', () => {
+    if (!isViewingActiveOpen()) return;
     if (countUnsoldEntries() > 0) return;
-    if (state.entries.length === 0 && state.expenditures.length === 0) return;
-    const ok = confirm('지금 정산 내역대로 실제로 돈을 주고받으셨나요?\n확인하면 장부와 지출 내역이 비워지고 기록에 남아요.');
+    if (viewEntries().length === 0 && viewExpenditures().length === 0) return;
+    const ok = confirm('지금 정산 내역대로 실제로 돈을 주고받으셨나요?\n확인하면 이 회차는 그대로 저장되고, 새 회차가 시작돼요.');
     if (!ok) return;
-    state.history.push({
-      id: genId(),
-      date: todayStr(),
-      entryTotal: state._lastEntryTotal || 0,
-      expTotal: state._lastExpTotal || 0,
-      netTotal: state._lastNetTotal || 0,
-      total: state._lastNetTotal || 0,
-      txList: state._lastTxList || [],
-      expenditures: state._lastExpenditures || []
-    });
-    state.entries = [];
-    state.expenditures = [];
+    const c = getActiveCycle();
+    if (!c) return;
+    c.status = 'closed';
+    c.closedDate = todayStr();
+    c.legacySummaryOnly = false;
+    c.entryTotal = state._lastEntryTotal || 0;
+    c.expTotal = state._lastExpTotal || 0;
+    c.netTotal = state._lastNetTotal || 0;
+    c.txList = (state._lastTxList || []).map((t) => ({ ...t }));
+    const newId = genId();
+    state.cycles.push(normalizeCycle({
+      id: newId,
+      status: 'open',
+      entries: [],
+      expenditures: []
+    }));
+    state.activeCycleId = newId;
+    state.viewCycleId = newId;
+    relabelCycles(state.cycles);
     scheduleSave();
     render();
   });
