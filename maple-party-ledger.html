@@ -713,6 +713,26 @@
     background: #FEE2E2; border-radius: 4px; padding: 1px 5px; margin-right: 4px; vertical-align: middle;
   }
   .maker-settle-panel { margin-bottom: 0; }
+  .settle-net-profit {
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line);
+  }
+  .settle-net-profit .settle-summary-label { margin-bottom: 8px; }
+  .settle-net-formula {
+    font-size: 13px; line-height: 1.55; color: var(--ink-soft); margin-bottom: 8px;
+  }
+  .settle-net-formula strong { color: var(--ink); font-weight: 700; }
+  .settle-net-amt {
+    display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em;
+  }
+  .settle-net-amt--plus { color: var(--forest); }
+  .settle-net-amt--minus { color: #B91C1C; }
+  .settle-net-tag {
+    font-family: Inter, sans-serif; font-size: 11px; font-weight: 800;
+    padding: 4px 10px; border-radius: 100px; vertical-align: middle;
+  }
+  .settle-net-tag--plus { background: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+  .settle-net-tag--minus { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
   .maker-tier-tag {
     display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px;
     background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;
@@ -1257,6 +1277,7 @@
       </table>
     </div>
     <div id="makerEmpty" class="empty-state" style="display:none;">메이커 재련 기록이 없어요.</div>
+    <p class="takeover-hint" id="makerProfitHint" style="display:none;margin-top:12px;"></p>
   </div>
 
   <div class="card card-zone-expense">
@@ -1772,6 +1793,38 @@
         </div>
         ${yieldBar}
         ${refLine}
+      </div>`;
+  }
+
+  function makerCycleCostTotal() {
+    return viewMakerRefines().reduce((s, r) => s + computeMakerBatchCosts(r).total, 0);
+  }
+
+  function makerCycleNetSummaryHtml(entryTotal, expTotal, fair) {
+    const makerTotal = makerCycleCostTotal();
+    if (makerTotal <= 0 && entryTotal <= 0 && expTotal <= 0) return '';
+    const netParty = Math.round(entryTotal - expTotal - makerTotal);
+    const fairSum = Math.round(fair.reduce((a, b) => a + Number(b || 0), 0));
+    const plus = netParty >= 0;
+    const salesMissing = makerTotal > 0 && entryTotal <= 0;
+    const warn = salesMissing
+      ? '<p class="takeover-hint" style="margin:8px 0 0;">아직 <strong>획득 장부에 판매가</strong>가 없어요. 보석 팔았으면 획득 추가 → 판매가 입력하면 순수익이 잡혀요.</p>'
+      : '';
+    return `
+      <div class="settle-net-profit">
+        <div class="settle-summary-label">메이커 포함 · 회차 순수익 (파티 합계)</div>
+        <div class="settle-net-formula">
+          판매 <strong>${fmtNum(entryTotal)}</strong> − 지출 <strong>${fmtNum(expTotal)}</strong> − 메이커 비용 <strong>${fmtNum(makerTotal)}</strong>
+          (재료+재련 메소)
+        </div>
+        <div class="settle-net-amt ${plus ? 'settle-net-amt--plus' : 'settle-net-amt--minus'}">
+          <span class="settle-net-tag ${plus ? 'settle-net-tag--plus' : 'settle-net-tag--minus'}">${plus ? '순수익' : '순손실'}</span>
+          ${fmtNum(Math.abs(netParty))}${MESO_ICON_LG_HTML}
+        </div>
+        <p class="takeover-hint" style="margin:8px 0 0;">
+          3명 <strong>인당 가져갈 금액</strong> 합 ≈ <strong>${fmtNum(fairSum)}</strong> (분배 비율·송금 반영 후). 개인 수익은 정산 카드 각 이름 아래 숫자를 보세요.
+        </p>
+        ${warn}
       </div>`;
   }
 
@@ -3071,8 +3124,11 @@
     $('settleTakehome').style.display = hasSettleData ? 'block' : 'none';
 
     if (hasSettleData) {
+      const makerNetBlock = (hasMakerRefines || makerCycleCostTotal() > 0)
+        ? makerCycleNetSummaryHtml(entryTotal, expTotal, fair)
+        : '';
       $('settleOverview').innerHTML =
-        `<div class="settle-summary-label">모인 돈 − 공동 지출 = 나눌 돈</div>${statPillsHtml(entryTotal, expTotal, netTotal)}`;
+        `<div class="settle-summary-label">모인 돈 − 공동 지출 = 나눌 돈</div>${statPillsHtml(entryTotal, expTotal, netTotal)}${makerNetBlock}`;
       const takeGrid = $('settleTakehomeGrid');
       takeGrid.innerHTML = '';
       state.members.forEach((name, i) => {
@@ -3397,6 +3453,18 @@
       btn.addEventListener('click', () => deleteMakerRefine(btn.dataset.id));
     });
     updateMakerPreview('fMaker', 'fMakerPreview');
+    const hint = $('makerProfitHint');
+    const makerTotal = makerCycleCostTotal();
+    const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    if (list.length === 0) {
+      hint.style.display = 'none';
+      hint.innerHTML = '';
+    } else {
+      hint.style.display = 'block';
+      hint.innerHTML = makerTotal > 0 && entryTotal <= 0
+        ? '메이커는 <strong>비용만</strong> 여기 적어요. <strong>수익(판매가)</strong>은 위 <strong>획득 장부</strong>에 넣으면 → <strong>정산</strong>에 「순수익」과 「인당 가져갈 금액」으로 보여요.'
+        : '수익은 <strong>획득 장부 판매가</strong>, 비용은 이 표 · 정산 「메이커 포함 순수익」에서 확인하세요.';
+    }
   }
 
   function openMakerEdit(id) {
