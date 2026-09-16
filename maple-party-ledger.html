@@ -1272,7 +1272,7 @@
     </div>
     <div class="table-scroll" style="margin-top:14px;">
       <table class="data-table">
-        <thead><tr><th>보석</th><th>재련자</th><th>재련 (하/중/상)</th><th>획득 (하/중/상)</th><th class="col-amount">재료<br><span class="maker-col-hint">기회비용</span></th><th class="col-amount">재련 메소<br><span class="maker-col-hint">재련자 선납</span></th><th class="col-amount">1인당<br><span class="maker-col-hint">부담(비용)</span></th><th class="col-actions"></th></tr></thead>
+        <thead><tr><th>보석</th><th>재련자</th><th>재련 (하/중/상)</th><th>획득 (하/중/상)</th><th class="col-amount">재료<br><span class="maker-col-hint">기회비용</span></th><th class="col-amount">재련 메소<br><span class="maker-col-hint">재련자 선납</span></th><th class="col-amount">1인당<br><span class="maker-col-hint">재련 메소(⅓)</span></th><th class="col-actions"></th></tr></thead>
         <tbody id="makerBody"></tbody>
       </table>
     </div>
@@ -1750,7 +1750,7 @@
 
   function makerBreakdownPanelHtml(row, opts) {
     const options = opts || {};
-    const { meso, material, total, perMember } = computeMakerBatchCosts(row);
+    const { meso, material, total, perMemberMeso, perMemberMaterial } = computeMakerBatchCosts(row);
     const yieldVal = computeMakerYieldValue(row);
     const yieldSum = row.yieldLow + row.yieldMid + row.yieldHigh;
     const diff = yieldVal - total;
@@ -1787,10 +1787,16 @@
           </div>
         </div>
         <div class="maker-burden-bar">
-          <span class="maker-burden-tag">1인당 부담 · 비용</span>
-          <span class="maker-burden-amt">${fmtNum(perMember)}</span>
-          <span class="maker-burden-sub">=(재료+메소)÷3 · 수익이 아니라 <strong>각자 몫에서 깎일/맞출 금액</strong></span>
+          <span class="maker-burden-tag">1인당 재련 메소(⅓)</span>
+          <span class="maker-burden-amt">${fmtNum(perMemberMeso)}</span>
+          <span class="maker-burden-sub">재련자가 낸 <strong>11/33/55만</strong> 중 각자 몫 · <strong>송금·정산</strong>에 맞추는 금액</span>
         </div>
+        ${material > 0 ? `
+        <div class="maker-burden-bar" style="background:#F5F3FF;border-color:#C4B5FD;">
+          <span class="maker-burden-tag" style="background:#EDE9FE;color:#5B21B6;border-color:#A78BFA;">재료 몫 차감(⅓)</span>
+          <span class="maker-burden-amt" style="color:#5B21B6;font-size:20px;">${fmtNum(perMemberMaterial)}</span>
+          <span class="maker-burden-sub" style="color:#5B21B6;">원석 등 <strong>기회비용</strong> · 현금 송금 아님 · 판매 몫에서 깎임</span>
+        </div>` : ''}
         ${yieldBar}
         ${refLine}
       </div>`;
@@ -1829,27 +1835,23 @@
   }
 
   function makerSettleTotalsPanelHtml(matSum, mesoSum) {
-    const total = matSum + mesoSum;
-    const perMember = Math.round(total / 3);
+    const perMemberMeso = Math.round(mesoSum / 3);
+    const perMemberMaterial = Math.round(matSum / 3);
     return `
       <div class="maker-preview-panel maker-settle-panel">
         <div class="maker-preview-cols">
           <div class="maker-stat-card maker-stat-card--material">
             <div class="maker-stat-label">재료 · 기회비용 합</div>
             <div class="maker-stat-amt">${fmtNum(matSum)}</div>
-            <div class="maker-stat-desc">정산: 인당 몫에서 깎임 (송금 항목 아님)</div>
+            <div class="maker-stat-desc">1인당 몫 차감 ≈ ${fmtNum(perMemberMaterial)} · 송금 아님</div>
           </div>
           <div class="maker-stat-card maker-stat-card--meso">
             <div class="maker-stat-label">재련 메소 합</div>
             <div class="maker-stat-amt">${fmtNum(mesoSum)}</div>
-            <div class="maker-stat-desc">정산: 재련자 보유에서 차감 + 송금 안내에 반영</div>
+            <div class="maker-stat-desc">1인당 재련 메소(⅓) ≈ ${fmtNum(perMemberMeso)} · 재련자 선납·송금 반영</div>
           </div>
         </div>
-        <div class="maker-burden-bar">
-          <span class="maker-burden-tag">회차 합계 · 1인당 부담</span>
-          <span class="maker-burden-amt">${fmtNum(perMember)}</span>
-          <span class="maker-burden-sub">판매 수익은 <strong>획득 장부</strong>에 넣어야 최종 손익이 맞아요</span>
-        </div>
+        <p class="takeover-hint" style="margin:0;">판매 수익은 <strong>획득 장부</strong> · 순수익은 정산 상단 「메이커 포함 순수익」</p>
       </div>`;
   }
 
@@ -1864,8 +1866,10 @@
       + row.refineMid * MAKER_MATERIAL_UNITS * row.priceLow
       + row.refineHigh * MAKER_MATERIAL_UNITS * row.priceMid;
     const total = meso + material;
-    const perMember = Math.round(total / 3);
-    return { meso, material, total, perMember };
+    const perMemberMeso = Math.round(meso / 3);
+    const perMemberMaterial = Math.round(material / 3);
+    const perMemberTotal = Math.round(total / 3);
+    return { meso, material, total, perMemberMeso, perMemberMaterial, perMemberTotal };
   }
 
   function rememberGemAhMins(gemName, prices) {
@@ -3428,7 +3432,7 @@
     $('makerEmpty').style.display = list.length === 0 ? 'block' : 'none';
     list.forEach((r) => {
       const row = normalizeMakerRefine(r);
-      const { meso, material, perMember } = computeMakerBatchCosts(row);
+      const { meso, material, perMemberMeso, perMemberMaterial } = computeMakerBatchCosts(row);
       const maker = state.members[row.makerIdx] || '?';
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -3436,9 +3440,9 @@
         <td>${escapeHtml(maker)}</td>
         <td class="price-cell">${makerTierCountsHtml(row.refineLow, row.refineMid, row.refineHigh, 'refine')}</td>
         <td class="price-cell">${makerTierCountsHtml(row.yieldLow, row.yieldMid, row.yieldHigh, 'yield')}</td>
-        <td class="price-cell">${fmt(material)}<span class="maker-col-hint">기회비용</span></td>
+        <td class="price-cell">${fmt(material)}<span class="maker-col-hint">몫당 ${fmtNum(perMemberMaterial)}</span></td>
         <td class="price-cell">${fmt(meso)}<span class="maker-col-hint">선납</span></td>
-        <td class="price-cell"><span class="maker-burden-mini">부담</span>${fmtNum(perMember)}</td>
+        <td class="price-cell"><span class="maker-burden-mini">메소⅓</span>${fmtNum(perMemberMeso)}</td>
         <td class="row-actions col-actions">
           <button type="button" class="btn-row-edit maker-edit-btn" data-id="${escapeHtml(row.id)}">수정</button>
           <button type="button" class="btn-row-del maker-del-btn" data-id="${escapeHtml(row.id)}" title="삭제">×</button>
