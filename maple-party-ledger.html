@@ -249,13 +249,22 @@
     gap: 10px;
   }
   .section-icon {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
     flex-shrink: 0;
     display: block;
   }
-  .section-icon-settle { border-radius: 6px; }
+  .section-icon--expense,
+  .section-icon--settle {
+    width: 38px;
+    height: 38px;
+    background: url('image/지출정산.png') no-repeat;
+    background-size: 200% auto;
+    image-rendering: -webkit-optimize-contrast;
+  }
+  .section-icon--expense { background-position: 0% 6%; }
+  .section-icon--settle { background-position: 100% 6%; }
 
   .meso-icon {
     height: 1.2em;
@@ -691,7 +700,7 @@
   </div>
 
   <div class="card">
-    <h2>퉁퉁이 공대 분배금 지출 내역</h2>
+    <h2 class="section-title"><span class="section-icon section-icon--expense" aria-hidden="true"></span>퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
       <div class="field"><span>지출 항목</span><input id="fExpDesc" type="text" placeholder="예: 무기 구매"></div>
       <div class="field"><span>금액</span><input id="fExpAmount" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
@@ -716,7 +725,7 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title"><img src="image/jeongsan.jpg" alt="" class="section-icon section-icon-settle" width="30" height="30" decoding="async">정산</h2>
+    <h2 class="section-title"><span class="section-icon section-icon--settle" aria-hidden="true"></span>정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
     <div class="settle-takehome" id="settleTakehome" style="display:none;">
