@@ -1086,6 +1086,19 @@
   .stats-top-list li:last-child { border-bottom: none; }
   .stats-top-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .stats-empty { font-size: 14px; color: var(--ink-soft); text-align: center; padding: 16px 8px; }
+  .stats-subgrid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px;
+  }
+  .stats-subcard {
+    border: 1.5px solid var(--line); border-radius: 8px; padding: 10px; background: var(--surface-muted);
+    font-size: 12px; color: var(--ink-soft); line-height: 1.4;
+  }
+  .stats-subcard strong { display: block; font-size: 15px; color: var(--ink); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stats-net-line {
+    margin-top: 10px; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--line-strong);
+    background: #fff; font-size: 13px; color: var(--ink-soft); line-height: 1.5;
+  }
+  .stats-net-line strong { color: var(--ink); }
 
   .cycle-strip {
     margin-bottom: 14px; padding: 14px 16px 12px;
@@ -2152,6 +2165,30 @@
     return (entries || []).filter(isSoldEntry).reduce((s, e) => s + entryListPrice(e), 0);
   }
 
+  function soldEntriesAhFeeTotal(entries) {
+    return (entries || []).filter(isSoldEntry).reduce((s, e) => s + entryAhSaleFee(entryListPrice(e)), 0);
+  }
+
+  function computeMakerMesoPaidByMember() {
+    const paid = state.members.map(() => 0);
+    viewMakerRefines().forEach((r) => {
+      const { meso } = computeMakerBatchCosts(r);
+      const mi = Number(r.makerIdx);
+      if (meso > 0 && mi >= 0 && mi < paid.length) paid[mi] += meso;
+    });
+    return paid;
+  }
+
+  function computeMesoSoldHeldByMember() {
+    const held = state.members.map(() => 0);
+    viewEntries().forEach((e) => {
+      if (!isSoldEntry(e)) return;
+      const i = getMesoHolderIdx(e);
+      if (i >= 0 && i < held.length) held[i] += entryNetReceived(e);
+    });
+    return held;
+  }
+
   function applySoldEntryFairShare(fair, entry) {
     if (!isSoldEntry(entry)) return;
     const list = entryListPrice(entry);
@@ -2909,10 +2946,25 @@
     const fair = computeFairShare();
     const diffs = state.members.map((_, i) => held[i] - fair[i]);
     const expShare = computeExpShare();
-    const entryTotal = soldEntriesNetTotal(viewEntries());
+    const entries = viewEntries();
+    const entryTotal = soldEntriesNetTotal(entries);
+    const listTotal = soldEntriesListTotal(entries);
+    const ahFeeTotal = soldEntriesAhFeeTotal(entries);
+    const ahFeeShareEach = Math.round(ahFeeTotal / state.members.length);
     const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
-    const soldCount = viewEntries().filter(isSoldEntry).length;
+    const makerTotal = makerCycleCostTotal();
+    const makerCount = viewMakerRefines().length;
+    const partyNetWithMaker = Math.round(entryTotal - expTotal - makerTotal);
+    const makerPaidBy = computeMakerMesoPaidByMember();
+    const salesHeldBy = computeMesoSoldHeldByMember();
+    const takeoverList = viewTakeovers();
+    const takeoverCount = takeoverList.length;
+    const takeoverMinSum = takeoverList.reduce((s, t) => s + Math.max(0, Math.round(Number(t.minPrice) || 0)), 0);
+    const takeoverPayEach = takeoverCount > 0
+      ? takeoverList.reduce((s, t) => s + takeoverShareAmount(t.minPrice), 0)
+      : 0;
+    const soldCount = entries.filter(isSoldEntry).length;
     const unsoldCount = countUnsoldEntries();
     const expCount = viewExpenditures().length;
     const closedCycles = (state.cycles || []).filter((c) => c.status === 'closed');
@@ -2920,13 +2972,26 @@
     const historyNet = closedCycles.reduce((s, c) => s + cycleDisplayMeta(c).netTotal, 0);
 
     const memberStats = state.members.map((name, i) => {
-      const asOwner = viewEntries().filter((e) => isSoldEntry(e) && Number(e.ownerIdx) === i);
-      const salesSum = asOwner.reduce((s, e) => s + entryListPrice(e), 0);
+      const asOwner = entries.filter((e) => isSoldEntry(e) && Number(e.ownerIdx) === i);
+      const salesListSum = asOwner.reduce((s, e) => s + entryListPrice(e), 0);
+      const salesNetSum = asOwner.reduce((s, e) => s + entryNetReceived(e), 0);
+      let soldForOthers = 0;
+      entries.forEach((e) => {
+        if (!isSoldEntry(e)) return;
+        if (getMesoHolderIdx(e) === i && Number(e.ownerIdx) !== i) soldForOthers++;
+      });
+      let takeoverAsAcquirer = 0;
+      takeoverList.forEach((t) => {
+        if (Number(t.acquirerIdx) === i) takeoverAsAcquirer++;
+      });
       let contribCount = 0;
-      viewEntries().forEach((e) => {
+      entries.forEach((e) => {
         if (getContributorIdxs(e).includes(i)) contribCount++;
       });
-      return { name, salesCount: asOwner.length, salesSum, contribCount };
+      return {
+        name, salesCount: asOwner.length, salesListSum, salesNetSum, soldForOthers,
+        takeoverAsAcquirer, contribCount
+      };
     });
 
     const topItems = [...viewEntries()]
@@ -2952,13 +3017,30 @@
         diffLabel = '더 받음';
         diffVal = fmtNum(Math.round(-diff));
       }
+      const makerPaid = Math.round(makerPaidBy[i]);
+      const ahLine = ahFeeShareEach > 0
+        ? `<div class="stats-kv"><span>거래소 수수료(⅓)</span><strong>${fmtNum(ahFeeShareEach)}</strong></div>`
+        : '';
+      const makerLine = makerPaid > 0
+        ? `<div class="stats-kv"><span>메이커 재련 선납</span><strong>${fmtNum(makerPaid)}</strong></div>`
+        : '';
+      const soldOtherLine = m.soldForOthers > 0
+        ? `<div class="stats-kv"><span>타인 획득 · 판매 보유</span><strong>${m.soldForOthers}건</strong></div>`
+        : '';
+      const takeLine = m.takeoverAsAcquirer > 0
+        ? `<div class="stats-kv"><span>인수(인수자)</span><strong>${m.takeoverAsAcquirer}건</strong></div>`
+        : '';
       return `
         <div class="stats-member-card">
           <div class="stats-member-name">${escapeHtml(m.name)}</div>
-          <div class="stats-kv"><span>획득 등록</span><strong>${m.salesCount}건 · ${fmtNum(m.salesSum)}</strong></div>
-          <div class="stats-kv"><span>함께 기여 기록</span><strong>${m.contribCount}건</strong></div>
-          <div class="stats-kv"><span>보유(판매)</span><strong>${fmtNum(Math.round(held[i]))}</strong></div>
-          <div class="stats-kv"><span>몫(지출 반영)</span><strong>${fmtNum(Math.round(fair[i]))}</strong></div>
+          <div class="stats-kv"><span>획득 · 등록가</span><strong>${m.salesCount}건 · ${fmtNum(m.salesListSum)}</strong></div>
+          <div class="stats-kv"><span>획득 · 실수령</span><strong>${fmtNum(m.salesNetSum)}</strong></div>
+          <div class="stats-kv"><span>함께 기여</span><strong>${m.contribCount}건</strong></div>
+          ${soldOtherLine}${takeLine}
+          <div class="stats-kv"><span>판매 실수령 보유</span><strong>${fmtNum(Math.round(salesHeldBy[i]))}</strong></div>
+          <div class="stats-kv"><span>정산 보유(전체)</span><strong>${fmtNum(Math.round(held[i]))}</strong></div>
+          ${ahLine}${makerLine}
+          <div class="stats-kv"><span>인당 가져갈 금액</span><strong>${fmtNum(Math.round(fair[i]))}</strong></div>
           <div class="stats-kv"><span>공동 지출 부담</span><strong>${fmtNum(Math.round(expShare[i]))}</strong></div>
           <div class="stats-kv ${diffCls}"><span>차액 · ${diffLabel}</span><strong>${diffVal}</strong></div>
         </div>
@@ -2973,20 +3055,53 @@
           </li>`).join('')}</ul>`
       : '<div class="stats-empty">판매 완료 획득 기록이 없어요.</div>';
 
+    const salesDetailHtml = soldCount > 0
+      ? `<div class="stats-subgrid">
+          <div class="stats-subcard">등록가 합<strong>${fmtNum(listTotal)}</strong></div>
+          <div class="stats-subcard">거래소 5% (3등분)<strong>${fmtNum(ahFeeTotal)}</strong></div>
+          <div class="stats-subcard">판매 실수령<strong>${fmtNum(entryTotal)}</strong></div>
+        </div>`
+      : '';
+
+    const costDetailHtml = (makerTotal > 0 || takeoverCount > 0)
+      ? `<div class="stats-subgrid">
+          ${makerCount > 0 ? `<div class="stats-subcard">메이커 재련 ${makerCount}건<strong>${fmtNum(makerTotal)}</strong></div>` : ''}
+          ${takeoverCount > 0 ? `<div class="stats-subcard">인수 ${takeoverCount}건 · 최소가 합<strong>${fmtNum(takeoverMinSum)}</strong></div>` : ''}
+          ${takeoverCount > 0 ? `<div class="stats-subcard">인수 송금(1인당×2)<strong>${fmtNum(takeoverPayEach)}</strong></div>` : ''}
+        </div>`
+      : '';
+
+    const partyNetHtml = (soldCount > 0 || expCount > 0 || makerTotal > 0)
+      ? `<div class="stats-net-line">
+          회차 순수익(메이커 포함):
+          판매 실수령 <strong>${fmtNum(entryTotal)}</strong>
+          − 지출 <strong>${fmtNum(expTotal)}</strong>
+          ${makerTotal > 0 ? `− 메이커 재련 <strong>${fmtNum(makerTotal)}</strong>` : ''}
+          = <strong>${fmtNum(partyNetWithMaker)}</strong>
+          <span style="display:block;margin-top:4px;font-size:12px;">인당 가져갈 금액 합 ≈ ${fmtNum(Math.round(fair.reduce((a, b) => a + Number(b || 0), 0)))} · 정산·송금 기준</span>
+        </div>`
+      : '';
+
     $('statsBody').innerHTML = `
       <div class="stats-section">
         <div class="stats-section-title">장부 요약</div>
         ${statPillsHtml(entryTotal, expTotal, netTotal)}
+        ${salesDetailHtml}
+        ${costDetailHtml}
+        ${partyNetHtml}
         <div class="stats-badges" style="margin-top:12px;">
           ${settleBadge}
-          <span class="stats-badge">판매 완료 ${soldCount}건</span>
+          <span class="stats-badge">판매 ${soldCount}건</span>
+          ${unsoldCount > 0 ? `<span class="stats-badge warn">미판매 ${unsoldCount}건</span>` : ''}
           <span class="stats-badge">지출 ${expCount}건</span>
+          ${makerCount > 0 ? `<span class="stats-badge">메이커 ${makerCount}건</span>` : ''}
+          ${takeoverCount > 0 ? `<span class="stats-badge">인수 ${takeoverCount}건</span>` : ''}
           <span class="stats-badge">지난 정산 ${settleCount}회</span>
           ${settleCount ? `<span class="stats-badge">역대 나눈 돈 합 ${fmtNum(Math.round(historyNet))}</span>` : ''}
         </div>
       </div>
       <div class="stats-section">
-        <div class="stats-section-title">공대원별</div>
+        <div class="stats-section-title">공대원별 · 정산 스냅샷</div>
         <div class="stats-member-grid">${memberCards}</div>
       </div>
       <div class="stats-section">
@@ -3104,7 +3219,7 @@
     ensureInitialCycle();
     const view = getViewCycle();
     if (view) {
-      $('statsModalSub').textContent = `${view.label}${view.status === 'open' ? ' (작성 중)' : ' (완료)'} · 획득·지출·정산 기준`;
+      $('statsModalSub').textContent = `${view.label}${view.status === 'open' ? ' (작성 중)' : ' (완료)'} · 등록가·수수료·메이커·인수·정산 반영`;
     }
     renderStatsModal();
     $('statsModal').hidden = false;
