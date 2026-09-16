@@ -359,8 +359,16 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  .owner-tags-cell { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; align-items: center; }
-  .owner-tags-cell .owner-tag { font-size: 12px; }
+  .owner-tags-cell { vertical-align: middle; }
+  .owner-tags-wrap {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-start;
+    max-width: 100%;
+  }
+  .owner-tags-wrap .owner-tag { font-size: 12px; }
   .contrib-tag {
     display: inline-block; padding: 3px 8px; border-radius: 100px;
     background: var(--surface-muted); color: var(--ink-soft); font-size: 11px; font-weight: 600;
@@ -402,11 +410,15 @@
     border: 2px solid var(--line-strong);
     border-radius: 8px;
     overflow: hidden;
+    background: #fff;
   }
   table.data-table {
     border: none;
     border-radius: 0;
     min-width: 720px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
   }
   table.data-table .col-date { white-space: nowrap; width: 7.25rem; }
   table.data-table .col-status { white-space: nowrap; width: 5.5rem; text-align: center; }
@@ -425,6 +437,7 @@
     font-size: 13px;
     color: var(--ink-soft);
     font-weight: 600;
+    box-sizing: border-box;
     background: var(--surface-muted);
     border-bottom: 2px solid var(--line-strong);
     border-right: 1px solid var(--line-strong);
@@ -435,6 +448,8 @@
     padding: 10px 8px;
     font-size: 15px;
     vertical-align: middle;
+    background: #fff;
+    box-sizing: border-box;
     border-bottom: 1px solid var(--line-strong);
     border-right: 1px solid var(--line-strong);
   }
@@ -2238,7 +2253,7 @@
       const seller = state.members[getMesoHolderIdx(entry)] || '?';
       html += `<span class="owner-tag-seller" title="정산 보유(판매 메소)">판매 ${escapeHtml(seller)}</span>`;
     }
-    return html;
+    return `<span class="owner-tags-wrap">${html}</span>`;
   }
 
   function syncSellerFieldVisibility(checkboxId, fieldId, sellerSelectId, ownerSelectId) {
