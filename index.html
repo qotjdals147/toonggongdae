@@ -592,6 +592,24 @@
   .takeover-hint { font-size: 13px; color: var(--ink-soft); margin: -6px 0 12px; line-height: 1.5; }
   .takeover-pay-preview { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
 
+  .card-zone-maker { border-top: 4px solid #D97706; }
+  .maker-form {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: end;
+  }
+  .maker-form-prices {
+    grid-column: 1 / -1;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 4px;
+  }
+  .maker-form-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
+  .maker-cost-preview { font-size: 13px; color: var(--ink-soft); line-height: 1.5; flex: 1; min-width: 200px; }
+  .maker-cost-preview strong { color: var(--ink); }
+  .maker-tier-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px;
+    background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;
+  }
+  .maker-tier-tag.mid { background: #FFEDD5; color: #9A3412; border-color: #FDBA74; }
+  .maker-tier-tag.high { background: #FEE2E2; color: #991B1B; border-color: #FCA5A5; }
+
   .entry-seller-row {
     margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--line);
   }
@@ -1000,9 +1018,11 @@
   @media (max-width: 860px) {
     .takeover-form { grid-template-columns: 1fr 1fr; }
     .takeover-form .btn-settle { grid-column: 1 / -1; justify-self: stretch; }
+    .maker-form, .maker-form-prices { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 640px) {
     .takeover-form { grid-template-columns: 1fr; }
+    .maker-form, .maker-form-prices { grid-template-columns: 1fr; }
     .card { padding: 16px 14px; }
     header h1 { font-size: 26px; }
     .entry-form, .exp-form { grid-template-columns: 1fr; }
@@ -1079,6 +1099,34 @@
     <div id="takeoverEmpty" class="empty-state" style="display:none;">인수 기록이 없어요.</div>
   </div>
 
+  <div class="card card-zone-maker">
+    <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 · 보석 종류별</span></h2>
+    <p class="takeover-hint">재련 메소는 <strong>재련자</strong>가 냈고, 쓴 <strong>원석·하급·중급</strong>은 경매장 최소가로 재료비(기회비용)를 잡아요. <strong>판매가</strong>는 위 획득 장부에 넣으면 정산에 합쳐져요.</p>
+    <div class="maker-form">
+      <div class="field"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
+      <div class="field"><span>재련 등급</span><select id="fMakerTier"><option value="low">하급 (원석 10 + 11만)</option><option value="mid">중급 (하급 10 + 33만)</option><option value="high">상급 (중급 10 + 55만)</option></select></div>
+      <div class="field"><span>재련 횟수</span><input id="fMakerCount" type="number" min="1" step="1" value="1"></div>
+      <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
+      <div class="maker-form-prices">
+        <div class="field"><span>원석 최소가</span><input id="fMakerPriceRaw" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+        <div class="field"><span>하급 최소가</span><input id="fMakerPriceLow" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+        <div class="field"><span>중급 최소가</span><input id="fMakerPriceMid" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+        <div class="field"><span>상급 최소가</span><input id="fMakerPriceHigh" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+      </div>
+      <div class="maker-form-actions">
+        <div class="maker-cost-preview" id="fMakerPreview">재료·재련 메소를 입력하면 미리보기가 나와요.</div>
+        <button type="button" class="btn-settle" id="makerAddBtn">재련 기록 추가</button>
+      </div>
+    </div>
+    <div class="table-scroll" style="margin-top:14px;">
+      <table class="data-table">
+        <thead><tr><th>보석</th><th>등급</th><th class="col-amount">횟수</th><th>재련자</th><th class="col-amount">재료비</th><th class="col-amount">재련 메소</th><th class="col-amount">파티 부담(⅓)</th><th class="col-actions"></th></tr></thead>
+        <tbody id="makerBody"></tbody>
+      </table>
+    </div>
+    <div id="makerEmpty" class="empty-state" style="display:none;">메이커 재련 기록이 없어요.</div>
+  </div>
+
   <div class="card card-zone-expense">
     <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
@@ -1109,6 +1157,7 @@
   <div class="card card-zone-settle">
     <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
+    <div id="makerSettleSummary" class="takeover-hint" style="display:none;margin-bottom:12px;"></div>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
     <div class="settle-takehome" id="settleTakehome" style="display:none;">
       <div class="settle-takehome-head">인당 가져갈 금액 <span class="hint">· 분배·공동 지출 반영 후</span></div>
@@ -1214,6 +1263,27 @@
     <div class="modal-foot">
       <button type="button" class="btn-light" id="eEditCancelBtn">취소</button>
       <button type="button" class="btn-settle btn-sm" id="eEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="makerEditModal" hidden>
+  <div class="modal" role="dialog">
+    <h3>메이커 재련 수정</h3>
+    <div class="modal-grid">
+      <div class="field"><span>보석명</span><input id="mEditGem" type="text"></div>
+      <div class="field"><span>재련 등급</span><select id="mEditTier"><option value="low">하급</option><option value="mid">중급</option><option value="high">상급</option></select></div>
+      <div class="field"><span>재련 횟수</span><input id="mEditCount" type="number" min="1" step="1"></div>
+      <div class="field"><span>재련자</span><select id="mEditOwner"></select></div>
+      <div class="field"><span>원석 최소가</span><input id="mEditPriceRaw" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>하급 최소가</span><input id="mEditPriceLow" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>중급 최소가</span><input id="mEditPriceMid" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>상급 최소가</span><input id="mEditPriceHigh" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <div class="maker-cost-preview" id="mEditPreview" style="margin-top:8px;"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="mEditCancelBtn">취소</button>
+      <button type="button" class="btn-settle btn-sm" id="mEditSaveBtn">저장</button>
     </div>
   </div>
 </div>
@@ -1362,13 +1432,17 @@
     { min: 100_000, rate: 0.012 }
   ];
 
+  const MAKER_REFINE_MESO = { low: 110_000, mid: 330_000, high: 550_000 };
+  const MAKER_MATERIAL_UNITS = 10;
+
   let state = {
     members: [...DEFAULT_MEMBERS],
     cycles: [],
     activeCycleId: null,
     viewCycleId: null,
     warehouseChars: [],
-    memberParcelReceive: [false, false, false]
+    memberParcelReceive: [false, false, false],
+    gemAhMinsByName: {}
   };
   let sortState = { column: 'date', direction: 'asc' };
   let currentExpSplit = [...DEFAULT_SPLIT];
@@ -1379,6 +1453,7 @@
   let editingExpId = null;
   let editingWarehouseId = null;
   let editingTakeoverId = null;
+  let editingMakerId = null;
   let editEntrySplit = [...DEFAULT_SPLIT];
   let editExpSplit = [...DEFAULT_SPLIT];
   let supabaseClient = null;
@@ -1453,8 +1528,113 @@
       netTotal: c.netTotal,
       txList: Array.isArray(c.txList) ? c.txList.map((t) => ({ ...t })) : [],
       takeovers: (c.takeovers || []).map(normalizeTakeover),
+      makerRefines: (c.makerRefines || []).map(normalizeMakerRefine),
       legacySummaryOnly
     };
+  }
+
+  function normalizeMakerRefine(r) {
+    const tier = r.tier === 'mid' || r.tier === 'high' ? r.tier : 'low';
+    return {
+      id: r.id || genId(),
+      gemName: String(r.gemName != null ? r.gemName : r.item || '').trim(),
+      tier,
+      count: Math.max(1, Math.round(Number(r.count) || 1)),
+      makerIdx: Number(r.makerIdx) != null && Number(r.makerIdx) >= 0 ? Number(r.makerIdx) : 0,
+      priceRaw: Math.max(0, Math.round(Number(r.priceRaw) || 0)),
+      priceLow: Math.max(0, Math.round(Number(r.priceLow) || 0)),
+      priceMid: Math.max(0, Math.round(Number(r.priceMid) || 0)),
+      priceHigh: Math.max(0, Math.round(Number(r.priceHigh) || 0)),
+      date: r.date || todayStr()
+    };
+  }
+
+  function viewMakerRefines() {
+    return getViewCycle().makerRefines || [];
+  }
+
+  function makerTierLabel(tier) {
+    if (tier === 'mid') return '중급';
+    if (tier === 'high') return '상급';
+    return '하급';
+  }
+
+  function makerTierTagHtml(tier) {
+    const cls = tier === 'mid' ? 'maker-tier-tag mid' : tier === 'high' ? 'maker-tier-tag high' : 'maker-tier-tag';
+    return `<span class="${cls}">${makerTierLabel(tier)}</span>`;
+  }
+
+  function makerMaterialUnitPrice(r) {
+    const row = normalizeMakerRefine(r);
+    if (row.tier === 'low') return row.priceRaw;
+    if (row.tier === 'mid') return row.priceLow;
+    return row.priceMid;
+  }
+
+  function computeMakerBatchCosts(r) {
+    const row = normalizeMakerRefine(r);
+    const count = row.count;
+    const meso = count * (MAKER_REFINE_MESO[row.tier] || 0);
+    const material = count * MAKER_MATERIAL_UNITS * makerMaterialUnitPrice(row);
+    const total = meso + material;
+    const perMember = Math.round(total / 3);
+    return { meso, material, total, perMember };
+  }
+
+  function rememberGemAhMins(gemName, prices) {
+    const key = String(gemName || '').trim();
+    if (!key) return;
+    if (!state.gemAhMinsByName) state.gemAhMinsByName = {};
+    state.gemAhMinsByName[key] = {
+      priceRaw: Math.max(0, Math.round(Number(prices.priceRaw) || 0)),
+      priceLow: Math.max(0, Math.round(Number(prices.priceLow) || 0)),
+      priceMid: Math.max(0, Math.round(Number(prices.priceMid) || 0)),
+      priceHigh: Math.max(0, Math.round(Number(prices.priceHigh) || 0))
+    };
+  }
+
+  function loadGemAhMinsIntoForm(gemName, prefix) {
+    const key = String(gemName || '').trim();
+    const cached = key && state.gemAhMinsByName ? state.gemAhMinsByName[key] : null;
+    if (!cached) return;
+    $(`${prefix}PriceRaw`).value = cached.priceRaw ? formatMoneyInput(cached.priceRaw) : '';
+    $(`${prefix}PriceLow`).value = cached.priceLow ? formatMoneyInput(cached.priceLow) : '';
+    $(`${prefix}PriceMid`).value = cached.priceMid ? formatMoneyInput(cached.priceMid) : '';
+    $(`${prefix}PriceHigh`).value = cached.priceHigh ? formatMoneyInput(cached.priceHigh) : '';
+  }
+
+  function readMakerPricesFromForm(prefix) {
+    return {
+      priceRaw: parseMoneyInput($(`${prefix}PriceRaw`).value),
+      priceLow: parseMoneyInput($(`${prefix}PriceLow`).value),
+      priceMid: parseMoneyInput($(`${prefix}PriceMid`).value),
+      priceHigh: parseMoneyInput($(`${prefix}PriceHigh`).value)
+    };
+  }
+
+  function updateMakerPreview(prefix, previewId) {
+    const gemId = prefix === 'fMaker' ? 'fMakerGem' : 'mEditGem';
+    const tierId = prefix === 'fMaker' ? 'fMakerTier' : 'mEditTier';
+    const countId = prefix === 'fMaker' ? 'fMakerCount' : 'mEditCount';
+    const pricePrefix = prefix === 'fMaker' ? 'fMaker' : 'mEdit';
+    const draft = normalizeMakerRefine({
+      gemName: $(gemId).value,
+      tier: $(tierId).value,
+      count: $(countId).value,
+      makerIdx: Number($(prefix === 'fMaker' ? 'fMakerOwner' : 'mEditOwner').value),
+      ...readMakerPricesFromForm(pricePrefix)
+    });
+    const { meso, material, total, perMember } = computeMakerBatchCosts(draft);
+    const tier = draft.tier;
+    const matLabel = tier === 'low' ? '원석 10×' : tier === 'mid' ? '하급 10×' : '중급 10×';
+    const unit = makerMaterialUnitPrice(draft);
+    if (!draft.gemName.trim() || unit <= 0) {
+      $(previewId).textContent = '보석명과 이번 등급에 필요한 최소가를 입력하면 미리보기가 나와요.';
+      return;
+    }
+    $(previewId).innerHTML =
+      `${matLabel} 재료비 <strong>${fmtNum(material)}</strong> + 재련 메소 <strong>${fmtNum(meso)}</strong>`
+      + ` → 파티 합계 <strong>${fmtNum(total)}</strong> (1인당 약 ${fmtNum(perMember)})`;
   }
 
   function normalizeTakeover(t) {
@@ -1822,7 +2002,8 @@
       || !$('historyEditModal').hidden
       || !$('entryEditModal').hidden
       || !$('expEditModal').hidden
-      || !$('takeoverEditModal').hidden;
+      || !$('takeoverEditModal').hidden
+      || !$('makerEditModal').hidden;
   }
 
   function parcelFeeRateForAmount(amount) {
@@ -1907,12 +2088,16 @@
     const next = migrateParsedToCycles(parsed);
     next.warehouseChars = normalizeWarehouseChars(parsed.warehouseChars);
     next.memberParcelReceive = normalizeMemberParcelReceive(parsed);
+    next.gemAhMinsByName = parsed.gemAhMinsByName && typeof parsed.gemAhMinsByName === 'object'
+      ? { ...parsed.gemAhMinsByName }
+      : {};
     return { next, needsResave: !!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length };
   }
 
   function applyStateFromRemote(next, needsResave) {
     state = next;
     if (!state.warehouseChars) state.warehouseChars = [];
+    if (!state.gemAhMinsByName) state.gemAhMinsByName = {};
     if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
       state.memberParcelReceive = normalizeMemberParcelReceive(state);
     }
@@ -2108,6 +2293,8 @@
     populateMemberSelect($('fTakeOwner'));
     populateMemberSelect($('tEditOwner'));
     populateMemberSelect($('eEditSeller'));
+    populateMemberSelect($('fMakerOwner'));
+    populateMemberSelect($('mEditOwner'));
   }
 
   // ---------- split ratio ----------
@@ -2329,6 +2516,11 @@
       const i = getMesoHolderIdx(e);
       if (i >= 0 && i < held.length) held[i] += Number(e.price);
     });
+    viewMakerRefines().forEach((r) => {
+      const { meso } = computeMakerBatchCosts(r);
+      const mi = Number(r.makerIdx);
+      if (meso > 0 && mi >= 0 && mi < held.length) held[mi] -= meso;
+    });
     return held;
   }
 
@@ -2342,6 +2534,12 @@
     viewExpenditures().forEach(x => {
       const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { fair[i] -= Number(x.amount) * (Number(p) / 100); });
+    });
+    viewMakerRefines().forEach((r) => {
+      const { total } = computeMakerBatchCosts(r);
+      if (total <= 0) return;
+      const share = total / state.members.length;
+      fair.forEach((_, i) => { fair[i] -= share; });
     });
     return fair;
   }
@@ -2592,7 +2790,8 @@
     const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
     const hasTakeovers = viewTakeovers().length > 0;
-    const hasSettleData = viewEntries().length > 0 || viewExpenditures().length > 0 || hasTakeovers;
+    const hasMakerRefines = viewMakerRefines().length > 0;
+    const hasSettleData = viewEntries().length > 0 || viewExpenditures().length > 0 || hasTakeovers || hasMakerRefines;
 
     $('settleLead').style.display = hasSettleData ? 'block' : 'none';
     $('settleBreakdown').style.display = hasSettleData ? 'block' : 'none';
@@ -2624,6 +2823,24 @@
     } else {
       $('settleOverview').innerHTML = '';
       $('settleTakehomeGrid').innerHTML = '';
+    }
+
+    const makerSumEl = $('makerSettleSummary');
+    if (hasMakerRefines) {
+      let matSum = 0;
+      let mesoSum = 0;
+      viewMakerRefines().forEach((r) => {
+        const c = computeMakerBatchCosts(r);
+        matSum += c.material;
+        mesoSum += c.meso;
+      });
+      makerSumEl.style.display = 'block';
+      makerSumEl.innerHTML =
+        `메이커 재련 반영: 재료(경매 최소가) <strong>${fmt(matSum)}</strong> + 재련 메소 <strong>${fmt(mesoSum)}</strong>`
+        + ' — 재료·메소 모두 <strong>인당 몫</strong>에서 깎였고, 재련 메소는 <strong>재련자 보유</strong>에서도 빠졌어요. 판매 수익은 획득 장부에 넣으세요.';
+    } else {
+      makerSumEl.style.display = 'none';
+      makerSumEl.innerHTML = '';
     }
 
     const parcelWrap = $('settleParcelOptWrap');
@@ -2861,6 +3078,105 @@
     c.takeovers = (c.takeovers || []).filter((x) => x.id !== id);
     scheduleSave();
     renderTakeovers();
+    renderSettlement();
+  }
+
+  function validateMakerRefineRow(r) {
+    const row = normalizeMakerRefine(r);
+    if (!row.gemName) return { ok: false, focus: 'gem' };
+    if (makerMaterialUnitPrice(row) <= 0) return { ok: false, focus: 'price' };
+    return { ok: true, row };
+  }
+
+  function renderMakerRefines() {
+    const body = $('makerBody');
+    const list = viewMakerRefines();
+    body.innerHTML = '';
+    $('makerEmpty').style.display = list.length === 0 ? 'block' : 'none';
+    list.forEach((r) => {
+      const row = normalizeMakerRefine(r);
+      const { meso, material, perMember } = computeMakerBatchCosts(row);
+      const maker = state.members[row.makerIdx] || '?';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="item-name">${escapeHtml(row.gemName)}</td>
+        <td>${makerTierTagHtml(row.tier)}</td>
+        <td class="price-cell">${fmtNum(row.count)}</td>
+        <td>${escapeHtml(maker)}</td>
+        <td class="price-cell">${fmt(material)}</td>
+        <td class="price-cell">${fmt(meso)}</td>
+        <td class="price-cell">${fmtNum(perMember)}</td>
+        <td class="row-actions col-actions">
+          <button type="button" class="btn-row-edit maker-edit-btn" data-id="${escapeHtml(row.id)}">수정</button>
+          <button type="button" class="btn-row-del maker-del-btn" data-id="${escapeHtml(row.id)}" title="삭제">×</button>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.maker-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openMakerEdit(btn.dataset.id));
+    });
+    body.querySelectorAll('.maker-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => deleteMakerRefine(btn.dataset.id));
+    });
+    updateMakerPreview('fMaker', 'fMakerPreview');
+  }
+
+  function openMakerEdit(id) {
+    const r = viewMakerRefines().find((x) => x.id === id);
+    if (!r) return;
+    const row = normalizeMakerRefine(r);
+    editingMakerId = id;
+    editingField = true;
+    $('mEditGem').value = row.gemName;
+    $('mEditTier').value = row.tier;
+    $('mEditCount').value = row.count;
+    $('mEditOwner').value = row.makerIdx;
+    $('mEditPriceRaw').value = row.priceRaw ? formatMoneyInput(row.priceRaw) : '';
+    $('mEditPriceLow').value = row.priceLow ? formatMoneyInput(row.priceLow) : '';
+    $('mEditPriceMid').value = row.priceMid ? formatMoneyInput(row.priceMid) : '';
+    $('mEditPriceHigh').value = row.priceHigh ? formatMoneyInput(row.priceHigh) : '';
+    updateMakerPreview('mEdit', 'mEditPreview');
+    $('makerEditModal').hidden = false;
+  }
+
+  function closeMakerEdit() {
+    editingMakerId = null;
+    editingField = false;
+    $('makerEditModal').hidden = true;
+  }
+
+  function saveMakerEdit() {
+    if (!editingMakerId) return;
+    const r = viewMakerRefines().find((x) => x.id === editingMakerId);
+    if (!r) return;
+    const draft = normalizeMakerRefine({
+      gemName: $('mEditGem').value,
+      tier: $('mEditTier').value,
+      count: $('mEditCount').value,
+      makerIdx: Number($('mEditOwner').value),
+      ...readMakerPricesFromForm('mEdit')
+    });
+    const v = validateMakerRefineRow(draft);
+    if (!v.ok) {
+      if (v.focus === 'gem') $('mEditGem').focus();
+      else $('mEditPriceRaw').focus();
+      return;
+    }
+    Object.assign(r, v.row);
+    rememberGemAhMins(v.row.gemName, v.row);
+    closeMakerEdit();
+    scheduleSave();
+    renderMakerRefines();
+    renderSettlement();
+  }
+
+  function deleteMakerRefine(id) {
+    if (!confirm('이 재련 기록을 삭제할까요?')) return;
+    const c = getViewCycle();
+    c.makerRefines = (c.makerRefines || []).filter((x) => x.id !== id);
+    scheduleSave();
+    renderMakerRefines();
     renderSettlement();
   }
 
@@ -3301,6 +3617,7 @@
     renderExpSplitFields();
     renderLedger();
     renderTakeovers();
+    renderMakerRefines();
     renderExpenditures();
     renderSettlement();
     renderCycleBar();
@@ -3381,6 +3698,63 @@
 
   bindMoneyInput('fTakeMinPrice');
   bindMoneyInput('tEditMinPrice');
+  ['fMaker', 'mEdit'].forEach((prefix) => {
+    bindMoneyInput(`${prefix}PriceRaw`);
+    bindMoneyInput(`${prefix}PriceLow`);
+    bindMoneyInput(`${prefix}PriceMid`);
+    bindMoneyInput(`${prefix}PriceHigh`);
+  });
+  function wireMakerPreview(prefix, previewId) {
+    const ids = prefix === 'fMaker'
+      ? ['fMakerGem', 'fMakerTier', 'fMakerCount', 'fMakerOwner', 'fMakerPriceRaw', 'fMakerPriceLow', 'fMakerPriceMid', 'fMakerPriceHigh']
+      : ['mEditGem', 'mEditTier', 'mEditCount', 'mEditOwner', 'mEditPriceRaw', 'mEditPriceLow', 'mEditPriceMid', 'mEditPriceHigh'];
+    ids.forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener('input', () => updateMakerPreview(prefix, previewId));
+      el.addEventListener('change', () => updateMakerPreview(prefix, previewId));
+    });
+  }
+  wireMakerPreview('fMaker', 'fMakerPreview');
+  wireMakerPreview('mEdit', 'mEditPreview');
+  $('fMakerGem').addEventListener('blur', () => {
+    loadGemAhMinsIntoForm($('fMakerGem').value, 'fMaker');
+    updateMakerPreview('fMaker', 'fMakerPreview');
+  });
+  $('mEditGem').addEventListener('blur', () => {
+    loadGemAhMinsIntoForm($('mEditGem').value, 'mEdit');
+    updateMakerPreview('mEdit', 'mEditPreview');
+  });
+  $('makerAddBtn').addEventListener('click', () => {
+    const draft = normalizeMakerRefine({
+      gemName: $('fMakerGem').value,
+      tier: $('fMakerTier').value,
+      count: $('fMakerCount').value,
+      makerIdx: Number($('fMakerOwner').value),
+      ...readMakerPricesFromForm('fMaker')
+    });
+    const v = validateMakerRefineRow(draft);
+    if (!v.ok) {
+      if (v.focus === 'gem') { $('fMakerGem').focus(); return; }
+      alert('이번 재련 등급에 필요한 경매장 최소가를 입력해 주세요. (하급→원석, 중급→하급, 상급→중급)');
+      return;
+    }
+    const c = getViewCycle();
+    if (!c.makerRefines) c.makerRefines = [];
+    c.makerRefines.push({ ...v.row, id: genId(), date: todayStr() });
+    rememberGemAhMins(v.row.gemName, v.row);
+    $('fMakerCount').value = '1';
+    updateMakerPreview('fMaker', 'fMakerPreview');
+    scheduleSave();
+    renderMakerRefines();
+    renderSettlement();
+  });
+  $('mEditCancelBtn').addEventListener('click', closeMakerEdit);
+  $('mEditSaveBtn').addEventListener('click', saveMakerEdit);
+  $('makerEditModal').addEventListener('click', (e) => {
+    if (e.target.id === 'makerEditModal') closeMakerEdit();
+  });
+
   $('takeAddBtn').addEventListener('click', () => {
     const item = $('fTakeItem').value.trim();
     const minPrice = parseMoneyInput($('fTakeMinPrice').value);
