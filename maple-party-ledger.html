@@ -45,10 +45,10 @@
     line-height: 1.55;
     font-size: 15px;
     min-height: 100vh;
-    padding: 40px 20px 80px;
+    padding: clamp(16px, 3vw, 36px) clamp(10px, 2.5vw, 24px) 72px;
   }
 
-  .wrap { max-width: 760px; margin: 0 auto; min-width: 0; }
+  .wrap { max-width: 980px; width: 100%; margin: 0 auto; min-width: 0; }
 
   header { margin-bottom: 28px; }
   header h1 {
@@ -133,15 +133,8 @@
     border-radius: 8px;
     background: var(--surface-muted);
   }
-  .entry-extra-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 10px;
-    margin-bottom: 8px;
-  }
+  .entry-extra-head { margin-bottom: 8px; }
   .entry-extra-head strong { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
-  .entry-extra-head span { font-size: 12px; color: var(--ink-soft); opacity: 0.9; }
   .owner-chips-plain {
     border: none;
     background: transparent;
@@ -358,16 +351,29 @@
     gap: 5px;
     justify-content: center;
   }
-  .price-cell { text-align: center; }
-  .price-cell .money-with-meso { justify-content: center; }
-  th.col-amount { text-align: center !important; }
+  .price-cell { text-align: center; white-space: nowrap; }
+  .price-cell .money-with-meso {
+    justify-content: center;
+    font-size: clamp(12px, 1.4vw, 15px);
+  }
+  th.col-amount, th.col-split { text-align: center !important; }
 
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   table { width: 100%; border-collapse: collapse; }
   table.data-table {
     border: 1px solid var(--line-strong);
     border-radius: 8px;
     overflow: hidden;
+    min-width: 720px;
   }
+  table.data-table .col-date { white-space: nowrap; width: 7.25rem; }
+  table.data-table .col-status { white-space: nowrap; width: 5.5rem; text-align: center; }
+  table.data-table td.col-status { text-align: center; }
+  table.data-table .col-actions { width: 5.5rem; white-space: nowrap; }
   table.data-table thead th {
     background: var(--surface-muted);
     border-bottom: 1px solid var(--line-strong);
@@ -400,7 +406,11 @@
     display: inline-block; padding: 3px 9px; border-radius: 100px;
     background: var(--forest-soft); color: var(--forest); font-size: 13px; font-weight: 600;
   }
-  .split-cell { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+  .split-cell {
+    font-size: 13px; color: var(--ink-soft); white-space: nowrap;
+    text-align: center;
+  }
+  th.col-split, td.col-split { text-align: center; }
   .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; }
   .btn-row-edit {
     background: #fff;
@@ -715,9 +725,15 @@
     .settle-grid { grid-template-columns: 1fr; }
     .settle-takehome-grid { grid-template-columns: 1fr; }
   }
-  @media (max-width: 640px) {
+  @media (max-width: 860px) {
     .entry-form, .exp-form { grid-template-columns: 1fr 1fr; }
-    .entry-form .btn-income { grid-column: 1 / -1; justify-self: stretch; }
+    .entry-form .btn-income, .exp-form .btn-expense { grid-column: 1 / -1; justify-self: stretch; }
+  }
+  @media (max-width: 640px) {
+    .card { padding: 16px 14px; }
+    header h1 { font-size: 26px; }
+    .entry-form, .exp-form { grid-template-columns: 1fr; }
+    .entry-form .btn-income, .exp-form .btn-expense { grid-column: 1; }
     .members-grid { grid-template-columns: 1fr; }
     .settle-grid { grid-template-columns: 1fr; }
     .settle-tx-amt { width: 100%; margin-left: 0; margin-top: 4px; }
@@ -755,10 +771,7 @@
       <button class="btn-income" id="addBtn">획득 추가</button>
     </div>
     <div class="entry-extra">
-      <div class="entry-extra-head">
-        <strong>함께 기여</strong>
-        <span>선택 · 정산과 무관 (같이 보스 간 사람 기록)</span>
-      </div>
+      <div class="entry-extra-head"><strong>함께 기여</strong></div>
       <div class="owner-chips owner-chips-plain" id="fContributors"></div>
     </div>
     <div class="split-row">
@@ -772,10 +785,12 @@
     <div class="ledger-toolbar" style="margin-top:16px;">
       <button class="reset-sort-btn btn-light" id="resetSortBtn">기본 정렬</button>
     </div>
-    <table class="data-table">
-      <thead id="ledgerHead"></thead>
-      <tbody id="ledgerBody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead id="ledgerHead"></thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
     <div id="emptyState" class="empty-state" style="display:none;">아직 획득 기록이 없어요.</div>
     <div class="total-row"><span>판매 완료 합계</span><strong id="totalAmount"></strong></div>
   </div>
@@ -797,10 +812,12 @@
         <span class="split-sum" id="expSplitSum">합계 100%</span>
       </div>
     </div>
-    <table class="data-table" style="margin-top:16px;">
-      <thead><tr><th>날짜</th><th>항목</th><th class="col-amount">금액</th><th>수혜자</th><th>분배</th><th></th></tr></thead>
-      <tbody id="expBody"></tbody>
-    </table>
+    <div class="table-scroll" style="margin-top:16px;">
+      <table class="data-table">
+        <thead><tr><th class="col-date">날짜</th><th>항목</th><th class="col-amount">금액</th><th>수혜자</th><th class="col-split">분배</th><th class="col-actions"></th></tr></thead>
+        <tbody id="expBody"></tbody>
+      </table>
+    </div>
     <div id="expEmptyState" class="empty-state" style="display:none;">아직 지출 기록이 없어요.</div>
     <div class="total-row"><span>총 지출액</span><strong id="expTotalAmount"></strong></div>
   </div>
@@ -873,10 +890,7 @@
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
       <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
       <div class="field entry-extra" style="grid-column:1/-1;margin-top:0;">
-        <div class="entry-extra-head" style="margin-bottom:8px;">
-          <strong>함께 기여</strong>
-          <span>선택 · 정산과 무관</span>
-        </div>
+        <div class="entry-extra-head" style="margin-bottom:8px;"><strong>함께 기여</strong></div>
         <div class="owner-chips owner-chips-plain" id="eEditContributors"></div>
       </div>
     </div>
@@ -1387,13 +1401,13 @@
     const head = $('ledgerHead');
     head.innerHTML = `
       <tr>
-        <th class="sortable" data-col="date">날짜${sortIconHtml('date')}</th>
+        <th class="sortable col-date" data-col="date">날짜${sortIconHtml('date')}</th>
         <th>아이템</th>
         <th class="sortable col-amount" data-col="price">판매가${sortIconHtml('price')}</th>
         <th class="sortable" data-col="owner">획득자${sortIconHtml('owner')}</th>
-        <th>상태</th>
-        <th>분배</th>
-        <th></th>
+        <th class="col-status">상태</th>
+        <th class="col-split">분배</th>
+        <th class="col-actions"></th>
       </tr>
     `;
     head.querySelectorAll('th.sortable').forEach(th => {
@@ -1441,13 +1455,13 @@
         : '<span class="sale-badge sold">판매완료</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${entry.date}</td>
+        <td class="col-date">${entry.date}</td>
         <td class="item-name">${escapeHtml(entry.item)}</td>
         <td class="price-cell">${priceCell}</td>
         <td class="owner-tags-cell">${acquirerCellHtml(entry)}</td>
-        <td>${statusBadge}</td>
-        <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
-        <td class="row-actions">
+        <td class="col-status">${statusBadge}</td>
+        <td class="split-cell col-split" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
+        <td class="row-actions col-actions">
           <button type="button" class="btn-row-edit entry-edit-btn" data-id="${entry.id}">수정</button>
           <button type="button" class="btn-row-del entry-del-btn" data-id="${entry.id}" title="삭제" aria-label="삭제">×</button>
         </td>
@@ -1481,12 +1495,12 @@
       const splitTitle = state.members.map((n, i) => `${n} ${split[i]}%`).join(', ');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${x.date}</td>
+        <td class="col-date">${x.date}</td>
         <td class="item-name">${escapeHtml(x.desc)}</td>
         <td class="price-cell">${fmt(x.amount)}</td>
         <td><span class="owner-tag" style="background:var(--rust-soft);color:var(--rust);">${escapeHtml(ben)}</span></td>
-        <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
-        <td class="row-actions">
+        <td class="split-cell col-split" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
+        <td class="row-actions col-actions">
           <button type="button" class="btn-row-edit exp-edit-btn" data-id="${x.id}">수정</button>
           <button type="button" class="btn-row-del exp-del-btn" data-id="${x.id}" title="삭제" aria-label="삭제">×</button>
         </td>
