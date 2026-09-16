@@ -82,14 +82,19 @@
 
   .card {
     background: var(--paper-card);
-    border: 1px solid var(--line);
+    border: 2px solid var(--line-strong);
     border-radius: 12px;
     padding: 22px 24px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
     min-width: 0;
     overflow: hidden;
   }
+  .card-zone-members { border-top: 4px solid #64748B; }
+  .card-zone-ledger { border-top: 4px solid var(--forest); }
+  .card-zone-expense { border-top: 4px solid var(--rust); }
+  .card-zone-settle { border-top: 4px solid var(--settle); }
+  .card-zone-history { border-top: 4px solid #6366F1; }
 
   .card h2 {
     font-family: 'Fraunces', serif;
@@ -98,9 +103,15 @@
     margin: 0 0 14px;
     color: var(--ink);
   }
+  .card h2.section-title {
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid var(--line-strong);
+  }
 
   .card-compact { padding: 12px 16px; margin-bottom: 14px; }
   .card-compact h2 { font-size: 15px; margin-bottom: 8px; }
+  .card-compact h2.section-title { padding-bottom: 8px; margin-bottom: 10px; }
   .members-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -127,9 +138,9 @@
     align-items: end;
   }
   .entry-extra {
-    margin-top: 10px;
-    padding: 10px 12px;
-    border: 1px dashed var(--line);
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 2px dashed var(--line-strong);
     border-radius: 8px;
     background: var(--surface-muted);
   }
@@ -209,7 +220,7 @@
     gap: 12px;
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px dashed var(--line);
+    border-top: 2px solid var(--line-strong);
     flex-wrap: wrap;
   }
   .split-actions {
@@ -287,7 +298,7 @@
     min-height: 42px;
     align-items: center;
     padding: 7px 8px;
-    border: 1px solid var(--line);
+    border: 1.5px solid var(--line-strong);
     border-radius: 7px;
     background: #fff;
   }
@@ -365,7 +376,7 @@
   }
   table { width: 100%; border-collapse: collapse; }
   table.data-table {
-    border: 1px solid var(--line-strong);
+    border: 2px solid var(--line-strong);
     border-radius: 8px;
     overflow: hidden;
     min-width: 720px;
@@ -384,14 +395,14 @@
   }
   table.data-table thead th {
     background: var(--surface-muted);
-    border-bottom: 1px solid var(--line-strong);
-    border-right: 1px solid var(--line);
+    border-bottom: 2px solid var(--line-strong);
+    border-right: 1px solid var(--line-strong);
     padding: 10px 8px;
   }
   table.data-table thead th:last-child { border-right: none; }
   table.data-table tbody td {
-    border-bottom: 1px solid var(--line);
-    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line-strong);
+    border-right: 1px solid var(--line-strong);
   }
   table.data-table tbody tr:last-child td { border-bottom: none; }
   table.data-table tbody td:last-child { border-right: none; }
@@ -477,8 +488,8 @@
   .empty-state { text-align: center; padding: 30px 10px; color: var(--ink-soft); font-size: 15px; }
 
   .total-row {
-    display: flex; justify-content: space-between; padding-top: 14px; margin-top: 6px;
-    border-top: 1px solid var(--line); font-size: 15px;
+    display: flex; justify-content: space-between; padding-top: 14px; margin-top: 8px;
+    border-top: 2px solid var(--line-strong); font-size: 15px;
   }
   .total-row strong { font-family: 'Fraunces', serif; font-size: 19px; color: var(--gold); text-align: right; }
   .total-row strong .money-with-meso { justify-content: flex-start; }
@@ -772,12 +783,12 @@
     </div>
   </header>
 
-  <div class="card card-compact">
+  <div class="card card-compact card-zone-members">
     <h2>공대원</h2>
     <div class="members-grid" id="membersGrid"></div>
   </div>
 
-  <div class="card">
+  <div class="card card-zone-ledger">
     <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
     <div class="entry-form">
       <div class="field"><span>아이템명</span><input id="fItem" type="text" placeholder="예: 시간의 조각"></div>
@@ -811,7 +822,7 @@
     <div class="total-row"><span>판매 완료 합계</span><strong id="totalAmount"></strong></div>
   </div>
 
-  <div class="card">
+  <div class="card card-zone-expense">
     <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
       <div class="field"><span>지출 항목</span><input id="fExpDesc" type="text" placeholder="예: 무기 구매"></div>
@@ -838,7 +849,7 @@
     <div class="total-row"><span>총 지출액</span><strong id="expTotalAmount"></strong></div>
   </div>
 
-  <div class="card">
+  <div class="card card-zone-settle">
     <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
@@ -860,7 +871,7 @@
     </div>
   </div>
 
-  <div class="card" id="historyCard" style="display:none;">
+  <div class="card card-zone-history" id="historyCard" style="display:none;">
     <h2>지난 정산 기록</h2>
     <div class="history-scroll" id="historyList"></div>
   </div>
