@@ -562,6 +562,20 @@
   .takeover-hint { font-size: 13px; color: var(--ink-soft); margin: -6px 0 12px; line-height: 1.5; }
   .takeover-pay-preview { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
 
+  .entry-seller-row {
+    margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--line);
+  }
+  .entry-seller-check {
+    display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); cursor: pointer;
+  }
+  .entry-seller-check input { width: 16px; height: 16px; accent-color: var(--settle); }
+  .entry-seller-field { margin-top: 10px; max-width: 280px; }
+  .owner-tag-seller {
+    display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 600;
+    color: var(--settle); background: var(--settle-soft); border: 1px solid #BFDBFE;
+    border-radius: 100px; padding: 2px 8px;
+  }
+
   .settle-breakdown {
     border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); margin-bottom: 4px;
   }
@@ -1014,6 +1028,16 @@
       <div class="entry-extra-head"><strong>함께 기여</strong></div>
       <div class="owner-chips owner-chips-plain" id="fContributors"></div>
     </div>
+    <div class="entry-extra entry-seller-row">
+      <label class="entry-seller-check">
+        <input type="checkbox" id="fDifferentSeller">
+        <span>실제 판매(메소 보유)는 다른 사람</span>
+      </label>
+      <div class="field entry-seller-field" id="fSellerField" style="display:none;">
+        <span>판매·메소 보유</span>
+        <select id="fSeller"></select>
+      </div>
+    </div>
     <div class="split-row">
       <span class="split-label">분배 비율</span>
       <div class="split-fields" id="splitFields"></div>
@@ -1165,6 +1189,16 @@
       <div class="field entry-extra" style="grid-column:1/-1;margin-top:0;">
         <div class="entry-extra-head" style="margin-bottom:8px;"><strong>함께 기여</strong></div>
         <div class="owner-chips owner-chips-plain" id="eEditContributors"></div>
+      </div>
+      <div class="field" style="grid-column:1/-1;margin-top:0;">
+        <label class="entry-seller-check">
+          <input type="checkbox" id="eEditDifferentSeller">
+          <span>실제 판매(메소 보유)는 다른 사람</span>
+        </label>
+        <div class="field entry-seller-field" id="eEditSellerField" style="display:none;margin-top:8px;">
+          <span>판매·메소 보유</span>
+          <select id="eEditSeller"></select>
+        </div>
       </div>
     </div>
     <div class="split-row" style="margin-top:0;padding-top:12px;">
@@ -1633,12 +1667,30 @@
     return [...new Set((raw || []).map(Number).filter((i) => i >= 0 && i < 3 && i !== holder))];
   }
 
+  function getMesoHolderIdx(entry) {
+    if (entry.soldByIdx != null && entry.soldByIdx !== '') {
+      const s = Number(entry.soldByIdx);
+      if (s >= 0 && s < state.members.length) return s;
+    }
+    return entry.ownerIdx != null ? Number(entry.ownerIdx) : 0;
+  }
+
+  function entryHasDifferentSeller(entry) {
+    return getMesoHolderIdx(entry) !== Number(entry.ownerIdx);
+  }
+
   function normalizeEntry(entry) {
     if (entry.ownerIdx == null) {
       if (entry.ownerIdxs && entry.ownerIdxs.length) entry.ownerIdx = Number(entry.ownerIdxs[0]);
       else entry.ownerIdx = 0;
     }
     entry.ownerIdx = Number(entry.ownerIdx);
+    if (entry.soldByIdx != null && entry.soldByIdx !== '') {
+      entry.soldByIdx = Number(entry.soldByIdx);
+      if (entry.soldByIdx === entry.ownerIdx) delete entry.soldByIdx;
+    } else {
+      delete entry.soldByIdx;
+    }
     entry.contributorIdxs = getContributorIdxs(entry);
     delete entry.ownerIdxs;
     return entry;
@@ -1657,7 +1709,31 @@
     if (contribs.length) {
       html += `<span class="contrib-inline" title="함께 기여">+ ${escapeHtml(contribs.join(', '))}</span>`;
     }
+    if (entryHasDifferentSeller(entry)) {
+      const seller = state.members[getMesoHolderIdx(entry)] || '?';
+      html += `<span class="owner-tag-seller" title="정산 보유(판매 메소)">판매 ${escapeHtml(seller)}</span>`;
+    }
     return html;
+  }
+
+  function syncSellerFieldVisibility(checkboxId, fieldId, sellerSelectId, ownerSelectId) {
+    const on = $(checkboxId).checked;
+    $(fieldId).style.display = on ? 'block' : 'none';
+    if (on) {
+      const owner = Number($(ownerSelectId).value);
+      const sel = $(sellerSelectId);
+      if (Number(sel.value) === owner) {
+        const alt = [0, 1, 2].find((i) => i !== owner && i < state.members.length);
+        if (alt != null) sel.value = String(alt);
+      }
+    }
+  }
+
+  function readSoldByIdxFromForm(checkboxId, sellerSelectId, ownerIdx) {
+    if (!$(checkboxId).checked) return undefined;
+    const s = Number($(sellerSelectId).value);
+    if (s === ownerIdx) return undefined;
+    return s;
   }
 
   let addContributorSelection = [];
@@ -1981,6 +2057,8 @@
     populateMemberSelect($('xEditBen'));
     populateMemberSelect($('fTakeOwner'));
     populateMemberSelect($('tEditOwner'));
+    populateMemberSelect($('fSeller'));
+    populateMemberSelect($('eEditSeller'));
     refreshFormContributors();
   }
 
@@ -2214,7 +2292,7 @@
     const held = state.members.map(() => 0);
     viewEntries().forEach(e => {
       if (!isSoldEntry(e)) return;
-      const i = e.ownerIdx != null ? Number(e.ownerIdx) : 0;
+      const i = getMesoHolderIdx(e);
       if (i >= 0 && i < held.length) held[i] += Number(e.price);
     });
     return held;
@@ -2765,6 +2843,10 @@
     $('eEditPrice').value = unsold ? '' : formatMoneyInput(Number(entry.price));
     $('eEditPrice').disabled = false;
     $('eEditOwner').value = entry.ownerIdx;
+    const diffSeller = entryHasDifferentSeller(entry);
+    $('eEditDifferentSeller').checked = diffSeller;
+    $('eEditSeller').value = diffSeller ? getMesoHolderIdx(entry) : entry.ownerIdx;
+    syncSellerFieldVisibility('eEditDifferentSeller', 'eEditSellerField', 'eEditSeller', 'eEditOwner');
     refreshEditContributors(getContributorIdxs(entry));
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
@@ -2793,6 +2875,9 @@
     entry.item = item;
     entry.ownerIdx = Number($('eEditOwner').value);
     entry.contributorIdxs = readChipPickers('eEditContributors').filter((i) => i !== entry.ownerIdx);
+    const soldBy = readSoldByIdxFromForm('eEditDifferentSeller', 'eEditSeller', entry.ownerIdx);
+    if (soldBy != null) entry.soldByIdx = soldBy;
+    else delete entry.soldByIdx;
     entry.date = $('eEditDate').value || todayStr();
     entry.split = [...editEntrySplit];
     entry.status = unsold ? 'unsold' : 'sold';
@@ -3183,12 +3268,21 @@
     const holder = Number($('fOwner').value);
     applySplitForAcquirer(holder);
     refreshFormContributors();
+    syncSellerFieldVisibility('fDifferentSeller', 'fSellerField', 'fSeller', 'fOwner');
+  });
+
+  $('fDifferentSeller').addEventListener('change', () => {
+    syncSellerFieldVisibility('fDifferentSeller', 'fSellerField', 'fSeller', 'fOwner');
+  });
+  $('eEditDifferentSeller').addEventListener('change', () => {
+    syncSellerFieldVisibility('eEditDifferentSeller', 'eEditSellerField', 'eEditSeller', 'eEditOwner');
   });
 
   $('eEditOwner').addEventListener('change', () => {
     editEntrySplit = splitForAcquirer(Number($('eEditOwner').value));
     renderEditEntrySplitFields();
     refreshEditContributors();
+    syncSellerFieldVisibility('eEditDifferentSeller', 'eEditSellerField', 'eEditSeller', 'eEditOwner');
   });
 
   $('addBtn').addEventListener('click', () => {
@@ -3204,7 +3298,8 @@
     if (Math.abs(sum - 100) > 0.01) { return; }
 
     addContributorSelection = [...contributorIdxs];
-    viewEntries().push(normalizeEntry({
+    const soldByIdx = readSoldByIdxFromForm('fDifferentSeller', 'fSeller', ownerIdx);
+    const newEntry = {
       id: genId(),
       item,
       price: unsold ? 0 : price,
@@ -3213,7 +3308,9 @@
       date,
       split: [...currentSplit],
       status: unsold ? 'unsold' : 'sold'
-    }));
+    };
+    if (soldByIdx != null) newEntry.soldByIdx = soldByIdx;
+    viewEntries().push(normalizeEntry(newEntry));
 
     $('fItem').value = '';
     $('fPrice').value = '';
