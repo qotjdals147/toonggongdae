@@ -1363,37 +1363,20 @@
     if (submitBtn) submitBtn.disabled = bad;
   }
 
-  function splitLeaderIdx(splitArr) {
-    let best = 0;
-    let bestVal = Number(splitArr[0]) || 0;
-    for (let i = 1; i < splitArr.length; i++) {
-      const v = Number(splitArr[i]) || 0;
-      if (v > bestVal) {
-        bestVal = v;
-        best = i;
-      }
-    }
-    return best;
-  }
-
-  /** 획득 내역: 분배 %가 가장 큰 공대원을 획득자로 맞춤 (예: 34·33·33 → 34%) */
-  function syncAcquirerToSplitLeader() {
-    const sel = $('fOwner');
-    if (!sel || !sel.options.length) return;
-    const idx = splitLeaderIdx(currentSplit);
-    sel.value = String(idx);
-    addContributorSelection = addContributorSelection.filter((i) => i !== idx);
-    renderContributorPickers('fContributors', addContributorSelection, (next) => { addContributorSelection = next; });
+  /** 획득자 선택 시 그 사람만 34%, 나머지 33% (획득 추가용 분배 비율) */
+  function applySplitForAcquirer(ownerIdx) {
+    const i = Number(ownerIdx);
+    if (Number.isNaN(i) || i < 0 || i >= state.members.length) return;
+    currentSplit = state.members.map((_, idx) => (idx === i ? 34 : 33));
+    renderSplitFields();
   }
 
   function renderSplitFields() {
     bindSplitFields($('splitFields'), currentSplit, (sumOnly) => {
       if (sumOnly) updateSplitSumDisplay(currentSplit, $('splitSum'), $('addBtn'));
       else renderSplitFields();
-      syncAcquirerToSplitLeader();
     });
     updateSplitSumDisplay(currentSplit, $('splitSum'), $('addBtn'));
-    syncAcquirerToSplitLeader();
   }
 
   function renderExpSplitFields() {
@@ -2084,6 +2067,7 @@
     const holder = Number($('fOwner').value);
     addContributorSelection = addContributorSelection.filter((i) => i !== holder);
     renderContributorPickers('fContributors', addContributorSelection, (next) => { addContributorSelection = next; });
+    applySplitForAcquirer(holder);
   });
 
   $('addBtn').addEventListener('click', () => {
