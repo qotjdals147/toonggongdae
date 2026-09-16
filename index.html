@@ -649,9 +649,70 @@
   }
   .maker-yield-summary { font-size: 13px; color: var(--ink); line-height: 1.45; }
   .maker-yield-summary.dim { color: var(--ink-soft); font-weight: 500; }
-  .maker-form-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
-  .maker-cost-preview { font-size: 13px; color: var(--ink-soft); line-height: 1.5; flex: 1; min-width: 200px; }
+  .maker-form-actions {
+    grid-column: 1 / -1; display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 8px;
+  }
+  .maker-form-actions-row { display: flex; justify-content: flex-end; }
+  .maker-cost-preview { font-size: 13px; color: var(--ink-soft); line-height: 1.5; width: 100%; }
   .maker-cost-preview strong { color: var(--ink); }
+  .maker-preview-panel {
+    border: 1px solid var(--line); border-radius: 12px; background: #fff;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .maker-preview-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .maker-stat-card {
+    border-radius: 10px; padding: 10px 12px; border: 1px solid var(--line);
+  }
+  .maker-stat-card--material { background: #F5F3FF; border-color: #C4B5FD; }
+  .maker-stat-card--meso { background: #FFF7ED; border-color: #FDBA74; }
+  .maker-stat-label { font-size: 11px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-soft); }
+  .maker-stat-card--material .maker-stat-label { color: #5B21B6; }
+  .maker-stat-card--meso .maker-stat-label { color: #9A3412; }
+  .maker-stat-amt {
+    font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: var(--ink);
+    margin: 4px 0 6px; letter-spacing: -0.02em;
+  }
+  .maker-stat-desc { font-size: 11.5px; line-height: 1.45; color: var(--ink-soft); }
+  .maker-stat-desc strong { color: var(--ink); font-weight: 700; }
+  .maker-burden-bar {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 10px;
+    padding: 10px 12px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FECACA;
+  }
+  .maker-burden-tag {
+    font-size: 11px; font-weight: 800; color: #991B1B; background: #FEE2E2;
+    border: 1px solid #FCA5A5; border-radius: 100px; padding: 3px 9px;
+  }
+  .maker-burden-amt {
+    font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: #B91C1C;
+  }
+  .maker-burden-sub { font-size: 12px; color: #7F1D1D; flex: 1; min-width: 160px; }
+  .maker-yield-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    padding: 8px 12px; border-radius: 10px; background: #EFF6FF; border: 1px solid #BFDBFE;
+  }
+  .maker-yield-bar-label { font-size: 12px; font-weight: 700; color: #1D4ED8; }
+  .maker-count-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .maker-count-chip {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700;
+    padding: 3px 8px; border-radius: 8px; background: #fff; border: 1px solid var(--line);
+  }
+  .maker-count-chip-k { font-size: 10px; font-weight: 800; color: var(--ink-soft); }
+  .maker-count-chip.mid { border-color: #FDBA74; background: #FFFBEB; }
+  .maker-count-chip.high { border-color: #FCA5A5; background: #FEF2F2; }
+  .maker-count-chip--yield { border-color: #93C5FD; background: #F0F9FF; }
+  .maker-ref-pnl {
+    font-size: 12.5px; padding: 8px 12px; border-radius: 10px; line-height: 1.45;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+  }
+  .maker-ref-pnl--plus { background: #ECFDF5; border: 1px solid #6EE7B7; color: #065F46; }
+  .maker-ref-pnl--minus { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+  .maker-ref-pnl-note { font-size: 11px; opacity: 0.85; }
+  .maker-col-hint { display: block; font-size: 10px; font-weight: 500; color: var(--ink-soft); margin-top: 2px; }
+  .maker-burden-mini {
+    display: inline-block; font-size: 10px; font-weight: 800; color: #991B1B;
+    background: #FEE2E2; border-radius: 4px; padding: 1px 5px; margin-right: 4px; vertical-align: middle;
+  }
+  .maker-settle-panel { margin-bottom: 0; }
   .maker-tier-tag {
     display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px;
     background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;
@@ -1072,6 +1133,7 @@
   @media (max-width: 640px) {
     .takeover-form { grid-template-columns: 1fr; }
     .maker-form, .maker-form-prices, .maker-form-block { grid-template-columns: 1fr; }
+    .maker-preview-cols { grid-template-columns: 1fr; }
     .card { padding: 16px 14px; }
     header h1 { font-size: 26px; }
     .entry-form, .exp-form { grid-template-columns: 1fr; }
@@ -1150,7 +1212,7 @@
 
   <div class="card card-zone-maker">
     <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 · 보석 종류별</span></h2>
-    <p class="takeover-hint">재련 메소는 <strong>재련자</strong>가 냈고, 쓴 <strong>원석·하급·중급</strong>은 경매장 최소가로 재료비(기회비용)를 잡아요. <strong>판매가</strong>는 위 획득 장부에 넣으면 정산에 합쳐져요.</p>
+    <p class="takeover-hint"><strong>재료(기회비용)</strong>와 <strong>재련 메소(11/33/55만)</strong>는 성격이 달라요. 재료는 함께 모은 걸 쓴 가치(송금 X), 메소는 재련자가 낸 돈(정산 O). <strong>판매 수익</strong>은 획득 장부에 넣으세요.</p>
     <div class="maker-form">
       <div class="field"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
@@ -1183,12 +1245,14 @@
       </div>
       <div class="maker-form-actions">
         <div class="maker-cost-preview" id="fMakerPreview">재료·재련 메소를 입력하면 미리보기가 나와요.</div>
-        <button type="button" class="btn-settle" id="makerAddBtn">재련 기록 추가</button>
+        <div class="maker-form-actions-row">
+          <button type="button" class="btn-settle" id="makerAddBtn">재련 기록 추가</button>
+        </div>
       </div>
     </div>
     <div class="table-scroll" style="margin-top:14px;">
       <table class="data-table">
-        <thead><tr><th>보석</th><th>재련자</th><th>재련 (하/중/상)</th><th>획득 (하/중/상)</th><th class="col-amount">재료비</th><th class="col-amount">재련 메소</th><th class="col-amount">파티 부담(⅓)</th><th class="col-actions"></th></tr></thead>
+        <thead><tr><th>보석</th><th>재련자</th><th>재련 (하/중/상)</th><th>획득 (하/중/상)</th><th class="col-amount">재료<br><span class="maker-col-hint">기회비용</span></th><th class="col-amount">재련 메소<br><span class="maker-col-hint">재련자 선납</span></th><th class="col-amount">1인당<br><span class="maker-col-hint">부담(비용)</span></th><th class="col-actions"></th></tr></thead>
         <tbody id="makerBody"></tbody>
       </table>
     </div>
@@ -1225,7 +1289,7 @@
   <div class="card card-zone-settle">
     <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
-    <div id="makerSettleSummary" class="takeover-hint" style="display:none;margin-bottom:12px;"></div>
+    <div id="makerSettleSummary" style="display:none;margin-bottom:14px;"></div>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
     <div class="settle-takehome" id="settleTakehome" style="display:none;">
       <div class="settle-takehome-head">인당 가져갈 금액 <span class="hint">· 분배·공동 지출 반영 후</span></div>
@@ -1642,15 +1706,96 @@
     return getViewCycle().makerRefines || [];
   }
 
-  function makerTripleSummaryHtml(refineLow, refineMid, refineHigh, yieldLow, yieldMid, yieldHigh) {
-    const fmtTriple = (a, b, c) => `${fmtNum(a)} / ${fmtNum(b)} / ${fmtNum(c)}`;
-    return `<span class="maker-yield-summary">${fmtTriple(refineLow, refineMid, refineHigh)}</span>`;
+  function makerTierCountsHtml(low, mid, high, kind) {
+    const yieldCls = kind === 'yield' ? ' maker-count-chip--yield' : '';
+    const items = [
+      { k: '하', v: low, tier: '' },
+      { k: '중', v: mid, tier: 'mid' },
+      { k: '상', v: high, tier: 'high' }
+    ];
+    return `<span class="maker-count-chips">${items.map((x) =>
+      `<span class="maker-count-chip ${x.tier}${yieldCls}"><span class="maker-count-chip-k">${x.k}</span>${fmtNum(x.v)}</span>`
+    ).join('')}</span>`;
   }
 
-  function makerYieldSummaryHtml(row) {
-    const hasAny = row.yieldLow + row.yieldMid + row.yieldHigh > 0;
-    if (!hasAny) return '<span class="maker-yield-summary dim">—</span>';
-    return `<span class="maker-yield-summary"><strong>${fmtNum(row.yieldLow)}</strong> / <strong>${fmtNum(row.yieldMid)}</strong> / <strong>${fmtNum(row.yieldHigh)}</strong></span>`;
+  function computeMakerYieldValue(r) {
+    const row = normalizeMakerRefine(r);
+    return row.yieldLow * row.priceLow
+      + row.yieldMid * row.priceMid
+      + row.yieldHigh * row.priceHigh;
+  }
+
+  function makerBreakdownPanelHtml(row, opts) {
+    const options = opts || {};
+    const { meso, material, total, perMember } = computeMakerBatchCosts(row);
+    const yieldVal = computeMakerYieldValue(row);
+    const yieldSum = row.yieldLow + row.yieldMid + row.yieldHigh;
+    const diff = yieldVal - total;
+    let refLine = '';
+    if (yieldSum > 0 && total > 0) {
+      const plus = diff >= 0;
+      refLine = `
+        <div class="maker-ref-pnl ${plus ? 'maker-ref-pnl--plus' : 'maker-ref-pnl--minus'}">
+          <span>${plus ? '참고 · 최소가 기준 흑자' : '참고 · 최소가 기준 적자'}</span>
+          <span>획득 ${fmtNum(yieldVal)} − 비용 ${fmtNum(total)} = <strong>${plus ? '+' : ''}${fmtNum(diff)}</strong></span>
+          <span class="maker-ref-pnl-note">실제 정산은 획득 장부 판매가 기준</span>
+        </div>`;
+    }
+    const yieldBar = yieldSum > 0
+      ? `<div class="maker-yield-bar">
+          <span class="maker-yield-bar-label">획득 개수</span>
+          ${makerTierCountsHtml(row.yieldLow, row.yieldMid, row.yieldHigh, 'yield')}
+          <span class="maker-ref-pnl-note">정산 숫자 아님 · 재고 확인용</span>
+        </div>`
+      : '';
+    const panelCls = options.settle ? 'maker-preview-panel maker-settle-panel' : 'maker-preview-panel';
+    return `
+      <div class="${panelCls}">
+        <div class="maker-preview-cols">
+          <div class="maker-stat-card maker-stat-card--material">
+            <div class="maker-stat-label">재료 · 기회비용</div>
+            <div class="maker-stat-amt">${fmtNum(material)}</div>
+            <div class="maker-stat-desc">함께 모은 원석/하·중급을 <strong>안 팔고 쓴</strong> 경매장 최소가 합. <strong>현금 송금 아님</strong> · 나중에 판매 몫에서 ⅓씩 깎임</div>
+          </div>
+          <div class="maker-stat-card maker-stat-card--meso">
+            <div class="maker-stat-label">재련 메소 · 고정비</div>
+            <div class="maker-stat-amt">${fmtNum(meso)}</div>
+            <div class="maker-stat-desc">11 / 33 / 55만 × 재련 횟수. <strong>재련자가 지갑에서 선납</strong> · 정산 송금·보유에 반영</div>
+          </div>
+        </div>
+        <div class="maker-burden-bar">
+          <span class="maker-burden-tag">1인당 부담 · 비용</span>
+          <span class="maker-burden-amt">${fmtNum(perMember)}</span>
+          <span class="maker-burden-sub">=(재료+메소)÷3 · 수익이 아니라 <strong>각자 몫에서 깎일/맞출 금액</strong></span>
+        </div>
+        ${yieldBar}
+        ${refLine}
+      </div>`;
+  }
+
+  function makerSettleTotalsPanelHtml(matSum, mesoSum) {
+    const total = matSum + mesoSum;
+    const perMember = Math.round(total / 3);
+    return `
+      <div class="maker-preview-panel maker-settle-panel">
+        <div class="maker-preview-cols">
+          <div class="maker-stat-card maker-stat-card--material">
+            <div class="maker-stat-label">재료 · 기회비용 합</div>
+            <div class="maker-stat-amt">${fmtNum(matSum)}</div>
+            <div class="maker-stat-desc">정산: 인당 몫에서 깎임 (송금 항목 아님)</div>
+          </div>
+          <div class="maker-stat-card maker-stat-card--meso">
+            <div class="maker-stat-label">재련 메소 합</div>
+            <div class="maker-stat-amt">${fmtNum(mesoSum)}</div>
+            <div class="maker-stat-desc">정산: 재련자 보유에서 차감 + 송금 안내에 반영</div>
+          </div>
+        </div>
+        <div class="maker-burden-bar">
+          <span class="maker-burden-tag">회차 합계 · 1인당 부담</span>
+          <span class="maker-burden-amt">${fmtNum(perMember)}</span>
+          <span class="maker-burden-sub">판매 수익은 <strong>획득 장부</strong>에 넣어야 최종 손익이 맞아요</span>
+        </div>
+      </div>`;
   }
 
   function computeMakerBatchCosts(r) {
@@ -1725,29 +1870,24 @@
 
   function updateMakerPreview(formPrefix, previewId) {
     const draft = readMakerDraftFromForm(formPrefix);
-    const { meso, material, total, perMember } = computeMakerBatchCosts(draft);
     const refineSum = draft.refineLow + draft.refineMid + draft.refineHigh;
+    const el = $(previewId);
     if (!draft.gemName.trim()) {
-      $(previewId).textContent = '보석명을 입력하고, 재련 횟수·최소가를 넣으면 비용 미리보기가 나와요.';
+      el.textContent = '보석명을 입력하고, 재련 횟수·최소가를 넣으면 비용 미리보기가 나와요.';
       return;
     }
     if (refineSum <= 0) {
-      $(previewId).textContent = '재련 횟수(하/중/상) 중 하나 이상을 넣어야 비용을 계산할 수 있어요. 획득 개수만 적어도 기록은 가능합니다.';
+      el.textContent = '재련 횟수(하/중/상) 중 하나 이상을 넣어야 비용을 계산할 수 있어요. 획득 개수만 적어도 기록은 가능합니다.';
       return;
     }
     const priceMissing = (draft.refineLow > 0 && draft.priceRaw <= 0)
       || (draft.refineMid > 0 && draft.priceLow <= 0)
       || (draft.refineHigh > 0 && draft.priceMid <= 0);
     if (priceMissing) {
-      $(previewId).textContent = '재련한 등급에 맞는 경매장 최소가를 입력해 주세요. (하급→원석, 중급→하급, 상급→중급)';
+      el.textContent = '재련한 등급에 맞는 경매장 최소가를 입력해 주세요. (하급→원석, 중급→하급, 상급→중급)';
       return;
     }
-    const yieldLine = draft.yieldLow + draft.yieldMid + draft.yieldHigh > 0
-      ? ` · 획득 <strong>${fmtNum(draft.yieldLow)}/${fmtNum(draft.yieldMid)}/${fmtNum(draft.yieldHigh)}</strong> (하/중/상)`
-      : '';
-    $(previewId).innerHTML =
-      `재료비 <strong>${fmtNum(material)}</strong> + 재련 메소 <strong>${fmtNum(meso)}</strong>`
-      + ` → 파티 합계 <strong>${fmtNum(total)}</strong> (1인당 약 ${fmtNum(perMember)})${yieldLine}`;
+    el.innerHTML = makerBreakdownPanelHtml(draft);
   }
 
   function normalizeTakeover(t) {
@@ -2948,9 +3088,7 @@
         mesoSum += c.meso;
       });
       makerSumEl.style.display = 'block';
-      makerSumEl.innerHTML =
-        `메이커 재련 반영: 재료(경매 최소가) <strong>${fmt(matSum)}</strong> + 재련 메소 <strong>${fmt(mesoSum)}</strong>`
-        + ' — 재료·메소 모두 <strong>인당 몫</strong>에서 깎였고, 재련 메소는 <strong>재련자 보유</strong>에서도 빠졌어요. 판매 수익은 획득 장부에 넣으세요.';
+      makerSumEl.innerHTML = makerSettleTotalsPanelHtml(matSum, mesoSum);
     } else {
       makerSumEl.style.display = 'none';
       makerSumEl.innerHTML = '';
@@ -3221,11 +3359,11 @@
       tr.innerHTML = `
         <td class="item-name">${escapeHtml(row.gemName)}</td>
         <td>${escapeHtml(maker)}</td>
-        <td class="price-cell">${makerTripleSummaryHtml(row.refineLow, row.refineMid, row.refineHigh, 0, 0, 0)}</td>
-        <td class="price-cell">${makerYieldSummaryHtml(row)}</td>
-        <td class="price-cell">${fmt(material)}</td>
-        <td class="price-cell">${fmt(meso)}</td>
-        <td class="price-cell">${fmtNum(perMember)}</td>
+        <td class="price-cell">${makerTierCountsHtml(row.refineLow, row.refineMid, row.refineHigh, 'refine')}</td>
+        <td class="price-cell">${makerTierCountsHtml(row.yieldLow, row.yieldMid, row.yieldHigh, 'yield')}</td>
+        <td class="price-cell">${fmt(material)}<span class="maker-col-hint">기회비용</span></td>
+        <td class="price-cell">${fmt(meso)}<span class="maker-col-hint">선납</span></td>
+        <td class="price-cell"><span class="maker-burden-mini">부담</span>${fmtNum(perMember)}</td>
         <td class="row-actions col-actions">
           <button type="button" class="btn-row-edit maker-edit-btn" data-id="${escapeHtml(row.id)}">수정</button>
           <button type="button" class="btn-row-del maker-del-btn" data-id="${escapeHtml(row.id)}" title="삭제">×</button>
