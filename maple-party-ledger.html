@@ -273,9 +273,11 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    justify-content: flex-end;
+    justify-content: center;
   }
-  .price-cell .money-with-meso { width: 100%; }
+  .price-cell { text-align: center; }
+  .price-cell .money-with-meso { justify-content: center; }
+  th.col-amount { text-align: center !important; }
 
   table { width: 100%; border-collapse: collapse; }
   table.data-table {
@@ -310,7 +312,7 @@
   tbody td { padding: 10px 8px; font-size: 15px; border-bottom: 1px solid var(--line); }
   tbody tr:last-child td { border-bottom: none; }
   .item-name { font-weight: 500; }
-  .price-cell { text-align: right; font-weight: 600; }
+  .price-cell { font-weight: 600; }
   .owner-tag {
     display: inline-block; padding: 3px 9px; border-radius: 100px;
     background: var(--forest-soft); color: var(--forest); font-size: 13px; font-weight: 600;
@@ -369,7 +371,8 @@
     display: flex; justify-content: space-between; padding-top: 14px; margin-top: 6px;
     border-top: 1px solid var(--line); font-size: 15px;
   }
-  .total-row strong { font-family: 'Fraunces', serif; font-size: 19px; color: var(--gold); }
+  .total-row strong { font-family: 'Fraunces', serif; font-size: 19px; color: var(--gold); text-align: right; }
+  .total-row strong .money-with-meso { justify-content: flex-start; }
 
   /* settlement */
   .settle-hero {
@@ -705,7 +708,7 @@
       </div>
     </div>
     <table class="data-table" style="margin-top:16px;">
-      <thead><tr><th>날짜</th><th>항목</th><th style="text-align:right;">금액</th><th>수혜자</th><th>분배</th><th></th></tr></thead>
+      <thead><tr><th>날짜</th><th>항목</th><th class="col-amount">금액</th><th>수혜자</th><th>분배</th><th></th></tr></thead>
       <tbody id="expBody"></tbody>
     </table>
     <div id="expEmptyState" class="empty-state" style="display:none;">아직 지출 기록이 없어요.</div>
@@ -1223,7 +1226,7 @@
       <tr>
         <th class="sortable" data-col="date">날짜${sortIconHtml('date')}</th>
         <th>아이템</th>
-        <th class="sortable" style="text-align:right;" data-col="price">판매가${sortIconHtml('price')}</th>
+        <th class="sortable col-amount" data-col="price">판매가${sortIconHtml('price')}</th>
         <th class="sortable" data-col="owner">획득자${sortIconHtml('owner')}</th>
         <th>상태</th>
         <th>분배</th>
