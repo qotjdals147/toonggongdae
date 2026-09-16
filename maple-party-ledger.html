@@ -835,6 +835,29 @@
   }
   .settle-view-note.visible { display: block; }
 
+  .cycle-tab-more {
+    min-width: 88px; max-width: 120px; justify-content: center; align-items: center;
+    padding: 10px 14px; border-style: dashed; background: var(--surface-muted);
+  }
+  .cycle-tab-more .cycle-tab-label { font-size: 13px; font-weight: 600; color: var(--settle); }
+  .cycle-tab-more .cycle-tab-meta { text-align: center; width: 100%; }
+
+  .cycle-more-list {
+    max-height: min(420px, 60vh); overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--surface-muted);
+  }
+  .cycle-more-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer;
+    text-align: left; font-family: inherit; width: 100%;
+  }
+  .cycle-more-row:hover { border-color: var(--line-strong); background: var(--surface-muted); }
+  .cycle-more-row.active { border-color: var(--settle); box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12); }
+  .cycle-more-row-main { flex: 1; min-width: 0; }
+  .cycle-more-row-title { font-weight: 700; font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .cycle-more-row-meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .cycle-more-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
   @media (max-width: 720px) {
     .stats-member-grid { grid-template-columns: 1fr; }
     .settle-grid { grid-template-columns: 1fr; }
@@ -975,6 +998,17 @@
 
 </div>
 
+<div class="modal-backdrop" id="cycleMoreModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="cycleMoreTitle">
+    <h3 id="cycleMoreTitle">지난 정산 회차</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">회차를 누르면 장부·지출을 보거나 수정할 수 있어요. 완료된 회차만 삭제할 수 있어요.</p>
+    <div class="cycle-more-list" id="cycleMoreList"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="cycleMoreCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="historyEditModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="historyEditTitle">
     <h3 id="historyEditTitle">정산 기록 수정</h3>
@@ -1084,6 +1118,7 @@
   const STORAGE_KEY = 'tongtongi-party-ledger-v2';
   const DEFAULT_MEMBERS = ['나', '친구', '아는형'];
   const DEFAULT_SPLIT = [34, 33, 33];
+  const CYCLE_BAR_MAX = 7;
 
   let state = {
     members: [...DEFAULT_MEMBERS],
@@ -1407,6 +1442,7 @@
 
   function modalBlocksRemote() {
     return editingField
+      || !$('cycleMoreModal').hidden
       || !$('historyEditModal').hidden
       || !$('entryEditModal').hidden
       || !$('expEditModal').hidden;
@@ -2392,6 +2428,121 @@
     relabelCycles(state.cycles);
     scheduleSave();
     render();
+    if (!$('cycleMoreModal').hidden) renderCycleMoreList();
+  }
+
+  function getSortedCycles() {
+    return [...(state.cycles || [])].sort((a, b) => {
+      if (a.status === 'open') return 1;
+      if (b.status === 'open') return -1;
+      const da = a.closedDate || '0000';
+      const db = b.closedDate || '0000';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+  }
+
+  function cycleMetaLine(c) {
+    const meta = cycleDisplayMeta(c);
+    if (c.status === 'closed') {
+      const d = c.closedDate || '—';
+      return `${d} · 나눌 돈 ${fmtNum(meta.netTotal)}`;
+    }
+    const n = c.entries.length + c.expenditures.length;
+    return n ? `획득·지출 ${n}건 적음` : '비어 있음 · 여기부터 적어요';
+  }
+
+  function pickBarCycleIds(sorted, viewingId) {
+    const open = sorted.find((c) => c.status === 'open');
+    const closed = sorted.filter((c) => c.status === 'closed');
+    const slotsForClosed = open ? CYCLE_BAR_MAX - 1 : CYCLE_BAR_MAX;
+    let recentClosed = closed.slice(-slotsForClosed);
+    const viewing = sorted.find((c) => c.id === viewingId);
+    if (viewing && viewing.status === 'closed' && !recentClosed.some((c) => c.id === viewingId)) {
+      recentClosed = [viewing, ...recentClosed.slice(0, Math.max(0, slotsForClosed - 1))];
+    }
+    const bar = open ? [...recentClosed, open] : recentClosed.slice(-CYCLE_BAR_MAX);
+    return bar.map((c) => c.id);
+  }
+
+  function createCycleTabButton(c, viewingId) {
+    const isActive = c.id === viewingId;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cycle-tab'
+      + (isActive ? ' active' : '')
+      + (c.status === 'open' ? ' cycle-tab--open' : ' cycle-tab--closed');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    const badge = c.status === 'open'
+      ? '<span class="cycle-tab-badge open">작성 중</span>'
+      : '<span class="cycle-tab-badge closed">완료</span>';
+    btn.innerHTML = `
+      <div class="cycle-tab-top">
+        <span class="cycle-tab-label">${escapeHtml(c.label)}</span>
+        ${badge}
+        ${c.status === 'closed' ? `<button type="button" class="cycle-tab-del" title="이 회차 삭제" data-del="${escapeHtml(c.id)}">×</button>` : ''}
+      </div>
+      <span class="cycle-tab-meta">${escapeHtml(cycleMetaLine(c))}</span>
+    `;
+    btn.addEventListener('click', (e) => {
+      if (e.target.closest('.cycle-tab-del')) return;
+      setViewCycleId(c.id);
+    });
+    const del = btn.querySelector('.cycle-tab-del');
+    if (del) {
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteClosedCycle(c.id);
+      });
+    }
+    return btn;
+  }
+
+  function openCycleMoreModal() {
+    renderCycleMoreList();
+    $('cycleMoreModal').hidden = false;
+  }
+
+  function closeCycleMoreModal() {
+    $('cycleMoreModal').hidden = true;
+  }
+
+  function renderCycleMoreList() {
+    const list = $('cycleMoreList');
+    list.innerHTML = '';
+    const sorted = getSortedCycles();
+    const viewingId = getViewCycle().id;
+    [...sorted].reverse().forEach((c) => {
+      const isActive = c.id === viewingId;
+      const badge = c.status === 'open'
+        ? '<span class="cycle-tab-badge open">작성 중</span>'
+        : '<span class="cycle-tab-badge closed">완료</span>';
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'cycle-more-row' + (isActive ? ' active' : '');
+      row.innerHTML = `
+        <div class="cycle-more-row-main">
+          <div class="cycle-more-row-title">${escapeHtml(c.label)} ${badge}</div>
+          <div class="cycle-more-row-meta">${escapeHtml(cycleMetaLine(c))}</div>
+        </div>
+        <div class="cycle-more-row-actions">
+          ${c.status === 'closed' ? `<button type="button" class="icon-btn cycle-more-del" title="삭제">×</button>` : ''}
+        </div>
+      `;
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.cycle-more-del')) return;
+        setViewCycleId(c.id);
+        closeCycleMoreModal();
+      });
+      const del = row.querySelector('.cycle-more-del');
+      if (del) {
+        del.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteClosedCycle(c.id);
+        });
+      }
+      list.appendChild(row);
+    });
   }
 
   function renderCycleBar() {
@@ -2400,56 +2551,25 @@
     const tabs = $('cycleTabs');
     const hint = $('cycleViewHint');
     tabs.innerHTML = '';
-    const sorted = [...state.cycles].sort((a, b) => {
-      if (a.status === 'open') return 1;
-      if (b.status === 'open') return -1;
-      const da = a.closedDate || '0000';
-      const db = b.closedDate || '0000';
-      return da < db ? -1 : da > db ? 1 : 0;
-    });
+    const sorted = getSortedCycles();
     const viewingId = getViewCycle().id;
-    sorted.forEach((c) => {
-      const meta = cycleDisplayMeta(c);
-      const isActive = c.id === viewingId;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'cycle-tab'
-        + (isActive ? ' active' : '')
-        + (c.status === 'open' ? ' cycle-tab--open' : ' cycle-tab--closed');
-      btn.setAttribute('role', 'tab');
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      const badge = c.status === 'open'
-        ? '<span class="cycle-tab-badge open">작성 중</span>'
-        : '<span class="cycle-tab-badge closed">완료</span>';
-      let metaLine = '';
-      if (c.status === 'closed') {
-        const d = c.closedDate || '—';
-        metaLine = `${d} · 나눌 돈 ${fmtNum(meta.netTotal)}`;
-      } else {
-        const n = c.entries.length + c.expenditures.length;
-        metaLine = n ? `획득·지출 ${n}건 적음` : '비어 있음 · 여기부터 적어요';
-      }
-      btn.innerHTML = `
-        <div class="cycle-tab-top">
-          <span class="cycle-tab-label">${escapeHtml(c.label)}</span>
-          ${badge}
-          ${c.status === 'closed' ? `<button type="button" class="cycle-tab-del" title="이 회차 삭제" data-del="${escapeHtml(c.id)}">×</button>` : ''}
-        </div>
-        <span class="cycle-tab-meta">${escapeHtml(metaLine)}</span>
-      `;
-      btn.addEventListener('click', (e) => {
-        if (e.target.closest('.cycle-tab-del')) return;
-        setViewCycleId(c.id);
-      });
-      const del = btn.querySelector('.cycle-tab-del');
-      if (del) {
-        del.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteClosedCycle(c.id);
-        });
-      }
-      tabs.appendChild(btn);
+    const barIds = new Set(pickBarCycleIds(sorted, viewingId));
+    sorted.filter((c) => barIds.has(c.id)).forEach((c) => {
+      tabs.appendChild(createCycleTabButton(c, viewingId));
     });
+    const hiddenCount = sorted.length - barIds.size;
+    if (hiddenCount > 0) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'cycle-tab cycle-tab-more';
+      more.setAttribute('role', 'tab');
+      more.innerHTML = `
+        <span class="cycle-tab-label">더보기</span>
+        <span class="cycle-tab-meta">+${hiddenCount}회차</span>
+      `;
+      more.addEventListener('click', () => openCycleMoreModal());
+      tabs.appendChild(more);
+    }
 
     const active = getActiveCycle();
     const viewing = getViewCycle();
@@ -2482,6 +2602,11 @@
   bindMoneyInput('hEditExpTotal');
   $('hEditEntryTotal').addEventListener('input', updateHEditNetPreview);
   $('hEditExpTotal').addEventListener('input', updateHEditNetPreview);
+
+  $('cycleMoreCloseBtn').addEventListener('click', closeCycleMoreModal);
+  $('cycleMoreModal').addEventListener('click', (e) => {
+    if (e.target.id === 'cycleMoreModal') closeCycleMoreModal();
+  });
 
   $('cycleLegacyEditBtn').addEventListener('click', () => {
     const view = getViewCycle();
