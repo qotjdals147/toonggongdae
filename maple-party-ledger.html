@@ -1621,6 +1621,7 @@
     viewCycleId: null,
     warehouseChars: [],
     memberParcelReceive: [false, false, false],
+    entryPriceBasis: 'listing',
   };
   let sortState = { column: 'date', direction: 'asc' };
   let currentExpSplit = [...DEFAULT_SPLIT];
@@ -2161,8 +2162,21 @@
     });
   }
 
-  function migrateEntryPriceBasisToListing(root) {
-    if (root.entryPriceBasis === 'listing') return false;
+  /** 예전 실수령 저장분 → 등록가 1회 변환. listing 플래그가 유지돼야 재실행되지 않음 */
+  function migrateEntryPriceBasisToListing(root, parsed) {
+    const parsedBasis = parsed && parsed.entryPriceBasis;
+    const upgraded = parsed && parsed.entryPriceNetUpgraded;
+    if (parsedBasis === 'listing' || root.entryPriceBasis === 'listing') {
+      root.entryPriceBasis = 'listing';
+      if (upgraded) root.entryPriceNetUpgraded = true;
+      return false;
+    }
+    const shouldConvert = parsedBasis === 'net'
+      || (parsedBasis == null && !upgraded);
+    if (!shouldConvert) {
+      root.entryPriceBasis = 'listing';
+      return false;
+    }
     let touched = false;
     (root.cycles || []).forEach((c) => {
       (c.entries || []).forEach((e) => {
@@ -2174,6 +2188,7 @@
       });
     });
     root.entryPriceBasis = 'listing';
+    root.entryPriceNetUpgraded = true;
     return touched;
   }
 
@@ -2405,7 +2420,9 @@
     const next = migrateParsedToCycles(parsed);
     next.warehouseChars = normalizeWarehouseChars(parsed.warehouseChars);
     next.memberParcelReceive = normalizeMemberParcelReceive(parsed);
-    const priceMigrated = migrateEntryPriceBasisToListing(next);
+    next.entryPriceBasis = parsed.entryPriceBasis;
+    next.entryPriceNetUpgraded = parsed.entryPriceNetUpgraded;
+    const priceMigrated = migrateEntryPriceBasisToListing(next, parsed);
     const needsResave = (!!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length) || priceMigrated;
     return { next, needsResave };
   }
@@ -2417,6 +2434,7 @@
     if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
       state.memberParcelReceive = normalizeMemberParcelReceive(state);
     }
+    if (!state.entryPriceBasis) state.entryPriceBasis = 'listing';
     if (!hasInitialViewFocus) {
       snapViewToActiveOpenCycle();
       hasInitialViewFocus = true;
