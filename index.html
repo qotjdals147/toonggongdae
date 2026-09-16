@@ -48,7 +48,7 @@
     padding: 40px 20px 80px;
   }
 
-  .wrap { max-width: 760px; margin: 0 auto; }
+  .wrap { max-width: 760px; margin: 0 auto; min-width: 0; }
 
   header { margin-bottom: 28px; }
   header h1 {
@@ -87,6 +87,8 @@
     padding: 22px 24px;
     margin-bottom: 20px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    min-width: 0;
+    overflow: hidden;
   }
 
   .card h2 {
@@ -120,7 +122,7 @@
   /* entry / expenditure form */
   .entry-form {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 0.9fr 0.9fr auto auto;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr) auto;
     gap: 10px;
     align-items: end;
   }
@@ -141,6 +143,11 @@
     font-family: inherit;
     color: var(--ink);
     width: 100%;
+    min-width: 0;
+  }
+  .field select {
+    padding-right: 28px;
+    text-overflow: ellipsis;
   }
   .field input:focus, .field select:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12); }
   .field input.money-input { text-align: right; font-weight: 600; letter-spacing: 0.02em; }
@@ -309,17 +316,37 @@
     background: var(--forest-soft); color: var(--forest); font-size: 13px; font-weight: 600;
   }
   .split-cell { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
-  .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; white-space: nowrap; }
-  .icon-edit-btn {
-    background: transparent; border: none; color: var(--ink-soft); cursor: pointer;
-    font-size: 12.5px; font-weight: 600; padding: 4px 6px; font-family: inherit;
+  .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+  .btn-row-edit {
+    background: #fff;
+    border: 1px solid #BFDBFE;
+    color: var(--settle);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 11px;
+    border-radius: 7px;
+    font-family: inherit;
+    line-height: 1.2;
+    box-shadow: 0 1px 0 rgba(37, 99, 235, 0.06);
   }
-  .icon-edit-btn:hover { color: var(--settle); }
-  .icon-del {
-    background: transparent; border: none; color: var(--rust); cursor: pointer;
-    font-size: 20px; line-height: 1; width: 28px; height: 28px; padding: 0; font-family: inherit;
+  .btn-row-edit:hover { background: var(--settle-soft); border-color: #93C5FD; }
+  .btn-row-del {
+    background: var(--rust-soft);
+    border: 1px solid #FECDD3;
+    color: var(--rust);
+    cursor: pointer;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 7px;
+    font-family: inherit;
+    flex-shrink: 0;
   }
-  .icon-del:hover { color: var(--rust-hover); }
+  .btn-row-del:hover { background: #FFE4E6; border-color: var(--rust); color: var(--rust-hover); }
   .sale-badge {
     display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 100px;
   }
@@ -384,16 +411,19 @@
   .settle-breakdown[open] > summary { border-bottom: 1px solid var(--line); color: var(--ink); }
   .settle-breakdown-body { padding: 14px; }
 
-  .settle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .settle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
   .settle-card {
-    border: 1px solid var(--line); border-radius: 11px; padding: 14px 14px 12px; background: #fff;
-    border-left-width: 4px;
+    border: 1px solid var(--line); border-radius: 11px; padding: 14px 12px 12px; background: #fff;
+    border-left-width: 4px; min-width: 0; overflow: hidden;
   }
   .settle-card-owe { border-left-color: var(--rust); }
   .settle-card-get { border-left-color: var(--forest); }
   .settle-card-even { border-left-color: var(--line-strong); }
   .settle-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-  .settle-person { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .settle-person {
+    font-weight: 700; font-size: 15px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
   .settle-card-tag {
     font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 100px;
   }
@@ -401,8 +431,9 @@
   .settle-card-tag.get { background: var(--forest-soft); color: var(--forest); }
   .settle-card-tag.even { background: var(--surface-muted); color: var(--ink-soft); }
   .settle-hero-amt {
-    font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em;
+    font-family: 'Fraunces', serif; font-size: clamp(16px, 4vw, 24px); font-weight: 700; line-height: 1.1; letter-spacing: -0.02em;
     display: inline-flex; align-items: center; gap: 4px;
+    max-width: 100%; flex-wrap: wrap; word-break: break-all;
   }
   .settle-hero-amt.owe { color: var(--rust); }
   .settle-hero-amt.get { color: var(--forest); }
@@ -468,22 +499,26 @@
   .settle-takehome {
     margin-bottom: 14px; padding: 14px 16px 16px; border-radius: 12px;
     border: 1px solid #A7F3D0; background: linear-gradient(180deg, var(--forest-soft) 0%, #fff 55%);
+    overflow: hidden; max-width: 100%;
   }
   .settle-takehome-head {
     font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 12px;
   }
   .settle-takehome-head .hint { font-weight: 500; color: var(--ink-soft); font-size: 13.5px; }
-  .settle-takehome-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .settle-takehome-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .takehome-card {
-    background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 14px 12px; text-align: center;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 12px 8px; text-align: center;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); min-width: 0; overflow: hidden;
   }
   .takehome-name { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
   .takehome-amt {
-    font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--forest); line-height: 1.15;
+    font-family: 'Fraunces', serif; font-size: clamp(13px, 2.8vw, 20px); font-weight: 700; color: var(--forest); line-height: 1.2;
     letter-spacing: -0.02em;
-    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    flex-wrap: wrap; max-width: 100%; word-break: break-all;
   }
+  .takehome-amt.negative { color: var(--rust); }
+  .settle-breakdown-body { overflow: hidden; max-width: 100%; }
   .takehome-amt .meso-icon { max-height: 24px; margin-left: 4px; }
   .total-row strong .meso-icon { max-height: 28px; vertical-align: -0.3em; }
   .takehome-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.35; }
@@ -590,8 +625,13 @@
   .modal-net-preview { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
   .modal-net-preview strong { color: var(--accent-net); }
 
+  @media (max-width: 720px) {
+    .settle-grid { grid-template-columns: 1fr; }
+    .settle-takehome-grid { grid-template-columns: 1fr; }
+  }
   @media (max-width: 640px) {
     .entry-form, .exp-form { grid-template-columns: 1fr 1fr; }
+    .entry-form .btn-income { grid-column: 1 / -1; justify-self: stretch; }
     .members-grid { grid-template-columns: 1fr; }
     .settle-grid { grid-template-columns: 1fr; }
     .settle-tx-amt { width: 100%; margin-left: 0; margin-top: 4px; }
@@ -623,10 +663,9 @@
     <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="30" height="30" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
     <div class="entry-form">
       <div class="field"><span>아이템명</span><input id="fItem" type="text" placeholder="예: 시간의 조각"></div>
-      <div class="field"><span class="label-with-meso">판매가 (<img src="image/meso.png" alt="" class="meso-icon" decoding="async">)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="미판매면 비움"></div>
+      <div class="field"><span class="label-with-meso">판매가 (<img src="image/meso.png" alt="" class="meso-icon" decoding="async">)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
       <div class="field"><span>획득자</span><select id="fOwner"></select></div>
       <div class="field"><span>날짜</span><input id="fDate" type="date"></div>
-      <div class="field field-check"><span>&nbsp;</span><label><input type="checkbox" id="fUnsold"> 미판매 (가격 나중에)</label></div>
       <button class="btn-income" id="addBtn">획득 추가</button>
     </div>
     <div class="split-row">
@@ -683,7 +722,7 @@
     </div>
     <div id="settleHero"></div>
     <details class="settle-breakdown" id="settleBreakdown">
-      <summary>왜 이렇게 나왔는지 보기</summary>
+      <summary>상세 내역</summary>
       <div class="settle-breakdown-body">
         <div class="section-caption" style="margin-top:0;">사람별 차액 (보유 vs 몫)</div>
         <div class="settle-grid" id="settleGrid"></div>
@@ -740,7 +779,6 @@
       <div class="field"><span>판매가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
       <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
-      <div class="field field-check" style="grid-column:1/-1;"><label><input type="checkbox" id="eEditUnsold"> 미판매</label></div>
     </div>
     <div class="split-row" style="margin-top:0;padding-top:12px;">
       <span class="split-label">분배 비율</span>
@@ -1247,8 +1285,8 @@
         <td>${statusBadge}</td>
         <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
         <td class="row-actions">
-          <button type="button" class="icon-edit-btn entry-edit-btn" data-id="${entry.id}">수정</button>
-          <button type="button" class="icon-del entry-del-btn" data-id="${entry.id}" title="삭제">×</button>
+          <button type="button" class="btn-row-edit entry-edit-btn" data-id="${entry.id}">수정</button>
+          <button type="button" class="btn-row-del entry-del-btn" data-id="${entry.id}" title="삭제" aria-label="삭제">×</button>
         </td>
       `;
       body.appendChild(tr);
@@ -1286,8 +1324,8 @@
         <td><span class="owner-tag" style="background:var(--rust-soft);color:var(--rust);">${escapeHtml(ben)}</span></td>
         <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
         <td class="row-actions">
-          <button type="button" class="icon-edit-btn exp-edit-btn" data-id="${x.id}">수정</button>
-          <button type="button" class="icon-del exp-del-btn" data-id="${x.id}" title="삭제">×</button>
+          <button type="button" class="btn-row-edit exp-edit-btn" data-id="${x.id}">수정</button>
+          <button type="button" class="btn-row-del exp-del-btn" data-id="${x.id}" title="삭제" aria-label="삭제">×</button>
         </td>
       `;
       body.appendChild(tr);
@@ -1381,9 +1419,10 @@
         else sub = '송금 받으면 이 금액이 돼요';
         const card = document.createElement('div');
         card.className = 'takehome-card';
+        const amtCls = fairAmt < 0 ? 'takehome-amt negative' : 'takehome-amt';
         card.innerHTML = `
           <div class="takehome-name">${escapeHtml(name)}</div>
-          <div class="takehome-amt">${fmtNum(fairAmt)}${MESO_ICON_LG_HTML}</div>
+          <div class="${amtCls}">${fmtNum(fairAmt)}${MESO_ICON_LG_HTML}</div>
           <div class="takehome-sub">${sub}</div>
         `;
         takeGrid.appendChild(card);
@@ -1485,7 +1524,7 @@
     if (unsold > 0) {
       btn.disabled = true;
       box.style.display = 'block';
-      box.textContent = `미판매 ${unsold}건이 있어요. 수정에서 판매가를 넣거나 삭제한 뒤 정산할 수 있어요.`;
+      box.textContent = `판매가 0인 항목 ${unsold}건이 있어요. 가격을 넣거나 삭제한 뒤 정산할 수 있어요.`;
     } else {
       btn.disabled = false;
       box.style.display = 'none';
@@ -1516,8 +1555,8 @@
     editingField = true;
     const unsold = entryStatus(entry) === 'unsold';
     $('eEditItem').value = entry.item;
-    $('eEditUnsold').checked = unsold;
     $('eEditPrice').value = unsold ? '' : formatMoneyInput(Number(entry.price));
+    $('eEditPrice').disabled = false;
     $('eEditOwner').value = entry.ownerIdx;
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
@@ -1535,12 +1574,11 @@
     if (!editingEntryId) return;
     const entry = state.entries.find((x) => x.id === editingEntryId);
     if (!entry) return;
-    const unsold = $('eEditUnsold').checked;
     const price = parseMoneyInput($('eEditPrice').value);
+    const unsold = price <= 0;
     const sum = editEntrySplit.reduce((s, v) => s + Number(v || 0), 0);
     const item = $('eEditItem').value.trim();
     if (!item) { $('eEditItem').focus(); return; }
-    if (!unsold && (!price || price <= 0)) { $('eEditPrice').focus(); return; }
     if (Math.abs(sum - 100) > 0.01) return;
     entry.item = item;
     entry.ownerIdx = Number($('eEditOwner').value);
@@ -1837,25 +1875,15 @@
     if (e.target.id === 'historyEditModal') closeHistoryEdit();
   });
 
-  $('fUnsold').addEventListener('change', () => {
-    if ($('fUnsold').checked) {
-      $('fPrice').value = '';
-      $('fPrice').disabled = true;
-    } else {
-      $('fPrice').disabled = false;
-    }
-  });
-
   $('addBtn').addEventListener('click', () => {
     const item = $('fItem').value.trim();
-    const unsold = $('fUnsold').checked;
     const price = parseMoneyInput($('fPrice').value);
+    const unsold = price <= 0;
     const ownerIdx = Number($('fOwner').value);
     const date = $('fDate').value || todayStr();
     const sum = currentSplit.reduce((s, v) => s + Number(v || 0), 0);
 
     if (!item) { $('fItem').focus(); return; }
-    if (!unsold && (!price || price <= 0)) { $('fPrice').focus(); return; }
     if (Math.abs(sum - 100) > 0.01) { return; }
 
     state.entries.push({
@@ -1870,8 +1898,6 @@
 
     $('fItem').value = '';
     $('fPrice').value = '';
-    $('fUnsold').checked = false;
-    $('fPrice').disabled = false;
     $('fItem').focus();
     currentSplit = [...DEFAULT_SPLIT];
     renderSplitFields();
@@ -1935,14 +1961,6 @@
   });
   $('entryEditModal').addEventListener('click', (e) => {
     if (e.target.id === 'entryEditModal') closeEntryEdit();
-  });
-  $('eEditUnsold').addEventListener('change', () => {
-    if ($('eEditUnsold').checked) {
-      $('eEditPrice').value = '';
-      $('eEditPrice').disabled = true;
-    } else {
-      $('eEditPrice').disabled = false;
-    }
   });
   bindMoneyInput('eEditPrice');
   bindMoneyInput('xEditAmount');
