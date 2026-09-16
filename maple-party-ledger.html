@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>퉁퉁이 공대 장부</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --paper: #F1F5F9;
+    --paper-card: #FFFFFF;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --line: #E2E8F0;
+    --line-strong: #CBD5E1;
+    --focus: #6366F1;
+    --accent-net: #4F46E5;
+    --accent-net-soft: #EEF2FF;
+    --gold: #4F46E5;
+    --gold-soft: #EEF2FF;
+    --forest: #059669;
+    --forest-soft: #ECFDF5;
+    --forest-hover: #047857;
+    --rust: #E11D48;
+    --rust-soft: #FFF1F2;
+    --rust-hover: #BE123C;
+    --settle: #2563EB;
+    --settle-hover: #1D4ED8;
+    --settle-soft: #EFF6FF;
+    --surface-muted: #F8FAFC;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(99,102,241,0.06), transparent 42%),
+      radial-gradient(circle at 85% 100%, rgba(37,99,235,0.05), transparent 40%);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.55;
+    font-size: 15px;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-size: 34px;
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  .status-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .status-row button {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .status-row button:hover { border-color: var(--line-strong); color: var(--ink); background: var(--surface-muted); }
+
+  .card {
+    background: var(--paper-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .card h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+
+  /* member names */
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .member-slot { display: flex; flex-direction: column; gap: 6px; }
+  .member-slot span { font-size: 13.5px; color: var(--ink-soft); font-weight: 500; }
+  .member-slot input {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 7px;
+    padding: 9px 10px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .member-slot input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12); }
+
+  /* entry / expenditure form */
+  .entry-form {
+    display: grid;
+    grid-template-columns: 1.6fr 1.1fr 1.1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+  .exp-form {
+    display: grid;
+    grid-template-columns: 1.6fr 1.1fr 1.1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field span { font-size: 13.5px; color: var(--ink-soft); font-weight: 500; }
+  .field input, .field select {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 7px;
+    padding: 9px 10px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    width: 100%;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12); }
+  .field input.money-input { text-align: right; font-weight: 600; letter-spacing: 0.02em; }
+
+  .btn-income, .btn-expense, .btn-settle, .btn-ghost, .btn-primary {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-income, .btn-primary {
+    background: var(--forest);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(5, 150, 105, 0.25);
+  }
+  .btn-income:hover, .btn-primary:hover { background: var(--forest-hover); }
+  .btn-income:disabled, .btn-primary:disabled { background: #94A3B8; box-shadow: none; cursor: not-allowed; }
+  .btn-expense {
+    background: var(--rust);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(225, 29, 72, 0.22);
+  }
+  .btn-expense:hover { background: var(--rust-hover); }
+  .btn-expense:disabled { background: #94A3B8; box-shadow: none; cursor: not-allowed; }
+  .btn-ghost {
+    background: #fff;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    box-shadow: none;
+  }
+  .btn-ghost:hover { background: var(--surface-muted); color: var(--ink); border-color: var(--line-strong); }
+  .btn-sm { padding: 6px 12px; font-size: 13.5px; border-radius: 7px; }
+
+  /* split ratio row */
+  .split-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line);
+    flex-wrap: wrap;
+  }
+  .split-label { font-size: 13.5px; color: var(--ink-soft); white-space: nowrap; font-weight: 500; }
+  .split-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+  .split-field { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .split-field .sname {
+    font-size: 12.5px; color: var(--ink-soft); max-width: 76px; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .stepper {
+    display: flex; align-items: center;
+    border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: #fff;
+  }
+  .stepper button {
+    border: none; width: 28px; height: 32px;
+    cursor: pointer; font-size: 16px; font-weight: 700; font-family: inherit;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .stepper button.stepper-minus { background: var(--rust-soft); color: var(--rust); }
+  .stepper button.stepper-minus:hover { background: var(--rust); color: #fff; }
+  .stepper button.stepper-plus { background: var(--settle-soft); color: var(--settle); }
+  .stepper button.stepper-plus:hover { background: var(--settle); color: #fff; }
+  .stepper input {
+    border: none; width: 48px; text-align: center; font-size: 15px; font-weight: 600; padding: 0 2px; font-family: inherit;
+  }
+  .stepper input:focus { outline: none; }
+  .split-equal-btn {
+    border: 1px solid var(--line); background: #fff; border-radius: 7px;
+    padding: 7px 12px; font-size: 13.5px; cursor: pointer; color: var(--ink-soft); font-family: inherit;
+  }
+  .split-equal-btn:hover { border-color: var(--focus); color: var(--ink); background: var(--surface-muted); }
+  .split-sum { font-size: 14px; font-weight: 600; color: var(--forest); }
+  .split-sum.bad { color: var(--rust); }
+
+  /* ledger table */
+  .ledger-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .reset-sort-btn {
+    border: 1px solid var(--line); background: #fff; border-radius: 7px;
+    padding: 6px 12px; font-size: 12.5px; cursor: pointer; color: var(--ink-soft); font-family: inherit;
+  }
+  .reset-sort-btn:hover { border-color: var(--line-strong); color: var(--ink); background: var(--surface-muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 13px; color: var(--ink-soft); font-weight: 600;
+    padding: 0 8px 8px; border-bottom: 1px solid var(--line);
+  }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--ink); }
+  .sort-icon { display: inline-flex; flex-direction: column; margin-left: 3px; vertical-align: middle; line-height: 0.6; position: relative; top: -1px; }
+  .sort-icon span { display: block; font-size: 8px; color: var(--line-strong); }
+  .sort-icon span.active { color: var(--focus); }
+
+  tbody td { padding: 10px 8px; font-size: 15px; border-bottom: 1px solid var(--line); }
+  tbody tr:last-child td { border-bottom: none; }
+  .item-name { font-weight: 500; }
+  .price-cell { text-align: right; font-weight: 600; }
+  .owner-tag {
+    display: inline-block; padding: 3px 9px; border-radius: 100px;
+    background: var(--forest-soft); color: var(--forest); font-size: 13px; font-weight: 600;
+  }
+  .split-cell { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+  .del-btn { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 14px; padding: 4px 6px; }
+  .del-btn:hover { color: var(--rust); }
+
+  .empty-state { text-align: center; padding: 30px 10px; color: var(--ink-soft); font-size: 15px; }
+
+  .total-row {
+    display: flex; justify-content: space-between; padding-top: 14px; margin-top: 6px;
+    border-top: 1px solid var(--line); font-size: 15px;
+  }
+  .total-row strong { font-family: 'Fraunces', serif; font-size: 19px; color: var(--gold); }
+
+  /* settlement */
+  .settle-hero {
+    border-radius: 12px; border: 1px solid #BFDBFE; background: linear-gradient(180deg, var(--settle-soft) 0%, #fff 100%);
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .settle-hero.even-state { border-color: var(--line); background: var(--surface-muted); }
+  .settle-hero-title {
+    font-size: 14px; font-weight: 700; color: var(--settle); margin-bottom: 12px;
+  }
+  .settle-hero.even-state .settle-hero-title { color: var(--forest); }
+  .settle-hero-sub { font-size: 14px; color: var(--ink-soft); margin: 0; }
+  .settle-hero-txs { display: flex; flex-direction: column; gap: 10px; }
+  .settle-tx-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px;
+    background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .settle-tx-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .settle-tx-amt {
+    margin-left: auto; font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700;
+    color: var(--settle); letter-spacing: -0.02em;
+  }
+  .settle-tx-amt span { font-size: 14px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; margin-left: 2px; }
+
+  .settle-breakdown {
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); margin-bottom: 4px;
+  }
+  .settle-breakdown > summary {
+    cursor: pointer; padding: 12px 14px; font-size: 14px; font-weight: 600; color: var(--ink-soft);
+    list-style: none; user-select: none;
+  }
+  .settle-breakdown > summary::-webkit-details-marker { display: none; }
+  .settle-breakdown > summary::before {
+    content: '▶'; display: inline-block; margin-right: 8px; font-size: 10px; transition: transform 0.15s ease;
+  }
+  .settle-breakdown[open] > summary::before { transform: rotate(90deg); }
+  .settle-breakdown[open] > summary { border-bottom: 1px solid var(--line); color: var(--ink); }
+  .settle-breakdown-body { padding: 14px; }
+
+  .settle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .settle-card {
+    border: 1px solid var(--line); border-radius: 11px; padding: 14px 14px 12px; background: #fff;
+    border-left-width: 4px;
+  }
+  .settle-card-owe { border-left-color: var(--rust); }
+  .settle-card-get { border-left-color: var(--forest); }
+  .settle-card-even { border-left-color: var(--line-strong); }
+  .settle-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .settle-person { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .settle-card-tag {
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 100px;
+  }
+  .settle-card-tag.owe { background: var(--rust-soft); color: var(--rust); }
+  .settle-card-tag.get { background: var(--forest-soft); color: var(--forest); }
+  .settle-card-tag.even { background: var(--surface-muted); color: var(--ink-soft); }
+  .settle-hero-amt {
+    font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em;
+  }
+  .settle-hero-amt.owe { color: var(--rust); }
+  .settle-hero-amt.get { color: var(--forest); }
+  .settle-hero-amt.even { color: var(--ink-soft); font-size: 20px; }
+  .settle-hero-amt .unit { font-size: 13px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; margin-left: 3px; }
+  .settle-hero-lbl { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 4px 0 10px; }
+  .settle-bars { display: flex; flex-direction: column; gap: 6px; }
+  .settle-bar-row {
+    display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; font-size: 12px; color: var(--ink-soft);
+  }
+  .settle-bar-row .bar {
+    height: 8px; border-radius: 100px; background: var(--line); overflow: hidden;
+  }
+  .settle-bar-row .bar i {
+    display: block; height: 100%; border-radius: 100px; background: var(--settle); opacity: 0.85;
+  }
+  .settle-bar-row .bar.bar-fair i { background: var(--forest); }
+  .settle-bar-row .bval { font-size: 12px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mini-badge {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 8px;
+    border-radius: 100px; margin-top: 8px;
+  }
+  .mini-badge.exp-share { background: var(--rust-soft); color: var(--rust); }
+
+  .settle-summary {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .settle-summary-label { font-size: 13.5px; color: var(--ink-soft); width: 100%; margin-bottom: 2px; font-weight: 500; }
+  .stat-pill {
+    display: inline-flex; flex-direction: column; gap: 2px; padding: 8px 14px;
+    border-radius: 10px; border: 1px solid var(--line); background: #fff; min-width: 100px;
+  }
+  .stat-pill .stat-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .stat-pill .stat-val { font-size: 16px; font-weight: 700; font-family: 'Fraunces', serif; }
+  .stat-pill.income { border-color: #A7F3D0; background: var(--forest-soft); }
+  .stat-pill.income .stat-val { color: var(--forest); }
+  .stat-pill.expense { border-color: #FECDD3; background: var(--rust-soft); }
+  .stat-pill.expense .stat-val { color: var(--rust); }
+  .stat-pill.net { border-color: #C7D2FE; background: var(--accent-net-soft); }
+  .stat-pill.net .stat-val { color: var(--accent-net); }
+  .stat-flow-arrow { font-size: 18px; color: var(--ink-soft); line-height: 1; padding: 0 2px; }
+
+  .status-badge {
+    display: inline-block; font-size: 12px; font-weight: 700; padding: 5px 10px;
+    border-radius: 100px; margin-top: 8px;
+  }
+  .status-badge.owe { background: var(--rust-soft); color: var(--rust); }
+  .status-badge.get { background: var(--forest-soft); color: var(--forest); }
+  .status-badge.even { background: #fff; color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .section-caption {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+    color: var(--ink-soft); margin: 14px 0 8px;
+  }
+  .section-caption:first-child { margin-top: 0; }
+
+  .settle-lead {
+    font-size: 14px; color: var(--ink-soft); margin: -4px 0 14px; line-height: 1.5;
+  }
+  .settle-lead strong { color: var(--settle); font-weight: 700; }
+
+  .settle-overview { margin-bottom: 14px; }
+  .settle-takehome {
+    margin-bottom: 14px; padding: 14px 16px 16px; border-radius: 12px;
+    border: 1px solid #A7F3D0; background: linear-gradient(180deg, var(--forest-soft) 0%, #fff 55%);
+  }
+  .settle-takehome-head {
+    font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 12px;
+  }
+  .settle-takehome-head .hint { font-weight: 500; color: var(--ink-soft); font-size: 13.5px; }
+  .settle-takehome-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .takehome-card {
+    background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 14px 12px; text-align: center;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .takehome-name { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .takehome-amt {
+    font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--forest); line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .takehome-amt .unit { font-size: 12px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; margin-left: 2px; }
+  .takehome-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.35; }
+
+  .settle-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+  .btn-settle {
+    background: var(--settle); color: #fff; border: none; border-radius: 8px;
+    padding: 10px 18px; font-weight: 600; font-size: 13.5px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+  }
+  .btn-settle:hover { background: var(--settle-hover); }
+
+  /* history accordion */
+  .history-scroll {
+    max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface-muted); padding: 6px;
+  }
+  .history-scroll::-webkit-scrollbar { width: 8px; }
+  .history-scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+  .history-item {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; overflow: hidden;
+  }
+  .history-item:last-child { margin-bottom: 0; }
+  .history-summary {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 12px;
+    cursor: pointer; user-select: none; min-height: 44px;
+  }
+  .history-summary:hover { background: var(--surface-muted); }
+  .history-item.open .history-summary { border-bottom: 1px solid var(--line); background: #fff; }
+  .hist-chevron {
+    flex-shrink: 0; width: 18px; text-align: center; font-size: 11px; color: var(--ink-soft);
+    transition: transform 0.15s ease;
+  }
+  .history-item.open .hist-chevron { transform: rotate(90deg); }
+  .hist-line-main { font-weight: 600; font-size: 15px; color: var(--ink); white-space: nowrap; }
+  .hist-line-meta {
+    flex: 1; min-width: 0; font-size: 13.5px; color: var(--ink-soft);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
+  }
+  .history-detail { display: none; padding: 12px 14px 14px; background: #fff; }
+  .history-item.open .history-detail { display: block; }
+  .h-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: 4px; }
+  .icon-btn {
+    width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink-soft); font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit;
+  }
+  .icon-btn:hover { color: var(--rust); border-color: #FECDD3; background: var(--rust-soft); }
+  .h-date-badge {
+    font-size: 12px; font-weight: 600; color: var(--ink); background: var(--surface-muted);
+    border: 1px solid var(--line); border-radius: 100px; padding: 5px 12px;
+  }
+  .h-total2 {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 16px; color: var(--accent-net);
+    background: var(--accent-net-soft); border: 1px solid #C7D2FE; border-radius: 10px; padding: 6px 12px;
+  }
+  .h-stat-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .h-exp-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .exp-chip {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; background: var(--surface-muted);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px;
+  }
+  .exp-chip .exp-name { font-weight: 600; color: var(--ink); }
+  .exp-chip .exp-amt { font-weight: 700; color: var(--rust); }
+  .exp-chip .exp-date { font-size: 11px; color: var(--ink-soft); }
+  .person-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11.5px; font-weight: 600;
+  }
+  .person-badge.ben { background: var(--rust-soft); color: var(--rust); }
+  .person-badge.from { background: var(--rust-soft); color: var(--rust); }
+  .person-badge.to { background: var(--forest-soft); color: var(--forest); }
+  .tx-chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tx-chip {
+    display: flex; align-items: center; gap: 6px; background: #fff;
+    border: 1px solid var(--line); border-radius: 100px; padding: 7px 13px; font-size: 13px;
+  }
+  .tx-chip .arrow { color: var(--ink-soft); font-size: 12px; }
+  .tx-chip .amt2 { font-weight: 700; color: var(--accent-net); margin-left: 4px; }
+  .h-empty-chip {
+    font-size: 13px; color: var(--ink-soft); background: var(--surface-muted); border: 1px dashed var(--line);
+    border-radius: 100px; padding: 7px 13px;
+  }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
+    display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  .modal {
+    width: 100%; max-width: 520px; max-height: min(90vh, 720px); overflow: auto;
+    background: #fff; border-radius: 14px; border: 1px solid var(--line);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15); padding: 22px 22px 18px;
+  }
+  .modal h3 { margin: 0 0 16px; font-family: 'Fraunces', serif; font-size: 20px; color: var(--ink); }
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .modal-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .modal-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .modal-section-head span { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .modal-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px;
+  }
+  .modal-row.exp-row { grid-template-columns: 1.2fr 1fr 1fr 1fr auto; }
+  .modal-row .field span { font-size: 11px; }
+  .modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .modal-net-preview { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+  .modal-net-preview strong { color: var(--accent-net); }
+
+  @media (max-width: 640px) {
+    .entry-form, .exp-form { grid-template-columns: 1fr 1fr; }
+    .members-grid { grid-template-columns: 1fr; }
+    .settle-grid { grid-template-columns: 1fr; }
+    .settle-tx-amt { width: 100%; margin-left: 0; margin-top: 4px; }
+    .settle-takehome-grid { grid-template-columns: 1fr; }
+    .modal-row, .modal-row.exp-row { grid-template-columns: 1fr 1fr; }
+    .modal-row .icon-btn, .modal-row.exp-row .icon-btn { grid-column: 1 / -1; justify-self: end; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>퉁퉁이 공대 장부</h1>
+    <div class="status-row">
+      <span id="statusText">불러오는 중…</span>
+      <div class="status-actions">
+        <button type="button" class="btn-ghost btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
+        <button id="refreshBtn">새로고침</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>공대원</h2>
+    <div class="members-grid" id="membersGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>항목 추가</h2>
+    <div class="entry-form">
+      <div class="field"><span>아이템명</span><input id="fItem" type="text" placeholder="예: 시간의 조각"></div>
+      <div class="field"><span>판매가 (메소)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+      <div class="field"><span>획득자(판매금 보유)</span><select id="fOwner"></select></div>
+      <div class="field"><span>날짜</span><input id="fDate" type="date"></div>
+      <button class="btn-income" id="addBtn">기록 추가</button>
+    </div>
+    <div class="split-row">
+      <span class="split-label">분배 비율</span>
+      <div class="split-fields" id="splitFields"></div>
+      <button type="button" class="split-equal-btn" id="splitEqualBtn">균등 분배</button>
+      <span class="split-sum" id="splitSum">합계 100%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>장부</h2>
+    <div class="ledger-toolbar">
+      <button class="reset-sort-btn" id="resetSortBtn">기본 정렬</button>
+    </div>
+    <table>
+      <thead id="ledgerHead"></thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display:none;">아직 기록된 아이템이 없어요. 위에서 첫 항목을 추가해보세요.</div>
+    <div class="total-row"><span>총 합계</span><strong id="totalAmount">0메소</strong></div>
+  </div>
+
+  <div class="card">
+    <h2>퉁퉁이 공대 분배금 지출 내역</h2>
+    <div class="exp-form">
+      <div class="field"><span>지출 항목</span><input id="fExpDesc" type="text" placeholder="예: 무기 구매"></div>
+      <div class="field"><span>금액</span><input id="fExpAmount" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+      <div class="field"><span>수혜자(기록용)</span><select id="fExpBeneficiary"></select></div>
+      <div class="field"><span>날짜</span><input id="fExpDate" type="date"></div>
+      <button class="btn-expense" id="expAddBtn">지출 추가</button>
+    </div>
+    <div class="split-row">
+      <span class="split-label">분배 비율 (공동 부담)</span>
+      <div class="split-fields" id="expSplitFields"></div>
+      <button type="button" class="split-equal-btn" id="expSplitEqualBtn">균등 분배</button>
+      <span class="split-sum" id="expSplitSum">합계 100%</span>
+    </div>
+    <table style="margin-top:16px;">
+      <thead><tr><th>날짜</th><th>항목</th><th style="text-align:right;">금액</th><th>수혜자</th><th>분배</th><th></th></tr></thead>
+      <tbody id="expBody"></tbody>
+    </table>
+    <div id="expEmptyState" class="empty-state" style="display:none;">아직 지출 기록이 없어요.</div>
+    <div class="total-row"><span>총 지출액</span><strong id="expTotalAmount">0메소</strong></div>
+  </div>
+
+  <div class="card">
+    <h2>정산</h2>
+    <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
+    <div class="settle-overview" id="settleOverview" style="display:none;"></div>
+    <div class="settle-takehome" id="settleTakehome" style="display:none;">
+      <div class="settle-takehome-head">인당 가져갈 금액 <span class="hint">· 분배·공동 지출 반영 후</span></div>
+      <div class="settle-takehome-grid" id="settleTakehomeGrid"></div>
+    </div>
+    <div id="settleHero"></div>
+    <details class="settle-breakdown" id="settleBreakdown">
+      <summary>왜 이렇게 나왔는지 보기</summary>
+      <div class="settle-breakdown-body">
+        <div class="section-caption" style="margin-top:0;">사람별 차액 (보유 vs 몫)</div>
+        <div class="settle-grid" id="settleGrid"></div>
+      </div>
+    </details>
+    <div class="settle-actions">
+      <button class="btn-settle" id="settleDoneBtn">정산 완료 처리</button>
+    </div>
+  </div>
+
+  <div class="card" id="historyCard" style="display:none;">
+    <h2>지난 정산 기록</h2>
+    <div class="history-scroll" id="historyList"></div>
+  </div>
+
+</div>
+
+<div class="modal-backdrop" id="historyEditModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="historyEditTitle">
+    <h3 id="historyEditTitle">정산 기록 수정</h3>
+    <div class="modal-grid">
+      <div class="field"><span>정산 날짜</span><input id="hEditDate" type="date"></div>
+      <div class="field"><span>&nbsp;</span><div class="modal-net-preview" id="hEditNetPreview">나눌 돈 <strong>0</strong></div></div>
+      <div class="field"><span>소득 합계</span><input id="hEditEntryTotal" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>지출 합계</span><input id="hEditExpTotal" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-head">
+        <span>송금 내역</span>
+        <button type="button" class="btn-ghost btn-sm" id="hEditAddTxBtn">+ 추가</button>
+      </div>
+      <div id="hEditTxRows"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-head">
+        <span>공동 지출</span>
+        <button type="button" class="btn-ghost btn-sm" id="hEditAddExpBtn">+ 추가</button>
+      </div>
+      <div id="hEditExpRows"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-ghost" id="hEditCancelBtn">취소</button>
+      <button type="button" class="btn-settle btn-sm" id="hEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function () {
+  // ── 웹 공유 설정 (Supabase 프로젝트 만든 뒤 아래 두 값을 채우세요) ──
+  const CLOUD_CONFIG = {
+    supabaseUrl: '',
+    supabaseAnonKey: ''
+  };
+  const ROOM_ID = (() => {
+    const q = new URLSearchParams(location.search).get('room');
+    return q && /^[a-zA-Z0-9_-]{3,48}$/.test(q) ? q : 'tongtongi';
+  })();
+
+  const STORAGE_KEY = 'tongtongi-party-ledger-v2';
+  const DEFAULT_MEMBERS = ['나', '친구', '아는형'];
+  const DEFAULT_SPLIT = [34, 33, 33];
+
+  let state = { members: [...DEFAULT_MEMBERS], entries: [], expenditures: [], history: [] };
+  let sortState = { column: 'date', direction: 'asc' };
+  let currentSplit = [...DEFAULT_SPLIT];
+  let currentExpSplit = [...DEFAULT_SPLIT];
+  let saveTimeout = null;
+  let editingField = false;
+  let editingHistoryId = null;
+  const expandedHistoryIds = new Set();
+  let supabaseClient = null;
+  let storageMode = 'local'; // cloud | cursor | local
+  let suppressRemoteUntil = 0;
+  let realtimeReady = false;
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Math.round(n).toLocaleString('ko-KR') + '메소';
+  const fmtNum = (n) => Math.round(n).toLocaleString('ko-KR');
+  const parseMoneyInput = (str) => {
+    const digits = String(str == null ? '' : str).replace(/[^\d]/g, '');
+    return digits === '' ? 0 : Number(digits);
+  };
+  const formatMoneyInput = (n) => (n > 0 ? fmtNum(n) : '');
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  function bindMoneyInput(id) {
+    const el = $(id);
+    el.addEventListener('input', () => {
+      const num = parseMoneyInput(el.value);
+      el.value = formatMoneyInput(num);
+    });
+  }
+
+  function statPillsHtml(entryTotal, expTotal, netTotal) {
+    return `
+      <div class="h-stat-row settle-summary" style="margin-bottom:0;">
+        <span class="stat-pill income"><span class="stat-label">소득</span><span class="stat-val">${fmtNum(entryTotal)}</span></span>
+        <span class="stat-flow-arrow">−</span>
+        <span class="stat-pill expense"><span class="stat-label">지출</span><span class="stat-val">${fmtNum(expTotal)}</span></span>
+        <span class="stat-flow-arrow">=</span>
+        <span class="stat-pill net"><span class="stat-label">나눌 돈</span><span class="stat-val">${fmtNum(netTotal)}</span></span>
+      </div>
+    `;
+  }
+
+  function txChipHtml(from, to, amt) {
+    return `<div class="tx-chip"><span class="person-badge from">${escapeHtml(from)}</span><span class="arrow">→</span><span class="person-badge to">${escapeHtml(to)}</span><span class="amt2">${fmtNum(amt)}</span></div>`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function parseStoredState(raw) {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    let historyNeedsId = false;
+    const next = {
+      members: parsed.members && parsed.members.length === 3 ? parsed.members : [...DEFAULT_MEMBERS],
+      entries: (parsed.entries || []).map(e => ({ ...e, split: (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT] })),
+      expenditures: (parsed.expenditures || []).map(x => ({
+        id: x.id,
+        desc: x.desc,
+        amount: x.amount,
+        beneficiaryIdx: x.beneficiaryIdx != null ? x.beneficiaryIdx : 0,
+        date: x.date,
+        split: (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT]
+      })),
+      history: (parsed.history || []).map(h => {
+        if (!h.id) historyNeedsId = true;
+        return { ...h, id: h.id || genId() };
+      })
+    };
+    return { next, historyNeedsId };
+  }
+
+  function applyStateFromRemote(next, historyNeedsId) {
+    state = next;
+    if (historyNeedsId) scheduleSave();
+    render();
+  }
+
+  function shareUrl() {
+    const url = new URL(location.href);
+    url.searchParams.set('room', ROOM_ID);
+    return url.toString();
+  }
+
+  function updateStatusUi() {
+    const copyBtn = $('copyLinkBtn');
+    if (storageMode === 'cloud') {
+      copyBtn.style.display = 'inline-block';
+      $('statusText').textContent = realtimeReady
+        ? `실시간 공유 중 · 방 ${ROOM_ID}`
+        : `클라우드 저장 · 방 ${ROOM_ID}`;
+    } else if (storageMode === 'cursor') {
+      copyBtn.style.display = 'none';
+      $('statusText').textContent = 'Cursor에서 함께 보는 중 · 자동 저장됨';
+    } else {
+      copyBtn.style.display = 'none';
+      $('statusText').textContent = '⚠ 이 기기만 저장 · 공대 공유는 Supabase 설정 필요 (NETLIFY-배포.md)';
+    }
+  }
+
+  function initStorageBackend() {
+    if (CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey && window.supabase) {
+      supabaseClient = window.supabase.createClient(CLOUD_CONFIG.supabaseUrl, CLOUD_CONFIG.supabaseAnonKey);
+      storageMode = 'cloud';
+      return;
+    }
+    if (window.storage && typeof window.storage.get === 'function') {
+      storageMode = 'cursor';
+      return;
+    }
+    storageMode = 'local';
+  }
+
+  async function loadStateFromBackend() {
+    if (storageMode === 'cloud' && supabaseClient) {
+      const { data, error } = await supabaseClient
+        .from('party_ledgers')
+        .select('data')
+        .eq('room_id', ROOM_ID)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && data.data) {
+        const { next, historyNeedsId } = parseStoredState(data.data);
+        applyStateFromRemote(next, historyNeedsId);
+        return true;
+      }
+      return false;
+    }
+    if (storageMode === 'cursor') {
+      const res = await window.storage.get(STORAGE_KEY, true);
+      if (res && res.value) {
+        const { next, historyNeedsId } = parseStoredState(res.value);
+        applyStateFromRemote(next, historyNeedsId);
+        return true;
+      }
+      return false;
+    }
+    const local = localStorage.getItem(STORAGE_KEY + ':' + ROOM_ID);
+    if (local) {
+      const { next, historyNeedsId } = parseStoredState(local);
+      applyStateFromRemote(next, historyNeedsId);
+      return true;
+    }
+    return false;
+  }
+
+  async function saveStateToBackend() {
+    suppressRemoteUntil = Date.now() + 1500;
+    if (storageMode === 'cloud' && supabaseClient) {
+      const { error } = await supabaseClient.from('party_ledgers').upsert(
+        { room_id: ROOM_ID, data: state, updated_at: new Date().toISOString() },
+        { onConflict: 'room_id' }
+      );
+      if (error) throw error;
+      return;
+    }
+    if (storageMode === 'cursor') {
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(state), true);
+      if (!result) throw new Error('save failed');
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY + ':' + ROOM_ID, JSON.stringify(state));
+  }
+
+  function subscribeCloudRealtime() {
+    if (!supabaseClient || storageMode !== 'cloud') return;
+    supabaseClient
+      .channel('party-ledger-' + ROOM_ID)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'party_ledgers',
+        filter: 'room_id=eq.' + ROOM_ID
+      }, (payload) => {
+        if (Date.now() < suppressRemoteUntil) return;
+        if (editingField || !$('historyEditModal').hidden) return;
+        const row = payload.new;
+        if (!row || !row.data) return;
+        try {
+          const { next, historyNeedsId } = parseStoredState(row.data);
+          applyStateFromRemote(next, historyNeedsId);
+          updateStatusUi();
+        } catch (e) { /* ignore bad payload */ }
+      })
+      .subscribe((status) => {
+        realtimeReady = status === 'SUBSCRIBED';
+        updateStatusUi();
+      });
+  }
+
+  async function loadState() {
+    try {
+      const had = await loadStateFromBackend();
+      updateStatusUi();
+      if (!had) {
+        render();
+        if (storageMode === 'local') {
+          $('statusText').textContent = '아직 기록이 없어요 · 첫 기록을 남겨보세요 (로컬만)';
+        }
+      }
+    } catch (e) {
+      $('statusText').textContent = '불러오기 실패 · 새로고침 또는 Supabase 설정 확인';
+      render();
+    }
+  }
+
+  async function saveState() {
+    try {
+      $('statusText').textContent = '저장 중…';
+      await saveStateToBackend();
+      updateStatusUi();
+    } catch (e) {
+      $('statusText').textContent = '저장에 실패했어요. 다시 시도해주세요.';
+    }
+  }
+
+  function scheduleSave() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveState, 400);
+  }
+
+  // ---------- members ----------
+  function renderMembers() {
+    const grid = $('membersGrid');
+    grid.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'member-slot';
+      slot.innerHTML = `<span>공대원 ${i + 1}</span>`;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = name;
+      input.addEventListener('focus', () => { editingField = true; });
+      input.addEventListener('blur', () => { editingField = false; });
+      input.addEventListener('input', () => {
+        state.members[i] = input.value.trim() || DEFAULT_MEMBERS[i];
+        scheduleSave();
+        renderMemberSelects();
+        renderSplitFields();
+        renderLedger();
+        renderExpenditures();
+        renderExpSplitFields();
+        renderSettlement();
+      });
+      slot.appendChild(input);
+      grid.appendChild(slot);
+    });
+  }
+
+  function populateMemberSelect(sel) {
+    const prevVal = sel.value;
+    sel.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = name;
+      sel.appendChild(opt);
+    });
+    if (prevVal !== '' && Number(prevVal) < state.members.length) sel.value = prevVal;
+  }
+
+  function renderMemberSelects() {
+    populateMemberSelect($('fOwner'));
+    populateMemberSelect($('fExpBeneficiary'));
+  }
+
+  // ---------- split ratio ----------
+  function bindSplitFields(wrap, splitArr, onChange) {
+    wrap.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const field = document.createElement('div');
+      field.className = 'split-field';
+      field.innerHTML = `
+        <span class="sname">${escapeHtml(name)}</span>
+        <div class="stepper">
+          <button type="button" class="stepper-minus" data-i="${i}" data-d="-1">−</button>
+          <input type="number" data-i="${i}" value="${splitArr[i]}">
+          <button type="button" class="stepper-plus" data-i="${i}" data-d="1">+</button>
+        </div>
+      `;
+      wrap.appendChild(field);
+    });
+    wrap.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.i);
+        const d = Number(btn.dataset.d);
+        splitArr[i] = Math.max(0, Math.min(100, Math.round(((splitArr[i] || 0) + d * 1) * 100) / 100));
+        onChange();
+      });
+    });
+    wrap.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const i = Number(inp.dataset.i);
+        splitArr[i] = Number(inp.value) || 0;
+        onChange(true);
+      });
+    });
+  }
+
+  function updateSplitSumDisplay(splitArr, sumEl, submitBtn) {
+    const sum = splitArr.reduce((s, v) => s + Number(v || 0), 0);
+    const rounded = Math.round(sum * 100) / 100;
+    sumEl.textContent = `합계 ${rounded}%`;
+    const bad = Math.abs(sum - 100) > 0.01;
+    sumEl.classList.toggle('bad', bad);
+    if (submitBtn) submitBtn.disabled = bad;
+  }
+
+  function renderSplitFields() {
+    bindSplitFields($('splitFields'), currentSplit, (sumOnly) => {
+      if (sumOnly) updateSplitSumDisplay(currentSplit, $('splitSum'), $('addBtn'));
+      else renderSplitFields();
+    });
+    updateSplitSumDisplay(currentSplit, $('splitSum'), $('addBtn'));
+  }
+
+  function renderExpSplitFields() {
+    bindSplitFields($('expSplitFields'), currentExpSplit, (sumOnly) => {
+      if (sumOnly) updateSplitSumDisplay(currentExpSplit, $('expSplitSum'), $('expAddBtn'));
+      else renderExpSplitFields();
+    });
+    updateSplitSumDisplay(currentExpSplit, $('expSplitSum'), $('expAddBtn'));
+  }
+
+  $('splitEqualBtn').addEventListener('click', () => {
+    currentSplit = [...DEFAULT_SPLIT];
+    renderSplitFields();
+  });
+
+  $('expSplitEqualBtn').addEventListener('click', () => {
+    currentExpSplit = [...DEFAULT_SPLIT];
+    renderExpSplitFields();
+  });
+
+  // ---------- ledger ----------
+  function sortIconHtml(col) {
+    const active = sortState.column === col;
+    const up = active && sortState.direction === 'asc';
+    const down = active && sortState.direction === 'desc';
+    return `<span class="sort-icon"><span class="${up ? 'active' : ''}">▲</span><span class="${down ? 'active' : ''}">▼</span></span>`;
+  }
+
+  function renderLedgerHead() {
+    const head = $('ledgerHead');
+    head.innerHTML = `
+      <tr>
+        <th class="sortable" data-col="date">날짜${sortIconHtml('date')}</th>
+        <th>아이템</th>
+        <th class="sortable" style="text-align:right;" data-col="price">판매가${sortIconHtml('price')}</th>
+        <th class="sortable" data-col="owner">획득자${sortIconHtml('owner')}</th>
+        <th>분배</th>
+        <th></th>
+      </tr>
+    `;
+    head.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (sortState.column === col) {
+          sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState = { column: col, direction: 'asc' };
+        }
+        renderLedger();
+      });
+    });
+  }
+
+  function getSortedEntries() {
+    const dir = sortState.direction === 'asc' ? 1 : -1;
+    return [...state.entries].sort((a, b) => {
+      if (sortState.column === 'date') {
+        if (a.date < b.date) return -1 * dir;
+        if (a.date > b.date) return 1 * dir;
+        return 0;
+      }
+      if (sortState.column === 'price') return (a.price - b.price) * dir;
+      if (sortState.column === 'owner') {
+        const an = state.members[a.ownerIdx] || '';
+        const bn = state.members[b.ownerIdx] || '';
+        return an.localeCompare(bn, 'ko') * dir;
+      }
+      return 0;
+    });
+  }
+
+  function renderLedger() {
+    renderLedgerHead();
+    const body = $('ledgerBody');
+    body.innerHTML = '';
+    const sorted = getSortedEntries();
+    $('emptyState').style.display = sorted.length === 0 ? 'block' : 'none';
+    sorted.forEach((entry) => {
+      const ownerName = state.members[entry.ownerIdx] || '?';
+      const split = (entry.split && entry.split.length === 3) ? entry.split : [...DEFAULT_SPLIT];
+      const splitTitle = state.members.map((n, i) => `${n} ${split[i]}%`).join(', ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${entry.date}</td>
+        <td class="item-name">${escapeHtml(entry.item)}</td>
+        <td class="price-cell">${fmt(entry.price)}</td>
+        <td><span class="owner-tag">${escapeHtml(ownerName)}</span></td>
+        <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
+        <td><button class="del-btn" data-id="${entry.id}">삭제</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.entries = state.entries.filter((e) => e.id !== btn.dataset.id);
+        scheduleSave();
+        renderLedger();
+        renderSettlement();
+      });
+    });
+    const total = state.entries.reduce((s, e) => s + Number(e.price), 0);
+    $('totalAmount').textContent = fmt(total);
+  }
+
+  // ---------- expenditures ----------
+  function renderExpenditures() {
+    const body = $('expBody');
+    body.innerHTML = '';
+    const sorted = [...state.expenditures].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    $('expEmptyState').style.display = sorted.length === 0 ? 'block' : 'none';
+    sorted.forEach((x) => {
+      const ben = state.members[x.beneficiaryIdx] || '?';
+      const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
+      const splitTitle = state.members.map((n, i) => `${n} ${split[i]}%`).join(', ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${x.date}</td>
+        <td class="item-name">${escapeHtml(x.desc)}</td>
+        <td class="price-cell">${fmt(x.amount)}</td>
+        <td><span class="owner-tag" style="background:var(--rust-soft);color:var(--rust);">${escapeHtml(ben)}</span></td>
+        <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
+        <td><button class="del-btn" data-id="${x.id}">삭제</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.expenditures = state.expenditures.filter((x) => x.id !== btn.dataset.id);
+        scheduleSave();
+        renderExpenditures();
+        renderSettlement();
+      });
+    });
+    const total = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    $('expTotalAmount').textContent = fmt(total);
+  }
+
+  // ---------- settlement ----------
+  function computeHeld() {
+    const held = state.members.map(() => 0);
+    state.entries.forEach(e => { held[e.ownerIdx] += Number(e.price); });
+    return held;
+  }
+
+  function computeFairShare() {
+    const fair = state.members.map(() => 0);
+    state.entries.forEach(e => {
+      const split = (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT];
+      split.forEach((p, i) => { fair[i] += Number(e.price) * (Number(p) / 100); });
+    });
+    state.expenditures.forEach(x => {
+      const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
+      split.forEach((p, i) => { fair[i] -= Number(x.amount) * (Number(p) / 100); });
+    });
+    return fair;
+  }
+
+  function renderSettlement() {
+    const held = computeHeld();
+    const fair = computeFairShare();
+    const diffs = state.members.map((_, i) => held[i] - fair[i]);
+
+    const expShare = state.members.map(() => 0);
+    state.expenditures.forEach(x => {
+      const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
+      split.forEach((p, i) => { expShare[i] += Number(x.amount) * (Number(p) / 100); });
+    });
+
+    const debtors = state.members.map((name, i) => ({ name, amt: diffs[i] })).filter(d => d.amt > 1).sort((a, b) => b.amt - a.amt);
+    const creditors = state.members.map((name, i) => ({ name, amt: -diffs[i] })).filter(d => d.amt > 1).sort((a, b) => b.amt - a.amt);
+
+    const txList = [];
+    let di = 0, ci = 0;
+    while (di < debtors.length && ci < creditors.length) {
+      const d = debtors[di], c = creditors[ci];
+      const amt = Math.min(d.amt, c.amt);
+      if (amt > 1) txList.push({ from: d.name, to: c.name, amt });
+      d.amt -= amt;
+      c.amt -= amt;
+      if (d.amt <= 1) di++;
+      if (c.amt <= 1) ci++;
+    }
+
+    const entryTotal = state.entries.reduce((s, e) => s + Number(e.price), 0);
+    const expTotal = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    const netTotal = entryTotal - expTotal;
+    const hasSettleData = state.entries.length > 0 || state.expenditures.length > 0;
+
+    $('settleLead').style.display = hasSettleData ? 'block' : 'none';
+    $('settleBreakdown').style.display = hasSettleData ? 'block' : 'none';
+    $('settleOverview').style.display = hasSettleData ? 'block' : 'none';
+    $('settleTakehome').style.display = hasSettleData ? 'block' : 'none';
+
+    if (hasSettleData) {
+      $('settleOverview').innerHTML =
+        `<div class="settle-summary-label">모인 돈 − 공동 지출 = 나눌 돈</div>${statPillsHtml(entryTotal, expTotal, netTotal)}`;
+      const takeGrid = $('settleTakehomeGrid');
+      takeGrid.innerHTML = '';
+      state.members.forEach((name, i) => {
+        const fairAmt = Math.round(fair[i]);
+        const diff = diffs[i];
+        let sub = '정산 후 손에 남는 금액';
+        if (Math.abs(diff) <= 1) sub = '지금도 이 금액과 같아요';
+        else if (diff > 1) sub = '송금하면 이 금액만 남아요';
+        else sub = '송금 받으면 이 금액이 돼요';
+        const card = document.createElement('div');
+        card.className = 'takehome-card';
+        card.innerHTML = `
+          <div class="takehome-name">${escapeHtml(name)}</div>
+          <div class="takehome-amt">${fmtNum(fairAmt)}<span class="unit">메소</span></div>
+          <div class="takehome-sub">${sub}</div>
+        `;
+        takeGrid.appendChild(card);
+      });
+    } else {
+      $('settleOverview').innerHTML = '';
+      $('settleTakehomeGrid').innerHTML = '';
+    }
+
+    const heroWrap = $('settleHero');
+    heroWrap.innerHTML = '';
+    if (!hasSettleData) {
+      heroWrap.innerHTML = '<div class="settle-hero even-state"><div class="settle-hero-title">정산할 항목이 없어요</div><p class="settle-hero-sub">장부나 지출을 추가하면 여기에 송금 안내가 나와요.</p></div>';
+    } else if (txList.length === 0) {
+      heroWrap.innerHTML = '<div class="settle-hero even-state"><div class="settle-hero-title">송금할 차액 없음</div><p class="settle-hero-sub">각자 몫만큼 이미 맞춰져 있어요. 확인 후 정산 완료만 누르면 돼요.</p></div>';
+    } else {
+      const rows = txList.map((tx) => `
+        <div class="settle-tx-row">
+          <div class="settle-tx-flow">
+            <span class="person-badge from">${escapeHtml(tx.from)}</span>
+            <span class="arrow" style="color:var(--ink-soft);">→</span>
+            <span class="person-badge to">${escapeHtml(tx.to)}</span>
+          </div>
+          <div class="settle-tx-amt">${fmtNum(Math.round(tx.amt))}<span>메소</span></div>
+        </div>
+      `).join('');
+      heroWrap.innerHTML = `
+        <div class="settle-hero">
+          <div class="settle-hero-title">이렇게만 보내면 끝 (${txList.length}건)</div>
+          <div class="settle-hero-txs">${rows}</div>
+        </div>
+      `;
+    }
+
+    const grid = $('settleGrid');
+    grid.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const diff = diffs[i];
+      let note = '';
+      if (expShare[i] > 0.5) {
+        note = `<span class="mini-badge exp-share">공동 지출 부담 ${fmtNum(Math.round(expShare[i]))}</span>`;
+      }
+      let cardKind = 'even';
+      let tagText = 'OK';
+      let amtCls = 'even';
+      let heroAmt = '0';
+      let heroLbl = '조정 없음';
+      if (diff > 1) {
+        cardKind = 'owe';
+        tagText = '보냄';
+        amtCls = 'owe';
+        heroAmt = fmtNum(Math.round(diff));
+        heroLbl = '더 보내야 할 금액';
+      } else if (diff < -1) {
+        cardKind = 'get';
+        tagText = '받음';
+        amtCls = 'get';
+        heroAmt = fmtNum(Math.round(-diff));
+        heroLbl = '더 받을 금액';
+      }
+      const barMax = Math.max(held[i], fair[i], 1);
+      const heldW = Math.max(4, Math.round((held[i] / barMax) * 100));
+      const fairW = Math.max(4, Math.round((fair[i] / barMax) * 100));
+      const card = document.createElement('div');
+      card.className = `settle-card settle-card-${cardKind}`;
+      card.innerHTML = `
+        <div class="settle-card-top">
+          <span class="settle-person">${escapeHtml(name)}</span>
+          <span class="settle-card-tag ${cardKind}">${tagText}</span>
+        </div>
+        <div class="settle-hero-amt ${amtCls}">${heroAmt}<span class="unit">메소</span></div>
+        <div class="settle-hero-lbl">${heroLbl}</div>
+        <div class="settle-bars">
+          <div class="settle-bar-row"><span>보유</span><div class="bar"><i style="width:${heldW}%"></i></div><span class="bval">${fmtNum(Math.round(held[i]))}</span></div>
+          <div class="settle-bar-row"><span>몫</span><div class="bar bar-fair"><i style="width:${fairW}%"></i></div><span class="bval">${fmtNum(Math.round(fair[i]))}</span></div>
+        </div>
+        ${note}
+      `;
+      grid.appendChild(card);
+    });
+    state._lastEntryTotal = entryTotal;
+    state._lastExpTotal = expTotal;
+    state._lastNetTotal = entryTotal - expTotal;
+    state._lastTxList = txList.map(t => ({ from: t.from, to: t.to, amt: Math.round(t.amt) }));
+    state._lastExpenditures = state.expenditures.map(x => ({
+      desc: x.desc,
+      amount: Number(x.amount),
+      beneficiaryIdx: x.beneficiaryIdx,
+      date: x.date,
+      split: [...((x.split && x.split.length === 3) ? x.split : DEFAULT_SPLIT)]
+    }));
+  }
+
+  // ---------- history edit ----------
+  function memberOptionsHtml(selectedName) {
+    return state.members.map((n) => {
+      const sel = n === selectedName ? ' selected' : '';
+      return `<option value="${escapeHtml(n)}"${sel}>${escapeHtml(n)}</option>`;
+    }).join('');
+  }
+
+  function updateHEditNetPreview() {
+    const net = parseMoneyInput($('hEditEntryTotal').value) - parseMoneyInput($('hEditExpTotal').value);
+    $('hEditNetPreview').innerHTML = `나눌 돈 <strong>${fmtNum(net)}</strong>`;
+  }
+
+  function bindRowMoneyInput(input) {
+    input.addEventListener('input', () => {
+      const num = parseMoneyInput(input.value);
+      input.value = formatMoneyInput(num);
+    });
+  }
+
+  function buildHEditTxRow(t) {
+    const from = t.from || state.members[0] || '';
+    const to = t.to || state.members[1] || state.members[0] || '';
+    const row = document.createElement('div');
+    row.className = 'modal-row';
+    row.innerHTML = `
+      <div class="field"><span>보내는 사람</span><select class="h-tx-from">${memberOptionsHtml(from)}</select></div>
+      <div class="field"><span>받는 사람</span><select class="h-tx-to">${memberOptionsHtml(to)}</select></div>
+      <div class="field"><span>금액</span><input class="h-tx-amt money-input" type="text" inputmode="numeric" autocomplete="off" value="${formatMoneyInput(t.amt || 0)}"></div>
+      <button type="button" class="icon-btn h-row-del" title="삭제">×</button>
+    `;
+    bindRowMoneyInput(row.querySelector('.h-tx-amt'));
+    row.querySelector('.h-row-del').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  function buildHEditExpRow(x) {
+    const benIdx = x.beneficiaryIdx != null ? x.beneficiaryIdx : 0;
+    const row = document.createElement('div');
+    row.className = 'modal-row exp-row';
+    const benOpts = state.members.map((n, i) => `<option value="${i}"${i === benIdx ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
+    row.innerHTML = `
+      <div class="field"><span>항목</span><input class="h-exp-desc" type="text" value="${escapeHtml(x.desc || '')}"></div>
+      <div class="field"><span>금액</span><input class="h-exp-amt money-input" type="text" inputmode="numeric" autocomplete="off" value="${formatMoneyInput(x.amount || 0)}"></div>
+      <div class="field"><span>수혜자</span><select class="h-exp-ben">${benOpts}</select></div>
+      <div class="field"><span>날짜</span><input class="h-exp-date" type="date" value="${x.date || todayStr()}"></div>
+      <button type="button" class="icon-btn h-row-del" title="삭제">×</button>
+    `;
+    bindRowMoneyInput(row.querySelector('.h-exp-amt'));
+    row.querySelector('.h-row-del').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  function fillHEditTxRows(list) {
+    const wrap = $('hEditTxRows');
+    wrap.innerHTML = '';
+    const rows = list && list.length ? list : [{ from: state.members[0], to: state.members[1] || state.members[0], amt: 0 }];
+    rows.forEach((t) => wrap.appendChild(buildHEditTxRow(t)));
+  }
+
+  function fillHEditExpRows(list) {
+    const wrap = $('hEditExpRows');
+    wrap.innerHTML = '';
+    if (!list || !list.length) return;
+    list.forEach((x) => wrap.appendChild(buildHEditExpRow(x)));
+  }
+
+  function collectHEditTxList() {
+    return [...$('hEditTxRows').querySelectorAll('.modal-row')].map((row) => ({
+      from: row.querySelector('.h-tx-from').value,
+      to: row.querySelector('.h-tx-to').value,
+      amt: parseMoneyInput(row.querySelector('.h-tx-amt').value)
+    })).filter(t => t.from && t.to && t.amt > 0);
+  }
+
+  function collectHEditExpList() {
+    return [...$('hEditExpRows').querySelectorAll('.modal-row')].map((row) => ({
+      desc: row.querySelector('.h-exp-desc').value.trim(),
+      amount: parseMoneyInput(row.querySelector('.h-exp-amt').value),
+      beneficiaryIdx: Number(row.querySelector('.h-exp-ben').value),
+      date: row.querySelector('.h-exp-date').value || todayStr()
+    })).filter(x => x.desc && x.amount > 0);
+  }
+
+  function openHistoryEdit(id) {
+    const h = state.history.find((x) => x.id === id);
+    if (!h) return;
+    editingHistoryId = id;
+    editingField = true;
+    $('hEditDate').value = h.date || todayStr();
+    $('hEditEntryTotal').value = formatMoneyInput(h.entryTotal != null ? h.entryTotal : (h.total || 0));
+    $('hEditExpTotal').value = formatMoneyInput(h.expTotal != null ? h.expTotal : 0);
+    updateHEditNetPreview();
+    fillHEditTxRows(h.txList || []);
+    fillHEditExpRows(h.expenditures || []);
+    $('historyEditModal').hidden = false;
+  }
+
+  function closeHistoryEdit() {
+    editingHistoryId = null;
+    editingField = false;
+    $('historyEditModal').hidden = true;
+  }
+
+  function saveHistoryEdit() {
+    if (!editingHistoryId) return;
+    const h = state.history.find((x) => x.id === editingHistoryId);
+    if (!h) return;
+    const entryTotal = parseMoneyInput($('hEditEntryTotal').value);
+    const expTotal = parseMoneyInput($('hEditExpTotal').value);
+    const netTotal = entryTotal - expTotal;
+    h.date = $('hEditDate').value || todayStr();
+    h.entryTotal = entryTotal;
+    h.expTotal = expTotal;
+    h.netTotal = netTotal;
+    h.total = netTotal;
+    h.txList = collectHEditTxList();
+    h.expenditures = collectHEditExpList();
+    closeHistoryEdit();
+    scheduleSave();
+    renderHistory();
+  }
+
+  function deleteHistory(id) {
+    if (!confirm('이 정산 기록을 삭제할까요?')) return;
+    state.history = state.history.filter((x) => x.id !== id);
+    expandedHistoryIds.delete(id);
+    scheduleSave();
+    renderHistory();
+  }
+
+  function historyMetaLine(h, netTotal) {
+    const txCount = (h.txList && h.txList.length) || 0;
+    const expCount = (h.expenditures && h.expenditures.length) || 0;
+    const parts = [`나눌 돈 ${fmtNum(netTotal)}`];
+    if (expCount) parts.push(`지출 ${expCount}건`);
+    parts.push(`송금 ${txCount}건`);
+    return parts.join(' · ');
+  }
+
+  // ---------- history ----------
+  function renderHistory() {
+    const card = $('historyCard');
+    const list = $('historyList');
+    if (!state.history || state.history.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    list.innerHTML = '';
+    [...state.history].reverse().forEach((h) => {
+      const entryTotal = h.entryTotal != null ? h.entryTotal : (h.total || 0);
+      const expTotal = h.expTotal != null ? h.expTotal : 0;
+      const netTotal = h.netTotal != null ? h.netTotal : (entryTotal - expTotal);
+      const chipsHtml = (h.txList && h.txList.length)
+        ? h.txList.map(t => txChipHtml(t.from, t.to, t.amt)).join('')
+        : '<span class="h-empty-chip">송금할 차액 없음</span>';
+      let expBlock = '';
+      if (h.expenditures && h.expenditures.length) {
+        const items = h.expenditures.map(x => {
+          const ben = state.members[x.beneficiaryIdx] || '?';
+          return `<div class="exp-chip"><span class="exp-name">${escapeHtml(x.desc)}</span><span class="exp-amt">${fmtNum(x.amount)}</span><span class="person-badge ben">수혜 ${escapeHtml(ben)}</span><span class="exp-date">${x.date}</span></div>`;
+        }).join('');
+        expBlock = `<div class="section-caption">공동 지출</div><div class="h-exp-grid">${items}</div>`;
+      }
+      const isOpen = expandedHistoryIds.has(h.id);
+      const div = document.createElement('div');
+      div.className = 'history-item' + (isOpen ? ' open' : '');
+      div.dataset.id = h.id;
+      div.innerHTML = `
+        <div class="history-summary">
+          <span class="hist-chevron">▶</span>
+          <span class="hist-line-main">${h.date} 정산</span>
+          <span class="hist-line-meta">${historyMetaLine(h, netTotal)}</span>
+          <div class="h-actions">
+            <button type="button" class="btn-ghost btn-sm hist-edit-btn" data-id="${escapeHtml(h.id)}">수정</button>
+            <button type="button" class="icon-btn hist-del-btn" data-id="${escapeHtml(h.id)}" title="삭제">×</button>
+          </div>
+        </div>
+        <div class="history-detail">
+          ${statPillsHtml(entryTotal, expTotal, netTotal)}
+          ${expBlock}
+          <div class="section-caption">송금 내역</div>
+          <div class="tx-chip-grid">${chipsHtml}</div>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  function render() {
+    renderMembers();
+    renderMemberSelects();
+    renderSplitFields();
+    renderExpSplitFields();
+    renderLedger();
+    renderExpenditures();
+    renderSettlement();
+    renderHistory();
+  }
+
+  $('fDate').value = todayStr();
+  $('fExpDate').value = todayStr();
+  bindMoneyInput('fPrice');
+  bindMoneyInput('fExpAmount');
+  bindMoneyInput('hEditEntryTotal');
+  bindMoneyInput('hEditExpTotal');
+  $('hEditEntryTotal').addEventListener('input', updateHEditNetPreview);
+  $('hEditExpTotal').addEventListener('input', updateHEditNetPreview);
+
+  $('historyList').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.hist-edit-btn');
+    const delBtn = e.target.closest('.hist-del-btn');
+    if (editBtn) {
+      e.stopPropagation();
+      openHistoryEdit(editBtn.dataset.id);
+      return;
+    }
+    if (delBtn) {
+      e.stopPropagation();
+      deleteHistory(delBtn.dataset.id);
+      return;
+    }
+    const summary = e.target.closest('.history-summary');
+    if (!summary || e.target.closest('.h-actions')) return;
+    const item = summary.closest('.history-item');
+    if (!item) return;
+    const id = item.dataset.id;
+    item.classList.toggle('open');
+    if (item.classList.contains('open')) expandedHistoryIds.add(id);
+    else expandedHistoryIds.delete(id);
+  });
+
+  $('hEditCancelBtn').addEventListener('click', closeHistoryEdit);
+  $('hEditSaveBtn').addEventListener('click', saveHistoryEdit);
+  $('hEditAddTxBtn').addEventListener('click', () => {
+    $('hEditTxRows').appendChild(buildHEditTxRow({ from: state.members[0], to: state.members[1] || state.members[0], amt: 0 }));
+  });
+  $('hEditAddExpBtn').addEventListener('click', () => {
+    $('hEditExpRows').appendChild(buildHEditExpRow({ desc: '', amount: 0, beneficiaryIdx: 0, date: todayStr() }));
+  });
+  $('historyEditModal').addEventListener('click', (e) => {
+    if (e.target.id === 'historyEditModal') closeHistoryEdit();
+  });
+
+  $('addBtn').addEventListener('click', () => {
+    const item = $('fItem').value.trim();
+    const price = parseMoneyInput($('fPrice').value);
+    const ownerIdx = Number($('fOwner').value);
+    const date = $('fDate').value || todayStr();
+    const sum = currentSplit.reduce((s, v) => s + Number(v || 0), 0);
+
+    if (!item) { $('fItem').focus(); return; }
+    if (!price || price <= 0) { $('fPrice').focus(); return; }
+    if (Math.abs(sum - 100) > 0.01) { return; }
+
+    state.entries.push({ id: genId(), item, price, ownerIdx, date, split: [...currentSplit] });
+
+    $('fItem').value = '';
+    $('fPrice').value = '';
+    $('fItem').focus();
+    currentSplit = [...DEFAULT_SPLIT];
+    renderSplitFields();
+
+    scheduleSave();
+    renderLedger();
+    renderSettlement();
+  });
+
+  $('fItem').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('addBtn').click(); });
+  $('fPrice').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('addBtn').click(); });
+
+  $('expAddBtn').addEventListener('click', () => {
+    const desc = $('fExpDesc').value.trim();
+    const amount = parseMoneyInput($('fExpAmount').value);
+    const beneficiaryIdx = Number($('fExpBeneficiary').value);
+    const date = $('fExpDate').value || todayStr();
+    const sum = currentExpSplit.reduce((s, v) => s + Number(v || 0), 0);
+
+    if (!desc) { $('fExpDesc').focus(); return; }
+    if (!amount || amount <= 0) { $('fExpAmount').focus(); return; }
+    if (Math.abs(sum - 100) > 0.01) { return; }
+
+    state.expenditures.push({ id: genId(), desc, amount, beneficiaryIdx, date, split: [...currentExpSplit] });
+
+    $('fExpDesc').value = '';
+    $('fExpAmount').value = '';
+    $('fExpDesc').focus();
+    currentExpSplit = [...DEFAULT_SPLIT];
+    renderExpSplitFields();
+
+    scheduleSave();
+    renderExpenditures();
+    renderSettlement();
+  });
+
+  $('fExpDesc').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('expAddBtn').click(); });
+  $('fExpAmount').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('expAddBtn').click(); });
+
+  $('resetSortBtn').addEventListener('click', () => {
+    sortState = { column: 'date', direction: 'asc' };
+    renderLedger();
+  });
+
+  $('refreshBtn').addEventListener('click', loadState);
+
+  $('copyLinkBtn').addEventListener('click', async () => {
+    const url = shareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      $('statusText').textContent = '링크 복사됨 · 공대원에게 보내세요';
+      setTimeout(updateStatusUi, 2500);
+    } catch (e) {
+      prompt('아래 링크를 복사해서 공대원에게 보내세요:', url);
+    }
+  });
+
+  $('settleDoneBtn').addEventListener('click', () => {
+    if (state.entries.length === 0 && state.expenditures.length === 0) return;
+    const ok = confirm('지금 정산 내역대로 실제로 메소를 주고받으셨나요?\n확인하면 장부와 지출 내역이 비워지고 기록에 남아요.');
+    if (!ok) return;
+    state.history.push({
+      id: genId(),
+      date: todayStr(),
+      entryTotal: state._lastEntryTotal || 0,
+      expTotal: state._lastExpTotal || 0,
+      netTotal: state._lastNetTotal || 0,
+      total: state._lastNetTotal || 0,
+      txList: state._lastTxList || [],
+      expenditures: state._lastExpenditures || []
+    });
+    state.entries = [];
+    state.expenditures = [];
+    scheduleSave();
+    render();
+  });
+
+  initStorageBackend();
+  subscribeCloudRealtime();
+  if (storageMode !== 'cloud') {
+    setInterval(() => {
+      if (editingField || !$('historyEditModal').hidden) return;
+      const tag = document.activeElement.tagName;
+      if (tag !== 'INPUT' && tag !== 'SELECT') loadState();
+    }, 12000);
+  }
+  loadState();
+})();
+</script>
+</body>
+</html>
