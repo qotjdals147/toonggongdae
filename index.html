@@ -122,7 +122,7 @@
   /* entry / expenditure form */
   .entry-form {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr) minmax(0, 1.4fr) minmax(0, 0.95fr) auto;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 0.95fr) auto;
     gap: 10px;
     align-items: end;
   }
@@ -309,8 +309,14 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  .owner-tags-cell { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; }
+  .owner-tags-cell { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; align-items: center; }
   .owner-tags-cell .owner-tag { font-size: 12px; }
+  .contrib-tag {
+    display: inline-block; padding: 3px 8px; border-radius: 100px;
+    background: var(--surface-muted); color: var(--ink-soft); font-size: 11px; font-weight: 600;
+    border: 1px dashed var(--line-strong);
+  }
+  .contrib-label { display: block; margin: 8px 0 6px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
 
   .meso-icon {
     height: 1.2em;
@@ -722,7 +728,12 @@
     <div class="entry-form">
       <div class="field"><span>아이템명</span><input id="fItem" type="text" placeholder="예: 시간의 조각"></div>
       <div class="field"><span class="label-with-meso">판매가 (<img src="image/meso.png" alt="" class="meso-icon" decoding="async">)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-      <div class="field field-owners"><span>획득자<span class="field-hint">복수 선택</span></span><div class="owner-chips" id="fOwners"></div></div>
+      <div class="field">
+        <span>획득자<span class="field-hint">메소 보유</span></span>
+        <select id="fOwner"></select>
+        <span class="contrib-label">함께 기여<span class="field-hint">기록만</span></span>
+        <div class="owner-chips" id="fContributors"></div>
+      </div>
       <div class="field"><span>날짜</span><input id="fDate" type="date"></div>
       <button class="btn-income" id="addBtn">획득 추가</button>
     </div>
@@ -835,8 +846,12 @@
     <div class="modal-grid">
       <div class="field"><span>아이템명</span><input id="eEditItem" type="text"></div>
       <div class="field"><span>판매가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
-      <div class="field field-owners" style="grid-column:1/-1;"><span>획득자<span class="field-hint">복수 선택</span></span><div class="owner-chips" id="eEditOwners"></div></div>
+      <div class="field"><span>획득자<span class="field-hint">메소 보유</span></span><select id="eEditOwner"></select></div>
       <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
+      <div class="field" style="grid-column:1/-1;">
+        <span class="contrib-label" style="margin-top:0;">함께 기여<span class="field-hint">기록만·정산 무관</span></span>
+        <div class="owner-chips" id="eEditContributors"></div>
+      </div>
     </div>
     <div class="split-row" style="margin-top:0;padding-top:12px;">
       <span class="split-label">분배 비율</span>
@@ -968,44 +983,51 @@
     return state.entries.filter((e) => entryStatus(e) === 'unsold').length;
   }
 
-  function getOwnerIdxs(entry) {
-    if (entry.ownerIdxs && entry.ownerIdxs.length) {
-      return [...new Set(entry.ownerIdxs.map((i) => Number(i)).filter((i) => i >= 0 && i < 3))];
+  function getContributorIdxs(entry) {
+    const holder = entry.ownerIdx != null ? Number(entry.ownerIdx) : 0;
+    let raw = entry.contributorIdxs;
+    if ((!raw || !raw.length) && entry.ownerIdxs && entry.ownerIdxs.length > 1) {
+      raw = entry.ownerIdxs.map(Number).filter((i) => i !== holder);
     }
-    if (entry.ownerIdx != null) return [Number(entry.ownerIdx)];
-    return [0];
+    return [...new Set((raw || []).map(Number).filter((i) => i >= 0 && i < 3 && i !== holder))];
   }
 
-  function normalizeEntryOwners(entry) {
-    const ownerIdxs = getOwnerIdxs(entry);
-    entry.ownerIdxs = ownerIdxs;
-    entry.ownerIdx = ownerIdxs[0];
+  function normalizeEntry(entry) {
+    if (entry.ownerIdx == null) {
+      if (entry.ownerIdxs && entry.ownerIdxs.length) entry.ownerIdx = Number(entry.ownerIdxs[0]);
+      else entry.ownerIdx = 0;
+    }
+    entry.ownerIdx = Number(entry.ownerIdx);
+    entry.contributorIdxs = getContributorIdxs(entry);
+    delete entry.ownerIdxs;
     return entry;
   }
 
-  function ownersDisplayNames(entry) {
-    return getOwnerIdxs(entry).map((i) => state.members[i] || '?');
+  function acquirerSortKey(entry) {
+    const holder = state.members[entry.ownerIdx] || '';
+    const contribs = getContributorIdxs(entry).map((i) => state.members[i] || '').join(',');
+    return `${holder}\u0001${contribs}`;
   }
 
-  function ownersSortKey(entry) {
-    return ownersDisplayNames(entry).join('\u0001');
+  function acquirerCellHtml(entry) {
+    const holder = state.members[entry.ownerIdx] || '?';
+    const contribs = getContributorIdxs(entry).map((i) => state.members[i] || '?');
+    let html = `<span class="owner-tag" title="판매 메소 보유">${escapeHtml(holder)}</span>`;
+    contribs.forEach((name) => {
+      html += `<span class="contrib-tag" title="함께 기여 (기록)">${escapeHtml(name)}</span>`;
+    });
+    return html;
   }
 
-  function ownersTagsHtml(entry) {
-    return ownersDisplayNames(entry)
-      .map((name) => `<span class="owner-tag">${escapeHtml(name)}</span>`)
-      .join('');
-  }
+  let addContributorSelection = [];
 
-  let addOwnerSelection = [0];
-
-  function readOwnerPickers(containerId) {
+  function readChipPickers(containerId) {
     return [...$(containerId).querySelectorAll('input[type=checkbox]:checked')].map((el) => Number(el.value));
   }
 
-  function renderOwnerPickers(containerId, selectedIdxs, onChange) {
+  function renderContributorPickers(containerId, selectedIdxs, onChange) {
     const el = $(containerId);
-    const selected = new Set(selectedIdxs.length ? selectedIdxs : [0]);
+    const selected = new Set(selectedIdxs || []);
     el.innerHTML = '';
     state.members.forEach((name, i) => {
       const label = document.createElement('label');
@@ -1015,12 +1037,7 @@
       cb.value = String(i);
       cb.checked = selected.has(i);
       cb.addEventListener('change', () => {
-        const next = readOwnerPickers(containerId);
-        if (!next.length) {
-          cb.checked = true;
-          return;
-        }
-        if (onChange) onChange(next);
+        if (onChange) onChange(readChipPickers(containerId));
       });
       const span = document.createElement('span');
       span.textContent = name;
@@ -1050,7 +1067,7 @@
               status,
               price: status === 'unsold' ? 0 : Number(e.price) || 0
             };
-            return normalizeEntryOwners(entry);
+            return normalizeEntry(entry);
           }),
       expenditures: (parsed.expenditures || []).map(x => ({
         id: x.id,
@@ -1256,9 +1273,11 @@
   }
 
   function renderMemberSelects() {
+    populateMemberSelect($('fOwner'));
     populateMemberSelect($('fExpBeneficiary'));
+    populateMemberSelect($('eEditOwner'));
     populateMemberSelect($('xEditBen'));
-    renderOwnerPickers('fOwners', addOwnerSelection, (next) => { addOwnerSelection = next; });
+    renderContributorPickers('fContributors', addContributorSelection, (next) => { addContributorSelection = next; });
   }
 
   // ---------- split ratio ----------
@@ -1373,7 +1392,7 @@
       }
       if (sortState.column === 'price') return (a.price - b.price) * dir;
       if (sortState.column === 'owner') {
-        return ownersSortKey(a).localeCompare(ownersSortKey(b), 'ko') * dir;
+        return acquirerSortKey(a).localeCompare(acquirerSortKey(b), 'ko') * dir;
       }
       return 0;
     });
@@ -1398,7 +1417,7 @@
         <td>${entry.date}</td>
         <td class="item-name">${escapeHtml(entry.item)}</td>
         <td class="price-cell">${priceCell}</td>
-        <td class="owner-tags-cell">${ownersTagsHtml(entry)}</td>
+        <td class="owner-tags-cell">${acquirerCellHtml(entry)}</td>
         <td>${statusBadge}</td>
         <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
         <td class="row-actions">
@@ -1467,9 +1486,8 @@
     const held = state.members.map(() => 0);
     state.entries.forEach(e => {
       if (!isSoldEntry(e)) return;
-      const owners = getOwnerIdxs(e);
-      const share = Number(e.price) / owners.length;
-      owners.forEach((i) => { held[i] += share; });
+      const i = e.ownerIdx != null ? Number(e.ownerIdx) : 0;
+      if (i >= 0 && i < held.length) held[i] += Number(e.price);
     });
     return held;
   }
@@ -1676,7 +1694,8 @@
     $('eEditItem').value = entry.item;
     $('eEditPrice').value = unsold ? '' : formatMoneyInput(Number(entry.price));
     $('eEditPrice').disabled = false;
-    renderOwnerPickers('eEditOwners', getOwnerIdxs(entry));
+    $('eEditOwner').value = entry.ownerIdx;
+    renderContributorPickers('eEditContributors', getContributorIdxs(entry));
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
     renderEditEntrySplitFields();
@@ -1700,10 +1719,8 @@
     if (!item) { $('eEditItem').focus(); return; }
     if (Math.abs(sum - 100) > 0.01) return;
     entry.item = item;
-    const ownerIdxs = readOwnerPickers('eEditOwners');
-    if (!ownerIdxs.length) return;
-    entry.ownerIdxs = ownerIdxs;
-    entry.ownerIdx = ownerIdxs[0];
+    entry.ownerIdx = Number($('eEditOwner').value);
+    entry.contributorIdxs = readChipPickers('eEditContributors').filter((i) => i !== entry.ownerIdx);
     entry.date = $('eEditDate').value || todayStr();
     entry.split = [...editEntrySplit];
     entry.status = unsold ? 'unsold' : 'sold';
@@ -1997,25 +2014,31 @@
     if (e.target.id === 'historyEditModal') closeHistoryEdit();
   });
 
+  $('fOwner').addEventListener('change', () => {
+    const holder = Number($('fOwner').value);
+    addContributorSelection = addContributorSelection.filter((i) => i !== holder);
+    renderContributorPickers('fContributors', addContributorSelection, (next) => { addContributorSelection = next; });
+  });
+
   $('addBtn').addEventListener('click', () => {
     const item = $('fItem').value.trim();
     const price = parseMoneyInput($('fPrice').value);
     const unsold = price <= 0;
-    const ownerIdxs = readOwnerPickers('fOwners');
+    const ownerIdx = Number($('fOwner').value);
+    const contributorIdxs = readChipPickers('fContributors').filter((i) => i !== ownerIdx);
     const date = $('fDate').value || todayStr();
     const sum = currentSplit.reduce((s, v) => s + Number(v || 0), 0);
 
     if (!item) { $('fItem').focus(); return; }
-    if (!ownerIdxs.length) return;
     if (Math.abs(sum - 100) > 0.01) { return; }
 
-    addOwnerSelection = [...ownerIdxs];
-    state.entries.push(normalizeEntryOwners({
+    addContributorSelection = [...contributorIdxs];
+    state.entries.push(normalizeEntry({
       id: genId(),
       item,
       price: unsold ? 0 : price,
-      ownerIdx: ownerIdxs[0],
-      ownerIdxs,
+      ownerIdx,
+      contributorIdxs,
       date,
       split: [...currentSplit],
       status: unsold ? 'unsold' : 'sold'
