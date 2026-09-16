@@ -603,11 +603,49 @@
   .maker-form-block {
     grid-column: 1 / -1;
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-    padding-top: 10px; margin-top: 4px; border-top: 1px dashed var(--line);
+    padding: 14px 16px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    margin-top: 6px;
+  }
+  .maker-form-block--cost {
+    background: linear-gradient(180deg, #FFFBEB 0%, #fff 100%);
+    border-color: #FCD34D;
+    box-shadow: 0 1px 0 rgba(217, 119, 6, 0.08);
+  }
+  .maker-form-block--yield {
+    background: linear-gradient(180deg, #EFF6FF 0%, #fff 100%);
+    border-color: #BFDBFE;
+    box-shadow: 0 1px 0 rgba(37, 99, 235, 0.06);
+  }
+  .maker-form-block-head {
+    grid-column: 1 / -1;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    margin-bottom: 6px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  }
+  .maker-section-badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+    text-transform: uppercase; padding: 4px 10px; border-radius: 100px;
+  }
+  .maker-section-badge--settle {
+    color: #92400E; background: #FEF3C7; border: 1px solid #F59E0B;
+  }
+  .maker-section-badge--record {
+    color: #1D4ED8; background: #DBEAFE; border: 1px solid #60A5FA;
   }
   .maker-form-block-title {
+    font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
+  }
+  .maker-form-block-sub {
+    font-size: 12.5px; font-weight: 500; color: var(--ink-soft);
+    flex: 1; min-width: 120px;
+  }
+  .maker-form-prices-head {
     grid-column: 1 / -1;
-    font-size: 12.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 2px;
+    font-size: 12.5px; font-weight: 700; color: var(--ink-soft);
+    margin: 8px 0 2px;
   }
   .maker-yield-summary { font-size: 13px; color: var(--ink); line-height: 1.45; }
   .maker-yield-summary.dim { color: var(--ink-soft); font-weight: 500; }
@@ -1116,19 +1154,28 @@
     <div class="maker-form">
       <div class="field"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
-      <div class="maker-form-block">
-        <div class="maker-form-block-title">재련 횟수 <span style="font-weight:500;">· 비용(재료·메소) 계산</span></div>
+      <div class="maker-form-block maker-form-block--cost">
+        <div class="maker-form-block-head">
+          <span class="maker-section-badge maker-section-badge--settle">정산 반영</span>
+          <span class="maker-form-block-title">재련 횟수</span>
+          <span class="maker-form-block-sub">비용(재료·메소) 계산 — 하/중/상 각각 입력</span>
+        </div>
         <div class="field"><span>하급 재련</span><input id="fMakerRefineLow" type="number" min="0" step="1" value="0" title="원석 10 + 11만"></div>
         <div class="field"><span>중급 재련</span><input id="fMakerRefineMid" type="number" min="0" step="1" value="0" title="하급 10 + 33만"></div>
         <div class="field"><span>상급 재련</span><input id="fMakerRefineHigh" type="number" min="0" step="1" value="0" title="중급 10 + 55만"></div>
       </div>
-      <div class="maker-form-block" style="border-top:none;padding-top:0;">
-        <div class="maker-form-block-title">획득 개수</div>
+      <div class="maker-form-block maker-form-block--yield">
+        <div class="maker-form-block-head">
+          <span class="maker-section-badge maker-section-badge--record">기록용</span>
+          <span class="maker-form-block-title">획득 개수</span>
+          <span class="maker-form-block-sub">나온 보석 개수 — 정산 숫자와는 별개</span>
+        </div>
         <div class="field"><span>하급</span><input id="fMakerYieldLow" type="number" min="0" step="1" value="0"></div>
         <div class="field"><span>중급</span><input id="fMakerYieldMid" type="number" min="0" step="1" value="0"></div>
         <div class="field"><span>상급</span><input id="fMakerYieldHigh" type="number" min="0" step="1" value="0"></div>
       </div>
       <div class="maker-form-prices">
+        <div class="maker-form-prices-head">경매장 최소가 (이 보석 종류)</div>
         <div class="field"><span>원석 최소가</span><input id="fMakerPriceRaw" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
         <div class="field"><span>하급 최소가</span><input id="fMakerPriceLow" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
         <div class="field"><span>중급 최소가</span><input id="fMakerPriceMid" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
