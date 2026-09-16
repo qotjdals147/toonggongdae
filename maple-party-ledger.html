@@ -1209,7 +1209,9 @@
       </table>
     </div>
     <div id="emptyState" class="empty-state" style="display:none;">아직 획득 기록이 없어요.</div>
-    <div class="total-row"><span>판매 완료 합계</span><strong id="totalAmount"></strong></div>
+    <p class="takeover-hint" style="margin:0 0 10px;">판매 금액은 <strong>거래소 등록가</strong>로 적어요. 5% 수수료는 3명이 ⅓씩 부담하고, 아래 합계는 <strong>실수령</strong> 기준이에요.</p>
+    <div class="total-row"><span>판매 실수령 합계</span><strong id="totalAmount"></strong></div>
+    <p class="takeover-hint" id="totalListHint" style="margin:6px 0 0;display:none;"></p>
   </div>
 
   <div class="card card-zone-takeover">
@@ -1380,7 +1382,8 @@
     <h3 id="entryEditTitle">획득 기록 수정</h3>
     <div class="modal-grid">
       <div class="field"><span>아이템명</span><input id="eEditItem" type="text"></div>
-      <div class="field"><span>판매가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>거래소 등록가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="올린 금액"></div>
+      <p class="takeover-hint" id="eEditAhPreview" style="grid-column:1/-1;margin:0;"></p>
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
       <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
       <div class="field entry-extra" style="grid-column:1/-1;margin-top:0;">
@@ -1579,6 +1582,8 @@
   ];
 
   const MAKER_REFINE_MESO = { low: 110_000, mid: 330_000, high: 550_000 };
+  /** 거래소 성사액(등록가) 기준 판매 수수료 */
+  const AH_SALE_FEE_RATE = 0.05;
 
   let state = {
     members: [...DEFAULT_MEMBERS],
@@ -1766,13 +1771,13 @@
     const plus = netParty >= 0;
     const salesMissing = makerTotal > 0 && entryTotal <= 0;
     const warn = salesMissing
-      ? '<p class="takeover-hint" style="margin:8px 0 0;">아직 <strong>획득 장부에 판매가</strong>가 없어요. 보석 팔았으면 획득 추가 → 판매가 입력하면 순수익이 잡혀요.</p>'
+      ? '<p class="takeover-hint" style="margin:8px 0 0;">아직 <strong>획득 장부에 등록가</strong>가 없어요. 보석 팔았으면 획득 추가 → 거래소 등록가 입력하면 순수익이 잡혀요.</p>'
       : '';
     return `
       <div class="settle-net-profit">
         <div class="settle-summary-label">메이커 포함 · 회차 순수익 (파티 합계)</div>
         <div class="settle-net-formula">
-          판매 <strong>${fmtNum(entryTotal)}</strong> − 지출 <strong>${fmtNum(expTotal)}</strong> − 메이커 비용 <strong>${fmtNum(makerTotal)}</strong>
+          판매 실수령 <strong>${fmtNum(entryTotal)}</strong> − 지출 <strong>${fmtNum(expTotal)}</strong> − 메이커 비용 <strong>${fmtNum(makerTotal)}</strong>
           (재련 메소만)
         </div>
         <div class="settle-net-amt ${plus ? 'settle-net-amt--plus' : 'settle-net-amt--minus'}">
@@ -1970,7 +1975,7 @@
   }
 
   function cycleLiveTotals(c) {
-    const entryTotal = c.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const entryTotal = soldEntriesNetTotal(c.entries);
     const expTotal = c.expenditures.reduce((s, x) => s + Number(x.amount), 0);
     return { entryTotal, expTotal, netTotal: entryTotal - expTotal };
   }
@@ -2066,7 +2071,7 @@
   function statPillsHtml(entryTotal, expTotal, netTotal) {
     return `
       <div class="h-stat-row settle-summary" style="margin-bottom:0;">
-        <span class="stat-pill income"><span class="stat-label">소득</span><span class="stat-val">${fmtNum(entryTotal)}</span></span>
+        <span class="stat-pill income"><span class="stat-label">판매 실수령</span><span class="stat-val">${fmtNum(entryTotal)}</span></span>
         <span class="stat-flow-arrow">−</span>
         <span class="stat-pill expense"><span class="stat-label">지출</span><span class="stat-val">${fmtNum(expTotal)}</span></span>
         <span class="stat-flow-arrow">=</span>
@@ -2093,6 +2098,68 @@
 
   function isSoldEntry(entry) {
     return entryStatus(entry) === 'sold' && Number(entry.price) > 0;
+  }
+
+  /** 저장값 = 거래소 등록가(성사액) */
+  function entryListPrice(entry) {
+    return Math.max(0, Math.round(Number(entry.price) || 0));
+  }
+
+  function entryAhSaleFee(listPrice) {
+    return Math.round(listPrice * AH_SALE_FEE_RATE);
+  }
+
+  function entryNetReceived(entry) {
+    const list = entryListPrice(entry);
+    return list - entryAhSaleFee(list);
+  }
+
+  function soldEntriesNetTotal(entries) {
+    return (entries || []).filter(isSoldEntry).reduce((s, e) => s + entryNetReceived(e), 0);
+  }
+
+  function soldEntriesListTotal(entries) {
+    return (entries || []).filter(isSoldEntry).reduce((s, e) => s + entryListPrice(e), 0);
+  }
+
+  function applySoldEntryFairShare(fair, entry) {
+    if (!isSoldEntry(entry)) return;
+    const list = entryListPrice(entry);
+    const feeShare = entryAhSaleFee(list) / state.members.length;
+    const split = (entry.split && entry.split.length === 3) ? entry.split : [...DEFAULT_SPLIT];
+    split.forEach((p, i) => {
+      fair[i] += list * (Number(p) / 100) - feeShare;
+    });
+  }
+
+  function migrateEntryPriceBasisToListing(root) {
+    if (root.entryPriceBasis === 'listing') return false;
+    let touched = false;
+    (root.cycles || []).forEach((c) => {
+      (c.entries || []).forEach((e) => {
+        const net = Math.round(Number(e.price) || 0);
+        if (net > 0 && isSoldEntry(e)) {
+          e.price = Math.round(net / (1 - AH_SALE_FEE_RATE));
+          touched = true;
+        }
+      });
+    });
+    root.entryPriceBasis = 'listing';
+    return touched;
+  }
+
+  function updateEntryPricePreview() {
+    const el = $('eEditAhPreview');
+    if (!el) return;
+    const list = parseMoneyInput($('eEditPrice').value);
+    if (list <= 0) {
+      el.textContent = '등록가를 입력하면 거래소 5% 수수료를 빼 실수령·1인당 수수료 부담(⅓)을 미리 볼 수 있어요.';
+      return;
+    }
+    const fee = entryAhSaleFee(list);
+    const net = list - fee;
+    const feeShare = Math.round(fee / state.members.length);
+    el.innerHTML = `등록가 <strong>${fmtNum(list)}</strong> → 실수령 <strong>${fmtNum(net)}</strong> (수수료 ${fmtNum(fee)}) · 1인당 수수료 부담 ≈ ${fmtNum(feeShare)}`;
   }
 
   function countUnsoldEntries() {
@@ -2309,7 +2376,9 @@
     const next = migrateParsedToCycles(parsed);
     next.warehouseChars = normalizeWarehouseChars(parsed.warehouseChars);
     next.memberParcelReceive = normalizeMemberParcelReceive(parsed);
-    return { next, needsResave: !!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length };
+    const priceMigrated = migrateEntryPriceBasisToListing(next);
+    const needsResave = (!!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length) || priceMigrated;
+    return { next, needsResave };
   }
 
   function applyStateFromRemote(next, needsResave) {
@@ -2611,7 +2680,7 @@
       <tr>
         <th class="sortable col-date" data-col="date">날짜${sortIconHtml('date')}</th>
         <th>아이템</th>
-        <th class="sortable col-amount" data-col="price">판매가${sortIconHtml('price')}</th>
+        <th class="sortable col-amount" data-col="price">등록가${sortIconHtml('price')}</th>
         <th class="sortable" data-col="owner">획득자${sortIconHtml('owner')}</th>
         <th class="col-status">상태</th>
         <th class="col-split">분배</th>
@@ -2657,7 +2726,9 @@
       const split = (entry.split && entry.split.length === 3) ? entry.split : [...DEFAULT_SPLIT];
       const splitTitle = state.members.map((n, i) => `${n} ${split[i]}%`).join(', ');
       const unsold = entryStatus(entry) === 'unsold';
-      const priceCell = unsold ? '—' : fmt(entry.price);
+      const priceCell = unsold
+        ? '—'
+        : `${fmt(entryListPrice(entry))}<span class="maker-col-hint">실수령 ${fmtNum(entryNetReceived(entry))}</span>`;
       const statusBadge = unsold
         ? '<span class="sale-badge unsold">미판매</span>'
         : '<span class="sale-badge sold">판매완료</span>';
@@ -2688,8 +2759,17 @@
     body.querySelectorAll('.entry-edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => openEntryEdit(btn.dataset.id));
     });
-    const total = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
-    $('totalAmount').innerHTML = fmt(total);
+    const netTotal = soldEntriesNetTotal(viewEntries());
+    const listTotal = soldEntriesListTotal(viewEntries());
+    $('totalAmount').innerHTML = fmt(netTotal);
+    const hint = $('totalListHint');
+    if (listTotal > netTotal && netTotal > 0) {
+      hint.style.display = 'block';
+      hint.textContent = `등록가 합 ${fmtNum(listTotal)} · 거래소 수수료 ${fmtNum(listTotal - netTotal)} (3명 ⅓ 부담)`;
+    } else {
+      hint.style.display = 'none';
+      hint.textContent = '';
+    }
   }
 
   // ---------- expenditures ----------
@@ -2738,7 +2818,7 @@
     viewEntries().forEach(e => {
       if (!isSoldEntry(e)) return;
       const i = getMesoHolderIdx(e);
-      if (i >= 0 && i < held.length) held[i] += Number(e.price);
+      if (i >= 0 && i < held.length) held[i] += entryNetReceived(e);
     });
     viewMakerRefines().forEach((r) => {
       const { meso } = computeMakerBatchCosts(r);
@@ -2750,11 +2830,7 @@
 
   function computeFairShare() {
     const fair = state.members.map(() => 0);
-    viewEntries().forEach(e => {
-      if (!isSoldEntry(e)) return;
-      const split = (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT];
-      split.forEach((p, i) => { fair[i] += Number(e.price) * (Number(p) / 100); });
-    });
+    viewEntries().forEach((e) => { applySoldEntryFairShare(fair, e); });
     viewExpenditures().forEach(x => {
       const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { fair[i] -= Number(x.amount) * (Number(p) / 100); });
@@ -2782,7 +2858,7 @@
     const fair = computeFairShare();
     const diffs = state.members.map((_, i) => held[i] - fair[i]);
     const expShare = computeExpShare();
-    const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const entryTotal = soldEntriesNetTotal(viewEntries());
     const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
     const soldCount = viewEntries().filter(isSoldEntry).length;
@@ -2794,7 +2870,7 @@
 
     const memberStats = state.members.map((name, i) => {
       const asOwner = viewEntries().filter((e) => isSoldEntry(e) && Number(e.ownerIdx) === i);
-      const salesSum = asOwner.reduce((s, e) => s + Number(e.price), 0);
+      const salesSum = asOwner.reduce((s, e) => s + entryListPrice(e), 0);
       let contribCount = 0;
       viewEntries().forEach((e) => {
         if (getContributorIdxs(e).includes(i)) contribCount++;
@@ -2842,7 +2918,7 @@
       ? `<ul class="stats-top-list">${topItems.map((e) => `
           <li>
             <span class="stats-top-name" title="${escapeHtml(e.item)}">${escapeHtml(e.item)}</span>
-            <span>${fmt(e.price)}</span>
+            <span title="실수령 ${fmtNum(entryNetReceived(e))}">${fmt(entryListPrice(e))}</span>
           </li>`).join('')}</ul>`
       : '<div class="stats-empty">판매 완료 획득 기록이 없어요.</div>';
 
@@ -2863,7 +2939,7 @@
         <div class="stats-member-grid">${memberCards}</div>
       </div>
       <div class="stats-section">
-        <div class="stats-section-title">판매가 TOP 5</div>
+        <div class="stats-section-title">등록가 TOP 5</div>
         ${topHtml}
       </div>
     `;
@@ -3010,7 +3086,7 @@
     }
     const txList = netSettlementTransfers(buildSettleRawLines(baseTxList));
 
-    const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const entryTotal = soldEntriesNetTotal(viewEntries());
     const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
     const hasTakeovers = viewTakeovers().length > 0;
@@ -3185,7 +3261,7 @@
     if (unsold > 0) {
       btn.disabled = true;
       box.style.display = 'block';
-      box.textContent = `판매가 0인 항목 ${unsold}건이 있어요. 가격을 넣거나 삭제한 뒤 정산할 수 있어요.`;
+      box.textContent = `등록가가 없는 항목 ${unsold}건이 있어요. 등록가를 넣거나 삭제한 뒤 정산할 수 있어요.`;
     } else {
       btn.disabled = false;
       box.style.display = 'none';
@@ -3347,15 +3423,15 @@
     updateMakerPreview('fMaker', 'fMakerPreview');
     const hint = $('makerProfitHint');
     const makerTotal = makerCycleCostTotal();
-    const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const entryTotal = soldEntriesNetTotal(viewEntries());
     if (list.length === 0) {
       hint.style.display = 'none';
       hint.innerHTML = '';
     } else {
       hint.style.display = 'block';
       hint.innerHTML = makerTotal > 0 && entryTotal <= 0
-        ? '메이커는 <strong>비용만</strong> 여기 적어요. <strong>수익(판매가)</strong>은 위 <strong>획득 장부</strong>에 넣으면 → <strong>정산</strong>에 「순수익」과 「인당 가져갈 금액」으로 보여요.'
-        : '수익은 <strong>획득 장부 판매가</strong>, 비용은 이 표 · 정산 「메이커 포함 순수익」에서 확인하세요.';
+        ? '메이커는 <strong>비용만</strong> 여기 적어요. <strong>수익(등록가)</strong>은 위 <strong>획득 장부</strong>에 넣으면 → <strong>정산</strong>에 「순수익」과 「인당 가져갈 금액」으로 보여요.'
+        : '수익은 <strong>획득 장부 등록가</strong>, 비용은 이 표 · 정산 「메이커 포함 순수익」에서 확인하세요.';
     }
   }
 
@@ -3430,6 +3506,7 @@
     $('eEditDate').value = todayStr();
     editEntrySplit = splitForAcquirer(0);
     renderEditEntrySplitFields();
+    updateEntryPricePreview();
     $('entryEditModal').hidden = false;
     $('eEditItem').focus();
   }
@@ -3453,6 +3530,7 @@
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
     renderEditEntrySplitFields();
+    updateEntryPricePreview();
     $('entryEditModal').hidden = false;
   }
 
@@ -4043,6 +4121,8 @@
     if (e.target.id === 'entryEditModal') closeEntryEdit();
   });
   bindMoneyInput('eEditPrice');
+  $('eEditPrice').addEventListener('input', updateEntryPricePreview);
+  $('eEditPrice').addEventListener('change', updateEntryPricePreview);
   bindMoneyInput('xEditAmount');
 
   $('xEditCancelBtn').addEventListener('click', closeExpEdit);
