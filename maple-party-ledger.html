@@ -1231,8 +1231,8 @@
   </div>
 
   <div class="card card-zone-maker">
-    <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 · 보석 종류별</span></h2>
-    <p class="takeover-hint"><strong>재료(기회비용)</strong>와 <strong>재련 메소(11/33/55만)</strong>는 성격이 달라요. 재료는 함께 모은 걸 쓴 가치(송금 X), 메소는 재련자가 낸 돈(정산 O). <strong>판매 수익</strong>은 획득 장부에 넣으세요.</p>
+    <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 재련 메소만 정산</span></h2>
+    <p class="takeover-hint">원석·재료는 <strong>파티 보유 재고</strong>라 정산 비용에 넣지 않아요. <strong>재련자가 낸 11/33/55만</strong>만 반영 · <strong>판매 수익</strong>은 획득 장부.</p>
     <div class="maker-form">
       <div class="field"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
@@ -1240,7 +1240,7 @@
         <div class="maker-form-block-head">
           <span class="maker-section-badge maker-section-badge--settle">정산 반영</span>
           <span class="maker-form-block-title">재련 횟수</span>
-          <span class="maker-form-block-sub">비용(재료·메소) 계산 — 하/중/상 각각 입력</span>
+          <span class="maker-form-block-sub">하급 11만 · 중급 33만 · 상급 55만 — 횟수만 입력</span>
         </div>
         <div class="field"><span>하급 재련</span><input id="fMakerRefineLow" type="number" min="0" step="1" value="0" title="원석 10 + 11만"></div>
         <div class="field"><span>중급 재련</span><input id="fMakerRefineMid" type="number" min="0" step="1" value="0" title="하급 10 + 33만"></div>
@@ -1256,15 +1256,8 @@
         <div class="field"><span>중급</span><input id="fMakerYieldMid" type="number" min="0" step="1" value="0"></div>
         <div class="field"><span>상급</span><input id="fMakerYieldHigh" type="number" min="0" step="1" value="0"></div>
       </div>
-      <div class="maker-form-prices">
-        <div class="maker-form-prices-head">경매장 최소가 (이 보석 종류)</div>
-        <div class="field"><span>원석 최소가</span><input id="fMakerPriceRaw" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-        <div class="field"><span>하급 최소가</span><input id="fMakerPriceLow" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-        <div class="field"><span>중급 최소가</span><input id="fMakerPriceMid" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-        <div class="field"><span>상급 최소가</span><input id="fMakerPriceHigh" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-      </div>
       <div class="maker-form-actions">
-        <div class="maker-cost-preview" id="fMakerPreview">재료·재련 메소를 입력하면 미리보기가 나와요.</div>
+        <div class="maker-cost-preview" id="fMakerPreview">재련 횟수를 넣으면 재련 메소 미리보기가 나와요.</div>
         <div class="maker-form-actions-row">
           <button type="button" class="btn-settle" id="makerAddBtn">재련 기록 추가</button>
         </div>
@@ -1272,7 +1265,7 @@
     </div>
     <div class="table-scroll" style="margin-top:14px;">
       <table class="data-table">
-        <thead><tr><th>보석</th><th>재련자</th><th>재련 (하/중/상)</th><th>획득 (하/중/상)</th><th class="col-amount">재료<br><span class="maker-col-hint">기회비용</span></th><th class="col-amount">재련 메소<br><span class="maker-col-hint">재련자 선납</span></th><th class="col-amount">1인당<br><span class="maker-col-hint">재련 메소(⅓)</span></th><th class="col-actions"></th></tr></thead>
+        <thead><tr><th>보석</th><th>재련자</th><th>재련 (하/중/상)</th><th>획득 (하/중/상)</th><th class="col-amount">재련 메소<br><span class="maker-col-hint">재련자 선납</span></th><th class="col-amount">1인당<br><span class="maker-col-hint">재련 메소(⅓)</span></th><th class="col-actions"></th></tr></thead>
         <tbody id="makerBody"></tbody>
       </table>
     </div>
@@ -1432,10 +1425,6 @@
       <div class="field"><span>획득 · 하급</span><input id="mEditYieldLow" type="number" min="0" step="1"></div>
       <div class="field"><span>획득 · 중급</span><input id="mEditYieldMid" type="number" min="0" step="1"></div>
       <div class="field"><span>획득 · 상급</span><input id="mEditYieldHigh" type="number" min="0" step="1"></div>
-      <div class="field"><span>원석 최소가</span><input id="mEditPriceRaw" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><span>하급 최소가</span><input id="mEditPriceLow" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><span>중급 최소가</span><input id="mEditPriceMid" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><span>상급 최소가</span><input id="mEditPriceHigh" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
     </div>
     <div class="maker-cost-preview" id="mEditPreview" style="margin-top:8px;"></div>
     <div class="modal-foot">
@@ -1590,7 +1579,6 @@
   ];
 
   const MAKER_REFINE_MESO = { low: 110_000, mid: 330_000, high: 550_000 };
-  const MAKER_MATERIAL_UNITS = 10;
 
   let state = {
     members: [...DEFAULT_MEMBERS],
@@ -1599,7 +1587,6 @@
     viewCycleId: null,
     warehouseChars: [],
     memberParcelReceive: [false, false, false],
-    gemAhMinsByName: {}
   };
   let sortState = { column: 'date', direction: 'asc' };
   let currentExpSplit = [...DEFAULT_SPLIT];
@@ -1717,10 +1704,6 @@
       yieldMid: makerNormCount(r.yieldMid),
       yieldHigh: makerNormCount(r.yieldHigh),
       makerIdx: Number(r.makerIdx) != null && Number(r.makerIdx) >= 0 ? Number(r.makerIdx) : 0,
-      priceRaw: Math.max(0, Math.round(Number(r.priceRaw) || 0)),
-      priceLow: Math.max(0, Math.round(Number(r.priceLow) || 0)),
-      priceMid: Math.max(0, Math.round(Number(r.priceMid) || 0)),
-      priceHigh: Math.max(0, Math.round(Number(r.priceHigh) || 0)),
       date: r.date || todayStr()
     };
   }
@@ -1741,29 +1724,10 @@
     ).join('')}</span>`;
   }
 
-  function computeMakerYieldValue(r) {
-    const row = normalizeMakerRefine(r);
-    return row.yieldLow * row.priceLow
-      + row.yieldMid * row.priceMid
-      + row.yieldHigh * row.priceHigh;
-  }
-
   function makerBreakdownPanelHtml(row, opts) {
     const options = opts || {};
-    const { meso, material, total, perMemberMeso, perMemberMaterial } = computeMakerBatchCosts(row);
-    const yieldVal = computeMakerYieldValue(row);
+    const { meso, perMemberMeso } = computeMakerBatchCosts(row);
     const yieldSum = row.yieldLow + row.yieldMid + row.yieldHigh;
-    const diff = yieldVal - total;
-    let refLine = '';
-    if (yieldSum > 0 && total > 0) {
-      const plus = diff >= 0;
-      refLine = `
-        <div class="maker-ref-pnl ${plus ? 'maker-ref-pnl--plus' : 'maker-ref-pnl--minus'}">
-          <span>${plus ? '참고 · 최소가 기준 흑자' : '참고 · 최소가 기준 적자'}</span>
-          <span>획득 ${fmtNum(yieldVal)} − 비용 ${fmtNum(total)} = <strong>${plus ? '+' : ''}${fmtNum(diff)}</strong></span>
-          <span class="maker-ref-pnl-note">실제 정산은 획득 장부 판매가 기준</span>
-        </div>`;
-    }
     const yieldBar = yieldSum > 0
       ? `<div class="maker-yield-bar">
           <span class="maker-yield-bar-label">획득 개수</span>
@@ -1775,15 +1739,10 @@
     return `
       <div class="${panelCls}">
         <div class="maker-preview-cols">
-          <div class="maker-stat-card maker-stat-card--material">
-            <div class="maker-stat-label">재료 · 기회비용</div>
-            <div class="maker-stat-amt">${fmtNum(material)}</div>
-            <div class="maker-stat-desc">함께 모은 원석/하·중급을 <strong>안 팔고 쓴</strong> 경매장 최소가 합. <strong>현금 송금 아님</strong> · 나중에 판매 몫에서 ⅓씩 깎임</div>
-          </div>
           <div class="maker-stat-card maker-stat-card--meso">
-            <div class="maker-stat-label">재련 메소 · 고정비</div>
+            <div class="maker-stat-label">재련 메소</div>
             <div class="maker-stat-amt">${fmtNum(meso)}</div>
-            <div class="maker-stat-desc">11 / 33 / 55만 × 재련 횟수. <strong>재련자가 지갑에서 선납</strong> · 정산 송금·보유에 반영</div>
+            <div class="maker-stat-desc">11 / 33 / 55만 × 재련 횟수. <strong>재련자가 지갑에서 선납</strong> · 정산에만 반영 (원석·재료는 파티 재고)</div>
           </div>
         </div>
         <div class="maker-burden-bar">
@@ -1791,14 +1750,7 @@
           <span class="maker-burden-amt">${fmtNum(perMemberMeso)}</span>
           <span class="maker-burden-sub">재련자가 낸 <strong>11/33/55만</strong> 중 각자 몫 · <strong>송금·정산</strong>에 맞추는 금액</span>
         </div>
-        ${material > 0 ? `
-        <div class="maker-burden-bar" style="background:#F5F3FF;border-color:#C4B5FD;">
-          <span class="maker-burden-tag" style="background:#EDE9FE;color:#5B21B6;border-color:#A78BFA;">재료 몫 차감(⅓)</span>
-          <span class="maker-burden-amt" style="color:#5B21B6;font-size:20px;">${fmtNum(perMemberMaterial)}</span>
-          <span class="maker-burden-sub" style="color:#5B21B6;">원석 등 <strong>기회비용</strong> · 현금 송금 아님 · 판매 몫에서 깎임</span>
-        </div>` : ''}
         ${yieldBar}
-        ${refLine}
       </div>`;
   }
 
@@ -1821,7 +1773,7 @@
         <div class="settle-summary-label">메이커 포함 · 회차 순수익 (파티 합계)</div>
         <div class="settle-net-formula">
           판매 <strong>${fmtNum(entryTotal)}</strong> − 지출 <strong>${fmtNum(expTotal)}</strong> − 메이커 비용 <strong>${fmtNum(makerTotal)}</strong>
-          (재료+재련 메소)
+          (재련 메소만)
         </div>
         <div class="settle-net-amt ${plus ? 'settle-net-amt--plus' : 'settle-net-amt--minus'}">
           <span class="settle-net-tag ${plus ? 'settle-net-tag--plus' : 'settle-net-tag--minus'}">${plus ? '순수익' : '순손실'}</span>
@@ -1834,24 +1786,18 @@
       </div>`;
   }
 
-  function makerSettleTotalsPanelHtml(matSum, mesoSum) {
+  function makerSettleTotalsPanelHtml(mesoSum) {
     const perMemberMeso = Math.round(mesoSum / 3);
-    const perMemberMaterial = Math.round(matSum / 3);
     return `
       <div class="maker-preview-panel maker-settle-panel">
         <div class="maker-preview-cols">
-          <div class="maker-stat-card maker-stat-card--material">
-            <div class="maker-stat-label">재료 · 기회비용 합</div>
-            <div class="maker-stat-amt">${fmtNum(matSum)}</div>
-            <div class="maker-stat-desc">1인당 몫 차감 ≈ ${fmtNum(perMemberMaterial)} · 송금 아님</div>
-          </div>
           <div class="maker-stat-card maker-stat-card--meso">
             <div class="maker-stat-label">재련 메소 합</div>
             <div class="maker-stat-amt">${fmtNum(mesoSum)}</div>
             <div class="maker-stat-desc">1인당 재련 메소(⅓) ≈ ${fmtNum(perMemberMeso)} · 재련자 선납·송금 반영</div>
           </div>
         </div>
-        <p class="takeover-hint" style="margin:0;">판매 수익은 <strong>획득 장부</strong> · 순수익은 정산 상단 「메이커 포함 순수익」</p>
+        <p class="takeover-hint" style="margin:0;">원석·재료는 정산 비용 아님 · 판매 수익은 <strong>획득 장부</strong></p>
       </div>`;
   }
 
@@ -1861,46 +1807,8 @@
       row.refineLow * MAKER_REFINE_MESO.low
       + row.refineMid * MAKER_REFINE_MESO.mid
       + row.refineHigh * MAKER_REFINE_MESO.high;
-    const material =
-      row.refineLow * MAKER_MATERIAL_UNITS * row.priceRaw
-      + row.refineMid * MAKER_MATERIAL_UNITS * row.priceLow
-      + row.refineHigh * MAKER_MATERIAL_UNITS * row.priceMid;
-    const total = meso + material;
     const perMemberMeso = Math.round(meso / 3);
-    const perMemberMaterial = Math.round(material / 3);
-    const perMemberTotal = Math.round(total / 3);
-    return { meso, material, total, perMemberMeso, perMemberMaterial, perMemberTotal };
-  }
-
-  function rememberGemAhMins(gemName, prices) {
-    const key = String(gemName || '').trim();
-    if (!key) return;
-    if (!state.gemAhMinsByName) state.gemAhMinsByName = {};
-    state.gemAhMinsByName[key] = {
-      priceRaw: Math.max(0, Math.round(Number(prices.priceRaw) || 0)),
-      priceLow: Math.max(0, Math.round(Number(prices.priceLow) || 0)),
-      priceMid: Math.max(0, Math.round(Number(prices.priceMid) || 0)),
-      priceHigh: Math.max(0, Math.round(Number(prices.priceHigh) || 0))
-    };
-  }
-
-  function loadGemAhMinsIntoForm(gemName, prefix) {
-    const key = String(gemName || '').trim();
-    const cached = key && state.gemAhMinsByName ? state.gemAhMinsByName[key] : null;
-    if (!cached) return;
-    $(`${prefix}PriceRaw`).value = cached.priceRaw ? formatMoneyInput(cached.priceRaw) : '';
-    $(`${prefix}PriceLow`).value = cached.priceLow ? formatMoneyInput(cached.priceLow) : '';
-    $(`${prefix}PriceMid`).value = cached.priceMid ? formatMoneyInput(cached.priceMid) : '';
-    $(`${prefix}PriceHigh`).value = cached.priceHigh ? formatMoneyInput(cached.priceHigh) : '';
-  }
-
-  function readMakerPricesFromForm(prefix) {
-    return {
-      priceRaw: parseMoneyInput($(`${prefix}PriceRaw`).value),
-      priceLow: parseMoneyInput($(`${prefix}PriceLow`).value),
-      priceMid: parseMoneyInput($(`${prefix}PriceMid`).value),
-      priceHigh: parseMoneyInput($(`${prefix}PriceHigh`).value)
-    };
+    return { meso, total: meso, perMemberMeso };
   }
 
   function readMakerCountsFromForm(formPrefix) {
@@ -1916,14 +1824,12 @@
   }
 
   function readMakerDraftFromForm(formPrefix) {
-    const pricePrefix = formPrefix === 'fMaker' ? 'fMaker' : 'mEdit';
     const gemId = formPrefix === 'fMaker' ? 'fMakerGem' : 'mEditGem';
     const ownerId = formPrefix === 'fMaker' ? 'fMakerOwner' : 'mEditOwner';
     return normalizeMakerRefine({
       gemName: $(gemId).value,
       makerIdx: Number($(ownerId).value),
-      ...readMakerCountsFromForm(formPrefix),
-      ...readMakerPricesFromForm(pricePrefix)
+      ...readMakerCountsFromForm(formPrefix)
     });
   }
 
@@ -1932,18 +1838,11 @@
     const refineSum = draft.refineLow + draft.refineMid + draft.refineHigh;
     const el = $(previewId);
     if (!draft.gemName.trim()) {
-      el.textContent = '보석명을 입력하고, 재련 횟수·최소가를 넣으면 비용 미리보기가 나와요.';
+      el.textContent = '보석명과 재련 횟수를 넣으면 재련 메소 미리보기가 나와요.';
       return;
     }
     if (refineSum <= 0) {
-      el.textContent = '재련 횟수(하/중/상) 중 하나 이상을 넣어야 비용을 계산할 수 있어요. 획득 개수만 적어도 기록은 가능합니다.';
-      return;
-    }
-    const priceMissing = (draft.refineLow > 0 && draft.priceRaw <= 0)
-      || (draft.refineMid > 0 && draft.priceLow <= 0)
-      || (draft.refineHigh > 0 && draft.priceMid <= 0);
-    if (priceMissing) {
-      el.textContent = '재련한 등급에 맞는 경매장 최소가를 입력해 주세요. (하급→원석, 중급→하급, 상급→중급)';
+      el.textContent = '재련 횟수(하/중/상) 중 하나 이상을 넣으면 메소를 계산할 수 있어요. 획득 개수만 적어도 기록은 가능합니다.';
       return;
     }
     el.innerHTML = makerBreakdownPanelHtml(draft);
@@ -2410,9 +2309,6 @@
     const next = migrateParsedToCycles(parsed);
     next.warehouseChars = normalizeWarehouseChars(parsed.warehouseChars);
     next.memberParcelReceive = normalizeMemberParcelReceive(parsed);
-    next.gemAhMinsByName = parsed.gemAhMinsByName && typeof parsed.gemAhMinsByName === 'object'
-      ? { ...parsed.gemAhMinsByName }
-      : {};
     return { next, needsResave: !!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length };
   }
 
@@ -2420,7 +2316,6 @@
     const prevViewId = hasInitialViewFocus ? null : state.viewCycleId;
     state = next;
     if (!state.warehouseChars) state.warehouseChars = [];
-    if (!state.gemAhMinsByName) state.gemAhMinsByName = {};
     if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
       state.memberParcelReceive = normalizeMemberParcelReceive(state);
     }
@@ -2865,9 +2760,9 @@
       split.forEach((p, i) => { fair[i] -= Number(x.amount) * (Number(p) / 100); });
     });
     viewMakerRefines().forEach((r) => {
-      const { total } = computeMakerBatchCosts(r);
-      if (total <= 0) return;
-      const share = total / state.members.length;
+      const { meso } = computeMakerBatchCosts(r);
+      if (meso <= 0) return;
+      const share = meso / state.members.length;
       fair.forEach((_, i) => { fair[i] -= share; });
     });
     return fair;
@@ -3159,15 +3054,12 @@
 
     const makerSumEl = $('makerSettleSummary');
     if (hasMakerRefines) {
-      let matSum = 0;
       let mesoSum = 0;
       viewMakerRefines().forEach((r) => {
-        const c = computeMakerBatchCosts(r);
-        matSum += c.material;
-        mesoSum += c.meso;
+        mesoSum += computeMakerBatchCosts(r).meso;
       });
       makerSumEl.style.display = 'block';
-      makerSumEl.innerHTML = makerSettleTotalsPanelHtml(matSum, mesoSum);
+      makerSumEl.innerHTML = makerSettleTotalsPanelHtml(mesoSum);
     } else {
       makerSumEl.style.display = 'none';
       makerSumEl.innerHTML = '';
@@ -3419,9 +3311,6 @@
     if (refineSum <= 0 && yieldSum <= 0) {
       return { ok: false, focus: 'refine', message: 'empty' };
     }
-    if (row.refineLow > 0 && row.priceRaw <= 0) return { ok: false, focus: 'price', message: 'price' };
-    if (row.refineMid > 0 && row.priceLow <= 0) return { ok: false, focus: 'price', message: 'price' };
-    if (row.refineHigh > 0 && row.priceMid <= 0) return { ok: false, focus: 'price', message: 'price' };
     return { ok: true, row };
   }
 
@@ -3432,7 +3321,7 @@
     $('makerEmpty').style.display = list.length === 0 ? 'block' : 'none';
     list.forEach((r) => {
       const row = normalizeMakerRefine(r);
-      const { meso, material, perMemberMeso, perMemberMaterial } = computeMakerBatchCosts(row);
+      const { meso, perMemberMeso } = computeMakerBatchCosts(row);
       const maker = state.members[row.makerIdx] || '?';
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -3440,7 +3329,6 @@
         <td>${escapeHtml(maker)}</td>
         <td class="price-cell">${makerTierCountsHtml(row.refineLow, row.refineMid, row.refineHigh, 'refine')}</td>
         <td class="price-cell">${makerTierCountsHtml(row.yieldLow, row.yieldMid, row.yieldHigh, 'yield')}</td>
-        <td class="price-cell">${fmt(material)}<span class="maker-col-hint">몫당 ${fmtNum(perMemberMaterial)}</span></td>
         <td class="price-cell">${fmt(meso)}<span class="maker-col-hint">선납</span></td>
         <td class="price-cell"><span class="maker-burden-mini">메소⅓</span>${fmtNum(perMemberMeso)}</td>
         <td class="row-actions col-actions">
@@ -3485,10 +3373,6 @@
     $('mEditYieldLow').value = row.yieldLow;
     $('mEditYieldMid').value = row.yieldMid;
     $('mEditYieldHigh').value = row.yieldHigh;
-    $('mEditPriceRaw').value = row.priceRaw ? formatMoneyInput(row.priceRaw) : '';
-    $('mEditPriceLow').value = row.priceLow ? formatMoneyInput(row.priceLow) : '';
-    $('mEditPriceMid').value = row.priceMid ? formatMoneyInput(row.priceMid) : '';
-    $('mEditPriceHigh').value = row.priceHigh ? formatMoneyInput(row.priceHigh) : '';
     updateMakerPreview('mEdit', 'mEditPreview');
     $('makerEditModal').hidden = false;
   }
@@ -3508,11 +3392,10 @@
     if (!v.ok) {
       if (v.focus === 'gem') $('mEditGem').focus();
       else if (v.focus === 'refine') $('mEditRefineLow').focus();
-      else $('mEditPriceRaw').focus();
+      else $('mEditRefineLow').focus();
       return;
     }
     Object.assign(r, v.row);
-    rememberGemAhMins(v.row.gemName, v.row);
     closeMakerEdit();
     scheduleSave();
     renderMakerRefines();
@@ -4046,16 +3929,10 @@
 
   bindMoneyInput('fTakeMinPrice');
   bindMoneyInput('tEditMinPrice');
-  ['fMaker', 'mEdit'].forEach((prefix) => {
-    bindMoneyInput(`${prefix}PriceRaw`);
-    bindMoneyInput(`${prefix}PriceLow`);
-    bindMoneyInput(`${prefix}PriceMid`);
-    bindMoneyInput(`${prefix}PriceHigh`);
-  });
   function wireMakerPreview(prefix, previewId) {
     const ids = prefix === 'fMaker'
-      ? ['fMakerGem', 'fMakerOwner', 'fMakerRefineLow', 'fMakerRefineMid', 'fMakerRefineHigh', 'fMakerYieldLow', 'fMakerYieldMid', 'fMakerYieldHigh', 'fMakerPriceRaw', 'fMakerPriceLow', 'fMakerPriceMid', 'fMakerPriceHigh']
-      : ['mEditGem', 'mEditOwner', 'mEditRefineLow', 'mEditRefineMid', 'mEditRefineHigh', 'mEditYieldLow', 'mEditYieldMid', 'mEditYieldHigh', 'mEditPriceRaw', 'mEditPriceLow', 'mEditPriceMid', 'mEditPriceHigh'];
+      ? ['fMakerGem', 'fMakerOwner', 'fMakerRefineLow', 'fMakerRefineMid', 'fMakerRefineHigh', 'fMakerYieldLow', 'fMakerYieldMid', 'fMakerYieldHigh']
+      : ['mEditGem', 'mEditOwner', 'mEditRefineLow', 'mEditRefineMid', 'mEditRefineHigh', 'mEditYieldLow', 'mEditYieldMid', 'mEditYieldHigh'];
     ids.forEach((id) => {
       const el = $(id);
       if (!el) return;
@@ -4065,14 +3942,6 @@
   }
   wireMakerPreview('fMaker', 'fMakerPreview');
   wireMakerPreview('mEdit', 'mEditPreview');
-  $('fMakerGem').addEventListener('blur', () => {
-    loadGemAhMinsIntoForm($('fMakerGem').value, 'fMaker');
-    updateMakerPreview('fMaker', 'fMakerPreview');
-  });
-  $('mEditGem').addEventListener('blur', () => {
-    loadGemAhMinsIntoForm($('mEditGem').value, 'mEdit');
-    updateMakerPreview('mEdit', 'mEditPreview');
-  });
   $('makerAddBtn').addEventListener('click', () => {
     const draft = readMakerDraftFromForm('fMaker');
     const v = validateMakerRefineRow(draft);
@@ -4082,13 +3951,10 @@
         alert('재련 횟수 또는 획득 개수(하/중/상) 중 하나 이상을 입력해 주세요.');
         return;
       }
-      alert('재련한 등급에 맞는 경매장 최소가를 입력해 주세요. (하급→원석, 중급→하급, 상급→중급)');
-      return;
     }
     const c = getViewCycle();
     if (!c.makerRefines) c.makerRefines = [];
     c.makerRefines.push({ ...v.row, id: genId(), date: todayStr() });
-    rememberGemAhMins(v.row.gemName, v.row);
     ['fMakerRefineLow', 'fMakerRefineMid', 'fMakerRefineHigh', 'fMakerYieldLow', 'fMakerYieldMid', 'fMakerYieldHigh'].forEach((id) => { $(id).value = '0'; });
     updateMakerPreview('fMaker', 'fMakerPreview');
     scheduleSave();
