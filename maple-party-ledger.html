@@ -72,17 +72,13 @@
     flex-wrap: wrap;
   }
   .status-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .status-row button {
-    background: none;
-    border: 1px solid var(--line);
-    color: var(--ink-soft);
-    padding: 6px 12px;
-    border-radius: 7px;
-    font-size: 13.5px;
-    cursor: pointer;
-    font-family: inherit;
+  .btn-light {
+    background: #fff !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line-strong) !important;
+    box-shadow: none !important;
   }
-  .status-row button:hover { border-color: var(--line-strong); color: var(--ink); background: var(--surface-muted); }
+  .btn-light:hover { background: var(--surface-muted) !important; color: var(--ink) !important; }
 
   .card {
     background: var(--paper-card);
@@ -101,20 +97,21 @@
     color: var(--ink);
   }
 
-  /* member names */
+  .card-compact { padding: 12px 16px; margin-bottom: 14px; }
+  .card-compact h2 { font-size: 15px; margin-bottom: 8px; }
   .members-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
-  .member-slot { display: flex; flex-direction: column; gap: 6px; }
-  .member-slot span { font-size: 13.5px; color: var(--ink-soft); font-weight: 500; }
+  .member-slot { display: flex; flex-direction: column; gap: 4px; }
+  .member-slot span { font-size: 11.5px; color: var(--ink-soft); font-weight: 500; }
   .member-slot input {
     border: 1px solid var(--line);
     background: #fff;
     border-radius: 7px;
-    padding: 9px 10px;
-    font-size: 15px;
+    padding: 6px 8px;
+    font-size: 14px;
     font-family: inherit;
     color: var(--ink);
   }
@@ -123,7 +120,7 @@
   /* entry / expenditure form */
   .entry-form {
     display: grid;
-    grid-template-columns: 1.6fr 1.1fr 1.1fr 1fr auto;
+    grid-template-columns: 1.4fr 1fr 0.9fr 0.9fr auto auto;
     gap: 10px;
     align-items: end;
   }
@@ -186,11 +183,18 @@
   .split-row {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px dashed var(--line);
     flex-wrap: wrap;
+  }
+  .split-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
   }
   .split-label { font-size: 13.5px; color: var(--ink-soft); white-space: nowrap; font-weight: 500; }
   .split-fields { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -232,7 +236,60 @@
   }
   .reset-sort-btn:hover { border-color: var(--line-strong); color: var(--ink); background: var(--surface-muted); }
 
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    flex-shrink: 0;
+    display: block;
+  }
+  .section-icon-settle { border-radius: 6px; }
+
+  .meso-icon {
+    height: 1.2em;
+    width: auto;
+    max-height: 22px;
+    vertical-align: -0.2em;
+    display: inline-block;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+  }
+  .meso-icon--lg { height: 1.45em; max-height: 26px; vertical-align: -0.25em; }
+  .label-with-meso { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+  .money-with-meso {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: flex-end;
+  }
+  .price-cell .money-with-meso { width: 100%; }
+
   table { width: 100%; border-collapse: collapse; }
+  table.data-table {
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table.data-table thead th {
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--line-strong);
+    border-right: 1px solid var(--line);
+    padding: 10px 8px;
+  }
+  table.data-table thead th:last-child { border-right: none; }
+  table.data-table tbody td {
+    border-bottom: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  table.data-table tbody tr:last-child td { border-bottom: none; }
+  table.data-table tbody td:last-child { border-right: none; }
+
   thead th {
     text-align: left; font-size: 13px; color: var(--ink-soft); font-weight: 600;
     padding: 0 8px 8px; border-bottom: 1px solid var(--line);
@@ -252,8 +309,32 @@
     background: var(--forest-soft); color: var(--forest); font-size: 13px; font-weight: 600;
   }
   .split-cell { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
-  .del-btn { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 14px; padding: 4px 6px; }
-  .del-btn:hover { color: var(--rust); }
+  .row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; white-space: nowrap; }
+  .icon-edit-btn {
+    background: transparent; border: none; color: var(--ink-soft); cursor: pointer;
+    font-size: 12.5px; font-weight: 600; padding: 4px 6px; font-family: inherit;
+  }
+  .icon-edit-btn:hover { color: var(--settle); }
+  .icon-del {
+    background: transparent; border: none; color: var(--rust); cursor: pointer;
+    font-size: 20px; line-height: 1; width: 28px; height: 28px; padding: 0; font-family: inherit;
+  }
+  .icon-del:hover { color: var(--rust-hover); }
+  .sale-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 100px;
+  }
+  .sale-badge.sold { background: var(--forest-soft); color: var(--forest); }
+  .sale-badge.unsold { background: var(--surface-muted); color: var(--ink-soft); border: 1px solid var(--line); }
+  .field-check label {
+    display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-soft);
+    min-height: 42px; cursor: pointer; user-select: none;
+  }
+  .field-check input { width: auto; accent-color: var(--settle); }
+  .settle-block-reason {
+    font-size: 14px; color: var(--rust); background: var(--rust-soft); border: 1px solid #FECDD3;
+    border-radius: 8px; padding: 10px 12px; margin-top: 12px; display: none;
+  }
+  .btn-settle:disabled { background: #94A3B8; box-shadow: none; cursor: not-allowed; }
 
   .empty-state { text-align: center; padding: 30px 10px; color: var(--ink-soft); font-size: 15px; }
 
@@ -284,8 +365,9 @@
   .settle-tx-amt {
     margin-left: auto; font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700;
     color: var(--settle); letter-spacing: -0.02em;
+    display: inline-flex; align-items: center; gap: 4px;
   }
-  .settle-tx-amt span { font-size: 14px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; margin-left: 2px; }
+  .settle-tx-amt .meso-icon { max-height: 24px; margin-left: 4px; }
 
   .settle-breakdown {
     border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); margin-bottom: 4px;
@@ -320,11 +402,12 @@
   .settle-card-tag.even { background: var(--surface-muted); color: var(--ink-soft); }
   .settle-hero-amt {
     font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em;
+    display: inline-flex; align-items: center; gap: 4px;
   }
   .settle-hero-amt.owe { color: var(--rust); }
   .settle-hero-amt.get { color: var(--forest); }
   .settle-hero-amt.even { color: var(--ink-soft); font-size: 20px; }
-  .settle-hero-amt .unit { font-size: 13px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; margin-left: 3px; }
+  .settle-hero-amt .meso-icon { max-height: 26px; margin-left: 4px; }
   .settle-hero-lbl { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 4px 0 10px; }
   .settle-bars { display: flex; flex-direction: column; gap: 6px; }
   .settle-bar-row {
@@ -399,8 +482,10 @@
   .takehome-amt {
     font-family: 'Fraunces', serif; font-size: 22px; font-weight: 700; color: var(--forest); line-height: 1.15;
     letter-spacing: -0.02em;
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   }
-  .takehome-amt .unit { font-size: 12px; font-weight: 600; color: var(--ink-soft); font-family: 'Inter', sans-serif; margin-left: 2px; }
+  .takehome-amt .meso-icon { max-height: 24px; margin-left: 4px; }
+  .total-row strong .meso-icon { max-height: 28px; vertical-align: -0.3em; }
   .takehome-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.35; }
 
   .settle-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
@@ -524,45 +609,43 @@
     <div class="status-row">
       <span id="statusText">불러오는 중…</span>
       <div class="status-actions">
-        <button type="button" class="btn-ghost btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
-        <button id="refreshBtn">새로고침</button>
+        <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
       </div>
     </div>
   </header>
 
-  <div class="card">
+  <div class="card card-compact">
     <h2>공대원</h2>
     <div class="members-grid" id="membersGrid"></div>
   </div>
 
   <div class="card">
-    <h2>항목 추가</h2>
+    <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="30" height="30" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
     <div class="entry-form">
       <div class="field"><span>아이템명</span><input id="fItem" type="text" placeholder="예: 시간의 조각"></div>
-      <div class="field"><span>판매가 (메소)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-      <div class="field"><span>획득자(판매금 보유)</span><select id="fOwner"></select></div>
+      <div class="field"><span class="label-with-meso">판매가 (<img src="image/meso.png" alt="" class="meso-icon" decoding="async">)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="미판매면 비움"></div>
+      <div class="field"><span>획득자</span><select id="fOwner"></select></div>
       <div class="field"><span>날짜</span><input id="fDate" type="date"></div>
-      <button class="btn-income" id="addBtn">기록 추가</button>
+      <div class="field field-check"><span>&nbsp;</span><label><input type="checkbox" id="fUnsold"> 미판매 (가격 나중에)</label></div>
+      <button class="btn-income" id="addBtn">획득 추가</button>
     </div>
     <div class="split-row">
       <span class="split-label">분배 비율</span>
       <div class="split-fields" id="splitFields"></div>
-      <button type="button" class="split-equal-btn" id="splitEqualBtn">균등 분배</button>
-      <span class="split-sum" id="splitSum">합계 100%</span>
+      <div class="split-actions">
+        <button type="button" class="split-equal-btn" id="splitEqualBtn">균등 분배</button>
+        <span class="split-sum" id="splitSum">합계 100%</span>
+      </div>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>장부</h2>
-    <div class="ledger-toolbar">
-      <button class="reset-sort-btn" id="resetSortBtn">기본 정렬</button>
+    <div class="ledger-toolbar" style="margin-top:16px;">
+      <button class="reset-sort-btn btn-light" id="resetSortBtn">기본 정렬</button>
     </div>
-    <table>
+    <table class="data-table">
       <thead id="ledgerHead"></thead>
       <tbody id="ledgerBody"></tbody>
     </table>
-    <div id="emptyState" class="empty-state" style="display:none;">아직 기록된 아이템이 없어요. 위에서 첫 항목을 추가해보세요.</div>
-    <div class="total-row"><span>총 합계</span><strong id="totalAmount">0메소</strong></div>
+    <div id="emptyState" class="empty-state" style="display:none;">아직 획득 기록이 없어요.</div>
+    <div class="total-row"><span>판매 완료 합계</span><strong id="totalAmount"></strong></div>
   </div>
 
   <div class="card">
@@ -577,19 +660,21 @@
     <div class="split-row">
       <span class="split-label">분배 비율 (공동 부담)</span>
       <div class="split-fields" id="expSplitFields"></div>
-      <button type="button" class="split-equal-btn" id="expSplitEqualBtn">균등 분배</button>
-      <span class="split-sum" id="expSplitSum">합계 100%</span>
+      <div class="split-actions">
+        <button type="button" class="split-equal-btn" id="expSplitEqualBtn">균등 분배</button>
+        <span class="split-sum" id="expSplitSum">합계 100%</span>
+      </div>
     </div>
-    <table style="margin-top:16px;">
+    <table class="data-table" style="margin-top:16px;">
       <thead><tr><th>날짜</th><th>항목</th><th style="text-align:right;">금액</th><th>수혜자</th><th>분배</th><th></th></tr></thead>
       <tbody id="expBody"></tbody>
     </table>
     <div id="expEmptyState" class="empty-state" style="display:none;">아직 지출 기록이 없어요.</div>
-    <div class="total-row"><span>총 지출액</span><strong id="expTotalAmount">0메소</strong></div>
+    <div class="total-row"><span>총 지출액</span><strong id="expTotalAmount"></strong></div>
   </div>
 
   <div class="card">
-    <h2>정산</h2>
+    <h2 class="section-title"><img src="image/jeongsan.jpg" alt="" class="section-icon section-icon-settle" width="30" height="30" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
     <div class="settle-takehome" id="settleTakehome" style="display:none;">
@@ -604,6 +689,7 @@
         <div class="settle-grid" id="settleGrid"></div>
       </div>
     </details>
+    <div class="settle-block-reason" id="settleBlockReason"></div>
     <div class="settle-actions">
       <button class="btn-settle" id="settleDoneBtn">정산 완료 처리</button>
     </div>
@@ -646,6 +732,55 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="entryEditModal" hidden>
+  <div class="modal" role="dialog">
+    <h3>획득 기록 수정</h3>
+    <div class="modal-grid">
+      <div class="field"><span>아이템명</span><input id="eEditItem" type="text"></div>
+      <div class="field"><span>판매가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
+      <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
+      <div class="field field-check" style="grid-column:1/-1;"><label><input type="checkbox" id="eEditUnsold"> 미판매</label></div>
+    </div>
+    <div class="split-row" style="margin-top:0;padding-top:12px;">
+      <span class="split-label">분배 비율</span>
+      <div class="split-fields" id="eEditSplitFields"></div>
+      <div class="split-actions">
+        <button type="button" class="split-equal-btn" id="eEditSplitEqualBtn">균등 분배</button>
+        <span class="split-sum" id="eEditSplitSum">합계 100%</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="eEditCancelBtn">취소</button>
+      <button type="button" class="btn-settle btn-sm" id="eEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="expEditModal" hidden>
+  <div class="modal" role="dialog">
+    <h3>지출 기록 수정</h3>
+    <div class="modal-grid">
+      <div class="field"><span>지출 항목</span><input id="xEditDesc" type="text"></div>
+      <div class="field"><span>금액</span><input id="xEditAmount" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>수혜자</span><select id="xEditBen"></select></div>
+      <div class="field"><span>날짜</span><input id="xEditDate" type="date"></div>
+    </div>
+    <div class="split-row" style="margin-top:0;padding-top:12px;">
+      <span class="split-label">분배 비율</span>
+      <div class="split-fields" id="xEditSplitFields"></div>
+      <div class="split-actions">
+        <button type="button" class="split-equal-btn" id="xEditSplitEqualBtn">균등 분배</button>
+        <span class="split-sum" id="xEditSplitSum">합계 100%</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="xEditCancelBtn">취소</button>
+      <button type="button" class="btn-settle btn-sm" id="xEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (function () {
@@ -671,14 +806,20 @@
   let editingField = false;
   let editingHistoryId = null;
   const expandedHistoryIds = new Set();
+  let editingEntryId = null;
+  let editingExpId = null;
+  let editEntrySplit = [...DEFAULT_SPLIT];
+  let editExpSplit = [...DEFAULT_SPLIT];
   let supabaseClient = null;
   let storageMode = 'local'; // cloud | cursor | local
   let suppressRemoteUntil = 0;
   let realtimeReady = false;
 
   const $ = (id) => document.getElementById(id);
-  const fmt = (n) => Math.round(n).toLocaleString('ko-KR') + '메소';
+  const MESO_ICON_HTML = '<img src="image/meso.png" alt="" class="meso-icon" decoding="async">';
+  const MESO_ICON_LG_HTML = '<img src="image/meso.png" alt="" class="meso-icon meso-icon--lg" decoding="async">';
   const fmtNum = (n) => Math.round(n).toLocaleString('ko-KR');
+  const fmt = (n) => `<span class="money-with-meso">${fmtNum(n)}${MESO_ICON_HTML}</span>`;
   const parseMoneyInput = (str) => {
     const digits = String(str == null ? '' : str).replace(/[^\d]/g, '');
     return digits === '' ? 0 : Number(digits);
@@ -717,12 +858,41 @@
     return div.innerHTML;
   }
 
+  function entryStatus(entry) {
+    if (entry.status === 'unsold') return 'unsold';
+    if (entry.status === 'sold') return 'sold';
+    return Number(entry.price) > 0 ? 'sold' : 'unsold';
+  }
+
+  function isSoldEntry(entry) {
+    return entryStatus(entry) === 'sold' && Number(entry.price) > 0;
+  }
+
+  function countUnsoldEntries() {
+    return state.entries.filter((e) => entryStatus(e) === 'unsold').length;
+  }
+
+  function modalBlocksRemote() {
+    return editingField
+      || !$('historyEditModal').hidden
+      || !$('entryEditModal').hidden
+      || !$('expEditModal').hidden;
+  }
+
   function parseStoredState(raw) {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     let historyNeedsId = false;
     const next = {
       members: parsed.members && parsed.members.length === 3 ? parsed.members : [...DEFAULT_MEMBERS],
-      entries: (parsed.entries || []).map(e => ({ ...e, split: (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT] })),
+          entries: (parsed.entries || []).map(e => {
+            const status = e.status || (Number(e.price) > 0 ? 'sold' : 'unsold');
+            return {
+              ...e,
+              split: (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT],
+              status,
+              price: status === 'unsold' ? 0 : Number(e.price) || 0
+            };
+          }),
       expenditures: (parsed.expenditures || []).map(x => ({
         id: x.id,
         desc: x.desc,
@@ -842,7 +1012,7 @@
         filter: 'room_id=eq.' + ROOM_ID
       }, (payload) => {
         if (Date.now() < suppressRemoteUntil) return;
-        if (editingField || !$('historyEditModal').hidden) return;
+        if (modalBlocksRemote()) return;
         const row = payload.new;
         if (!row || !row.data) return;
         try {
@@ -863,12 +1033,10 @@
       updateStatusUi();
       if (!had) {
         render();
-        if (storageMode === 'local') {
-          $('statusText').textContent = '아직 기록이 없어요 · 첫 기록을 남겨보세요 (로컬만)';
-        }
+        if (storageMode === 'local') updateStatusUi();
       }
     } catch (e) {
-      $('statusText').textContent = '불러오기 실패 · 새로고침 또는 Supabase 설정 확인';
+      $('statusText').textContent = '불러오기 실패 · 잠시 후 다시 시도해 주세요';
       render();
     }
   }
@@ -931,6 +1099,8 @@
   function renderMemberSelects() {
     populateMemberSelect($('fOwner'));
     populateMemberSelect($('fExpBeneficiary'));
+    populateMemberSelect($('eEditOwner'));
+    populateMemberSelect($('xEditBen'));
   }
 
   // ---------- split ratio ----------
@@ -1017,6 +1187,7 @@
         <th>아이템</th>
         <th class="sortable" style="text-align:right;" data-col="price">판매가${sortIconHtml('price')}</th>
         <th class="sortable" data-col="owner">획득자${sortIconHtml('owner')}</th>
+        <th>상태</th>
         <th>분배</th>
         <th></th>
       </tr>
@@ -1062,18 +1233,27 @@
       const ownerName = state.members[entry.ownerIdx] || '?';
       const split = (entry.split && entry.split.length === 3) ? entry.split : [...DEFAULT_SPLIT];
       const splitTitle = state.members.map((n, i) => `${n} ${split[i]}%`).join(', ');
+      const unsold = entryStatus(entry) === 'unsold';
+      const priceCell = unsold ? '—' : fmt(entry.price);
+      const statusBadge = unsold
+        ? '<span class="sale-badge unsold">미판매</span>'
+        : '<span class="sale-badge sold">판매완료</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${entry.date}</td>
         <td class="item-name">${escapeHtml(entry.item)}</td>
-        <td class="price-cell">${fmt(entry.price)}</td>
+        <td class="price-cell">${priceCell}</td>
         <td><span class="owner-tag">${escapeHtml(ownerName)}</span></td>
+        <td>${statusBadge}</td>
         <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
-        <td><button class="del-btn" data-id="${entry.id}">삭제</button></td>
+        <td class="row-actions">
+          <button type="button" class="icon-edit-btn entry-edit-btn" data-id="${entry.id}">수정</button>
+          <button type="button" class="icon-del entry-del-btn" data-id="${entry.id}" title="삭제">×</button>
+        </td>
       `;
       body.appendChild(tr);
     });
-    body.querySelectorAll('.del-btn').forEach((btn) => {
+    body.querySelectorAll('.entry-del-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.entries = state.entries.filter((e) => e.id !== btn.dataset.id);
         scheduleSave();
@@ -1081,8 +1261,11 @@
         renderSettlement();
       });
     });
-    const total = state.entries.reduce((s, e) => s + Number(e.price), 0);
-    $('totalAmount').textContent = fmt(total);
+    body.querySelectorAll('.entry-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openEntryEdit(btn.dataset.id));
+    });
+    const total = state.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    $('totalAmount').innerHTML = fmt(total);
   }
 
   // ---------- expenditures ----------
@@ -1102,11 +1285,14 @@
         <td class="price-cell">${fmt(x.amount)}</td>
         <td><span class="owner-tag" style="background:var(--rust-soft);color:var(--rust);">${escapeHtml(ben)}</span></td>
         <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
-        <td><button class="del-btn" data-id="${x.id}">삭제</button></td>
+        <td class="row-actions">
+          <button type="button" class="icon-edit-btn exp-edit-btn" data-id="${x.id}">수정</button>
+          <button type="button" class="icon-del exp-del-btn" data-id="${x.id}" title="삭제">×</button>
+        </td>
       `;
       body.appendChild(tr);
     });
-    body.querySelectorAll('.del-btn').forEach((btn) => {
+    body.querySelectorAll('.exp-del-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.expenditures = state.expenditures.filter((x) => x.id !== btn.dataset.id);
         scheduleSave();
@@ -1114,20 +1300,27 @@
         renderSettlement();
       });
     });
+    body.querySelectorAll('.exp-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openExpEdit(btn.dataset.id));
+    });
     const total = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
-    $('expTotalAmount').textContent = fmt(total);
+    $('expTotalAmount').innerHTML = fmt(total);
   }
 
   // ---------- settlement ----------
   function computeHeld() {
     const held = state.members.map(() => 0);
-    state.entries.forEach(e => { held[e.ownerIdx] += Number(e.price); });
+    state.entries.forEach(e => {
+      if (!isSoldEntry(e)) return;
+      held[e.ownerIdx] += Number(e.price);
+    });
     return held;
   }
 
   function computeFairShare() {
     const fair = state.members.map(() => 0);
     state.entries.forEach(e => {
+      if (!isSoldEntry(e)) return;
       const split = (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { fair[i] += Number(e.price) * (Number(p) / 100); });
     });
@@ -1164,7 +1357,7 @@
       if (c.amt <= 1) ci++;
     }
 
-    const entryTotal = state.entries.reduce((s, e) => s + Number(e.price), 0);
+    const entryTotal = state.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
     const expTotal = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
     const hasSettleData = state.entries.length > 0 || state.expenditures.length > 0;
@@ -1190,7 +1383,7 @@
         card.className = 'takehome-card';
         card.innerHTML = `
           <div class="takehome-name">${escapeHtml(name)}</div>
-          <div class="takehome-amt">${fmtNum(fairAmt)}<span class="unit">메소</span></div>
+          <div class="takehome-amt">${fmtNum(fairAmt)}${MESO_ICON_LG_HTML}</div>
           <div class="takehome-sub">${sub}</div>
         `;
         takeGrid.appendChild(card);
@@ -1214,7 +1407,7 @@
             <span class="arrow" style="color:var(--ink-soft);">→</span>
             <span class="person-badge to">${escapeHtml(tx.to)}</span>
           </div>
-          <div class="settle-tx-amt">${fmtNum(Math.round(tx.amt))}<span>메소</span></div>
+          <div class="settle-tx-amt">${fmtNum(Math.round(tx.amt))}${MESO_ICON_LG_HTML}</div>
         </div>
       `).join('');
       heroWrap.innerHTML = `
@@ -1261,7 +1454,7 @@
           <span class="settle-person">${escapeHtml(name)}</span>
           <span class="settle-card-tag ${cardKind}">${tagText}</span>
         </div>
-        <div class="settle-hero-amt ${amtCls}">${heroAmt}<span class="unit">메소</span></div>
+        <div class="settle-hero-amt ${amtCls}">${heroAmt}${MESO_ICON_LG_HTML}</div>
         <div class="settle-hero-lbl">${heroLbl}</div>
         <div class="settle-bars">
           <div class="settle-bar-row"><span>보유</span><div class="bar"><i style="width:${heldW}%"></i></div><span class="bval">${fmtNum(Math.round(held[i]))}</span></div>
@@ -1282,6 +1475,124 @@
       date: x.date,
       split: [...((x.split && x.split.length === 3) ? x.split : DEFAULT_SPLIT)]
     }));
+    updateSettleButton();
+  }
+
+  function updateSettleButton() {
+    const unsold = countUnsoldEntries();
+    const btn = $('settleDoneBtn');
+    const box = $('settleBlockReason');
+    if (unsold > 0) {
+      btn.disabled = true;
+      box.style.display = 'block';
+      box.textContent = `미판매 ${unsold}건이 있어요. 수정에서 판매가를 넣거나 삭제한 뒤 정산할 수 있어요.`;
+    } else {
+      btn.disabled = false;
+      box.style.display = 'none';
+      box.textContent = '';
+    }
+  }
+
+  function renderEditEntrySplitFields() {
+    bindSplitFields($('eEditSplitFields'), editEntrySplit, (sumOnly) => {
+      if (sumOnly) updateSplitSumDisplay(editEntrySplit, $('eEditSplitSum'), $('eEditSaveBtn'));
+      else renderEditEntrySplitFields();
+    });
+    updateSplitSumDisplay(editEntrySplit, $('eEditSplitSum'), $('eEditSaveBtn'));
+  }
+
+  function renderEditExpSplitFields() {
+    bindSplitFields($('xEditSplitFields'), editExpSplit, (sumOnly) => {
+      if (sumOnly) updateSplitSumDisplay(editExpSplit, $('xEditSplitSum'), $('xEditSaveBtn'));
+      else renderEditExpSplitFields();
+    });
+    updateSplitSumDisplay(editExpSplit, $('xEditSplitSum'), $('xEditSaveBtn'));
+  }
+
+  function openEntryEdit(id) {
+    const entry = state.entries.find((x) => x.id === id);
+    if (!entry) return;
+    editingEntryId = id;
+    editingField = true;
+    const unsold = entryStatus(entry) === 'unsold';
+    $('eEditItem').value = entry.item;
+    $('eEditUnsold').checked = unsold;
+    $('eEditPrice').value = unsold ? '' : formatMoneyInput(Number(entry.price));
+    $('eEditOwner').value = entry.ownerIdx;
+    $('eEditDate').value = entry.date || todayStr();
+    editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
+    renderEditEntrySplitFields();
+    $('entryEditModal').hidden = false;
+  }
+
+  function closeEntryEdit() {
+    editingEntryId = null;
+    editingField = false;
+    $('entryEditModal').hidden = true;
+  }
+
+  function saveEntryEdit() {
+    if (!editingEntryId) return;
+    const entry = state.entries.find((x) => x.id === editingEntryId);
+    if (!entry) return;
+    const unsold = $('eEditUnsold').checked;
+    const price = parseMoneyInput($('eEditPrice').value);
+    const sum = editEntrySplit.reduce((s, v) => s + Number(v || 0), 0);
+    const item = $('eEditItem').value.trim();
+    if (!item) { $('eEditItem').focus(); return; }
+    if (!unsold && (!price || price <= 0)) { $('eEditPrice').focus(); return; }
+    if (Math.abs(sum - 100) > 0.01) return;
+    entry.item = item;
+    entry.ownerIdx = Number($('eEditOwner').value);
+    entry.date = $('eEditDate').value || todayStr();
+    entry.split = [...editEntrySplit];
+    entry.status = unsold ? 'unsold' : 'sold';
+    entry.price = unsold ? 0 : price;
+    closeEntryEdit();
+    scheduleSave();
+    renderLedger();
+    renderSettlement();
+  }
+
+  function openExpEdit(id) {
+    const x = state.expenditures.find((row) => row.id === id);
+    if (!x) return;
+    editingExpId = id;
+    editingField = true;
+    $('xEditDesc').value = x.desc;
+    $('xEditAmount').value = formatMoneyInput(Number(x.amount));
+    $('xEditBen').value = x.beneficiaryIdx;
+    $('xEditDate').value = x.date || todayStr();
+    editExpSplit = [...((x.split && x.split.length === 3) ? x.split : DEFAULT_SPLIT)];
+    renderEditExpSplitFields();
+    $('expEditModal').hidden = false;
+  }
+
+  function closeExpEdit() {
+    editingExpId = null;
+    editingField = false;
+    $('expEditModal').hidden = true;
+  }
+
+  function saveExpEdit() {
+    if (!editingExpId) return;
+    const x = state.expenditures.find((row) => row.id === editingExpId);
+    if (!x) return;
+    const desc = $('xEditDesc').value.trim();
+    const amount = parseMoneyInput($('xEditAmount').value);
+    const sum = editExpSplit.reduce((s, v) => s + Number(v || 0), 0);
+    if (!desc) { $('xEditDesc').focus(); return; }
+    if (!amount || amount <= 0) { $('xEditAmount').focus(); return; }
+    if (Math.abs(sum - 100) > 0.01) return;
+    x.desc = desc;
+    x.amount = amount;
+    x.beneficiaryIdx = Number($('xEditBen').value);
+    x.date = $('xEditDate').value || todayStr();
+    x.split = [...editExpSplit];
+    closeExpEdit();
+    scheduleSave();
+    renderExpenditures();
+    renderSettlement();
   }
 
   // ---------- history edit ----------
@@ -1526,21 +1837,41 @@
     if (e.target.id === 'historyEditModal') closeHistoryEdit();
   });
 
+  $('fUnsold').addEventListener('change', () => {
+    if ($('fUnsold').checked) {
+      $('fPrice').value = '';
+      $('fPrice').disabled = true;
+    } else {
+      $('fPrice').disabled = false;
+    }
+  });
+
   $('addBtn').addEventListener('click', () => {
     const item = $('fItem').value.trim();
+    const unsold = $('fUnsold').checked;
     const price = parseMoneyInput($('fPrice').value);
     const ownerIdx = Number($('fOwner').value);
     const date = $('fDate').value || todayStr();
     const sum = currentSplit.reduce((s, v) => s + Number(v || 0), 0);
 
     if (!item) { $('fItem').focus(); return; }
-    if (!price || price <= 0) { $('fPrice').focus(); return; }
+    if (!unsold && (!price || price <= 0)) { $('fPrice').focus(); return; }
     if (Math.abs(sum - 100) > 0.01) { return; }
 
-    state.entries.push({ id: genId(), item, price, ownerIdx, date, split: [...currentSplit] });
+    state.entries.push({
+      id: genId(),
+      item,
+      price: unsold ? 0 : price,
+      ownerIdx,
+      date,
+      split: [...currentSplit],
+      status: unsold ? 'unsold' : 'sold'
+    });
 
     $('fItem').value = '';
     $('fPrice').value = '';
+    $('fUnsold').checked = false;
+    $('fPrice').disabled = false;
     $('fItem').focus();
     currentSplit = [...DEFAULT_SPLIT];
     renderSplitFields();
@@ -1585,8 +1916,6 @@
     renderLedger();
   });
 
-  $('refreshBtn').addEventListener('click', loadState);
-
   $('copyLinkBtn').addEventListener('click', async () => {
     const url = shareUrl();
     try {
@@ -1598,9 +1927,40 @@
     }
   });
 
+  $('eEditCancelBtn').addEventListener('click', closeEntryEdit);
+  $('eEditSaveBtn').addEventListener('click', saveEntryEdit);
+  $('eEditSplitEqualBtn').addEventListener('click', () => {
+    editEntrySplit = [...DEFAULT_SPLIT];
+    renderEditEntrySplitFields();
+  });
+  $('entryEditModal').addEventListener('click', (e) => {
+    if (e.target.id === 'entryEditModal') closeEntryEdit();
+  });
+  $('eEditUnsold').addEventListener('change', () => {
+    if ($('eEditUnsold').checked) {
+      $('eEditPrice').value = '';
+      $('eEditPrice').disabled = true;
+    } else {
+      $('eEditPrice').disabled = false;
+    }
+  });
+  bindMoneyInput('eEditPrice');
+  bindMoneyInput('xEditAmount');
+
+  $('xEditCancelBtn').addEventListener('click', closeExpEdit);
+  $('xEditSaveBtn').addEventListener('click', saveExpEdit);
+  $('xEditSplitEqualBtn').addEventListener('click', () => {
+    editExpSplit = [...DEFAULT_SPLIT];
+    renderEditExpSplitFields();
+  });
+  $('expEditModal').addEventListener('click', (e) => {
+    if (e.target.id === 'expEditModal') closeExpEdit();
+  });
+
   $('settleDoneBtn').addEventListener('click', () => {
+    if (countUnsoldEntries() > 0) return;
     if (state.entries.length === 0 && state.expenditures.length === 0) return;
-    const ok = confirm('지금 정산 내역대로 실제로 메소를 주고받으셨나요?\n확인하면 장부와 지출 내역이 비워지고 기록에 남아요.');
+    const ok = confirm('지금 정산 내역대로 실제로 돈을 주고받으셨나요?\n확인하면 장부와 지출 내역이 비워지고 기록에 남아요.');
     if (!ok) return;
     state.history.push({
       id: genId(),
@@ -1622,7 +1982,7 @@
   subscribeCloudRealtime();
   if (storageMode !== 'cloud') {
     setInterval(() => {
-      if (editingField || !$('historyEditModal').hidden) return;
+      if (modalBlocksRemote()) return;
       const tag = document.activeElement.tagName;
       if (tag !== 'INPUT' && tag !== 'SELECT') loadState();
     }, 12000);
