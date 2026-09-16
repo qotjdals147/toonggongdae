@@ -122,7 +122,7 @@
   /* entry / expenditure form */
   .entry-form {
     display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr) minmax(0, 1.4fr) minmax(0, 0.95fr) auto;
     gap: 10px;
     align-items: end;
   }
@@ -249,8 +249,8 @@
     gap: 10px;
   }
   .section-icon {
-    width: 34px;
-    height: 34px;
+    width: 46px;
+    height: 46px;
     object-fit: contain;
     flex-shrink: 0;
     display: block;
@@ -258,9 +258,59 @@
   .section-icon--expense,
   .section-icon--settle {
     width: auto;
-    height: 38px;
+    min-width: 46px;
+    height: 46px;
     object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgba(15, 23, 42, 0.14));
   }
+  .field-hint { font-size: 11px; font-weight: 500; color: var(--ink-soft); margin-left: 4px; }
+  .owner-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 42px;
+    align-items: center;
+    padding: 7px 8px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+  }
+  .owner-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .owner-chip input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .owner-chip span {
+    display: inline-block;
+    padding: 5px 11px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--surface-muted);
+    color: var(--ink-soft);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .owner-chip input:checked + span {
+    background: var(--forest-soft);
+    border-color: #A7F3D0;
+    color: var(--forest);
+  }
+  .owner-chip input:focus-visible + span {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .owner-tags-cell { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-start; }
+  .owner-tags-cell .owner-tag { font-size: 12px; }
 
   .meso-icon {
     height: 1.2em;
@@ -668,11 +718,11 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="30" height="30" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
+    <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
     <div class="entry-form">
       <div class="field"><span>아이템명</span><input id="fItem" type="text" placeholder="예: 시간의 조각"></div>
       <div class="field"><span class="label-with-meso">판매가 (<img src="image/meso.png" alt="" class="meso-icon" decoding="async">)</span><input id="fPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
-      <div class="field"><span>획득자</span><select id="fOwner"></select></div>
+      <div class="field field-owners"><span>획득자<span class="field-hint">복수 선택</span></span><div class="owner-chips" id="fOwners"></div></div>
       <div class="field"><span>날짜</span><input id="fDate" type="date"></div>
       <button class="btn-income" id="addBtn">획득 추가</button>
     </div>
@@ -696,7 +746,7 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="38" height="38" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
+    <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
       <div class="field"><span>지출 항목</span><input id="fExpDesc" type="text" placeholder="예: 무기 구매"></div>
       <div class="field"><span>금액</span><input id="fExpAmount" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
@@ -721,7 +771,7 @@
   </div>
 
   <div class="card">
-    <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="38" height="38" decoding="async">정산</h2>
+    <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
     <div class="settle-takehome" id="settleTakehome" style="display:none;">
@@ -785,7 +835,7 @@
     <div class="modal-grid">
       <div class="field"><span>아이템명</span><input id="eEditItem" type="text"></div>
       <div class="field"><span>판매가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
+      <div class="field field-owners" style="grid-column:1/-1;"><span>획득자<span class="field-hint">복수 선택</span></span><div class="owner-chips" id="eEditOwners"></div></div>
       <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
     </div>
     <div class="split-row" style="margin-top:0;padding-top:12px;">
@@ -918,6 +968,68 @@
     return state.entries.filter((e) => entryStatus(e) === 'unsold').length;
   }
 
+  function getOwnerIdxs(entry) {
+    if (entry.ownerIdxs && entry.ownerIdxs.length) {
+      return [...new Set(entry.ownerIdxs.map((i) => Number(i)).filter((i) => i >= 0 && i < 3))];
+    }
+    if (entry.ownerIdx != null) return [Number(entry.ownerIdx)];
+    return [0];
+  }
+
+  function normalizeEntryOwners(entry) {
+    const ownerIdxs = getOwnerIdxs(entry);
+    entry.ownerIdxs = ownerIdxs;
+    entry.ownerIdx = ownerIdxs[0];
+    return entry;
+  }
+
+  function ownersDisplayNames(entry) {
+    return getOwnerIdxs(entry).map((i) => state.members[i] || '?');
+  }
+
+  function ownersSortKey(entry) {
+    return ownersDisplayNames(entry).join('\u0001');
+  }
+
+  function ownersTagsHtml(entry) {
+    return ownersDisplayNames(entry)
+      .map((name) => `<span class="owner-tag">${escapeHtml(name)}</span>`)
+      .join('');
+  }
+
+  let addOwnerSelection = [0];
+
+  function readOwnerPickers(containerId) {
+    return [...$(containerId).querySelectorAll('input[type=checkbox]:checked')].map((el) => Number(el.value));
+  }
+
+  function renderOwnerPickers(containerId, selectedIdxs, onChange) {
+    const el = $(containerId);
+    const selected = new Set(selectedIdxs.length ? selectedIdxs : [0]);
+    el.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const label = document.createElement('label');
+      label.className = 'owner-chip';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = String(i);
+      cb.checked = selected.has(i);
+      cb.addEventListener('change', () => {
+        const next = readOwnerPickers(containerId);
+        if (!next.length) {
+          cb.checked = true;
+          return;
+        }
+        if (onChange) onChange(next);
+      });
+      const span = document.createElement('span');
+      span.textContent = name;
+      label.appendChild(cb);
+      label.appendChild(span);
+      el.appendChild(label);
+    });
+  }
+
   function modalBlocksRemote() {
     return editingField
       || !$('historyEditModal').hidden
@@ -932,12 +1044,13 @@
       members: parsed.members && parsed.members.length === 3 ? parsed.members : [...DEFAULT_MEMBERS],
           entries: (parsed.entries || []).map(e => {
             const status = e.status || (Number(e.price) > 0 ? 'sold' : 'unsold');
-            return {
+            const entry = {
               ...e,
               split: (e.split && e.split.length === 3) ? e.split : [...DEFAULT_SPLIT],
               status,
               price: status === 'unsold' ? 0 : Number(e.price) || 0
             };
+            return normalizeEntryOwners(entry);
           }),
       expenditures: (parsed.expenditures || []).map(x => ({
         id: x.id,
@@ -1143,10 +1256,9 @@
   }
 
   function renderMemberSelects() {
-    populateMemberSelect($('fOwner'));
     populateMemberSelect($('fExpBeneficiary'));
-    populateMemberSelect($('eEditOwner'));
     populateMemberSelect($('xEditBen'));
+    renderOwnerPickers('fOwners', addOwnerSelection, (next) => { addOwnerSelection = next; });
   }
 
   // ---------- split ratio ----------
@@ -1261,9 +1373,7 @@
       }
       if (sortState.column === 'price') return (a.price - b.price) * dir;
       if (sortState.column === 'owner') {
-        const an = state.members[a.ownerIdx] || '';
-        const bn = state.members[b.ownerIdx] || '';
-        return an.localeCompare(bn, 'ko') * dir;
+        return ownersSortKey(a).localeCompare(ownersSortKey(b), 'ko') * dir;
       }
       return 0;
     });
@@ -1276,7 +1386,6 @@
     const sorted = getSortedEntries();
     $('emptyState').style.display = sorted.length === 0 ? 'block' : 'none';
     sorted.forEach((entry) => {
-      const ownerName = state.members[entry.ownerIdx] || '?';
       const split = (entry.split && entry.split.length === 3) ? entry.split : [...DEFAULT_SPLIT];
       const splitTitle = state.members.map((n, i) => `${n} ${split[i]}%`).join(', ');
       const unsold = entryStatus(entry) === 'unsold';
@@ -1289,7 +1398,7 @@
         <td>${entry.date}</td>
         <td class="item-name">${escapeHtml(entry.item)}</td>
         <td class="price-cell">${priceCell}</td>
-        <td><span class="owner-tag">${escapeHtml(ownerName)}</span></td>
+        <td class="owner-tags-cell">${ownersTagsHtml(entry)}</td>
         <td>${statusBadge}</td>
         <td class="split-cell" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
         <td class="row-actions">
@@ -1358,7 +1467,9 @@
     const held = state.members.map(() => 0);
     state.entries.forEach(e => {
       if (!isSoldEntry(e)) return;
-      held[e.ownerIdx] += Number(e.price);
+      const owners = getOwnerIdxs(e);
+      const share = Number(e.price) / owners.length;
+      owners.forEach((i) => { held[i] += share; });
     });
     return held;
   }
@@ -1565,7 +1676,7 @@
     $('eEditItem').value = entry.item;
     $('eEditPrice').value = unsold ? '' : formatMoneyInput(Number(entry.price));
     $('eEditPrice').disabled = false;
-    $('eEditOwner').value = entry.ownerIdx;
+    renderOwnerPickers('eEditOwners', getOwnerIdxs(entry));
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
     renderEditEntrySplitFields();
@@ -1589,7 +1700,10 @@
     if (!item) { $('eEditItem').focus(); return; }
     if (Math.abs(sum - 100) > 0.01) return;
     entry.item = item;
-    entry.ownerIdx = Number($('eEditOwner').value);
+    const ownerIdxs = readOwnerPickers('eEditOwners');
+    if (!ownerIdxs.length) return;
+    entry.ownerIdxs = ownerIdxs;
+    entry.ownerIdx = ownerIdxs[0];
     entry.date = $('eEditDate').value || todayStr();
     entry.split = [...editEntrySplit];
     entry.status = unsold ? 'unsold' : 'sold';
@@ -1887,22 +2001,25 @@
     const item = $('fItem').value.trim();
     const price = parseMoneyInput($('fPrice').value);
     const unsold = price <= 0;
-    const ownerIdx = Number($('fOwner').value);
+    const ownerIdxs = readOwnerPickers('fOwners');
     const date = $('fDate').value || todayStr();
     const sum = currentSplit.reduce((s, v) => s + Number(v || 0), 0);
 
     if (!item) { $('fItem').focus(); return; }
+    if (!ownerIdxs.length) return;
     if (Math.abs(sum - 100) > 0.01) { return; }
 
-    state.entries.push({
+    addOwnerSelection = [...ownerIdxs];
+    state.entries.push(normalizeEntryOwners({
       id: genId(),
       item,
       price: unsold ? 0 : price,
-      ownerIdx,
+      ownerIdx: ownerIdxs[0],
+      ownerIdxs,
       date,
       split: [...currentSplit],
       status: unsold ? 'unsold' : 'sold'
-    });
+    }));
 
     $('fItem').value = '';
     $('fPrice').value = '';
