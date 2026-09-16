@@ -79,6 +79,14 @@
     box-shadow: none !important;
   }
   .btn-light:hover { background: var(--surface-muted) !important; color: var(--ink) !important; }
+  .btn-warehouse {
+    background: var(--rust) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(225, 29, 72, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-warehouse:hover { background: var(--rust-hover) !important; color: #fff !important; }
 
   .card {
     background: var(--paper-card);
@@ -749,6 +757,28 @@
   .modal-net-preview strong { color: var(--accent-net); }
 
   .modal-stats { max-width: 680px; }
+  .modal-warehouse { max-width: 560px; }
+  .warehouse-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .warehouse-list { display: flex; flex-direction: column; gap: 10px; max-height: min(50vh, 420px); overflow-y: auto; }
+  .warehouse-card {
+    border: 2px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; background: #fff;
+  }
+  .warehouse-card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;
+  }
+  .warehouse-nick { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .warehouse-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .warehouse-items {
+    font-size: 13.5px; color: var(--ink-soft); white-space: pre-wrap; line-height: 1.5;
+    background: var(--surface-muted); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--line);
+  }
+  .warehouse-items.empty { font-style: italic; color: var(--ink-soft); opacity: 0.85; }
+  .field textarea {
+    width: 100%; min-height: 120px; padding: 10px 12px; border: 1px solid var(--line-strong);
+    border-radius: 8px; font-family: inherit; font-size: 14px; line-height: 1.5; resize: vertical;
+  }
+  .field textarea:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--focus); }
+
   .stats-section { margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--line-strong); }
   .stats-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
   .stats-section-title { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 10px; }
@@ -889,6 +919,7 @@
     <div class="status-row">
       <span id="statusText">불러오는 중…</span>
       <div class="status-actions">
+        <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">퉁공대 통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
       </div>
@@ -1091,6 +1122,39 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="warehouseModal" hidden>
+  <div class="modal modal-warehouse" role="dialog" aria-labelledby="warehouseModalTitle">
+    <h3 id="warehouseModalTitle">창고캐</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">분배금 보낼 창고캐 닉네임과 보낼 아이템을 적어 두세요. 공대원과 함께 실시간으로 공유돼요.</p>
+    <div class="warehouse-toolbar">
+      <button type="button" class="btn-settle btn-sm" id="warehouseAddBtn">+ 캐릭터 추가</button>
+    </div>
+    <div class="warehouse-list" id="warehouseList"></div>
+    <div class="empty-state" id="warehouseEmpty" style="display:none;">아직 창고캐가 없어요. 위에서 추가해 보세요.</div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="warehouseCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="warehouseEditModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="warehouseEditTitle">
+    <h3 id="warehouseEditTitle">캐릭터 추가</h3>
+    <div class="field" style="margin-bottom:10px;">
+      <span>창고캐 닉네임</span>
+      <input id="wEditNickname" type="text" placeholder="예: 퉁퉁이창고" autocomplete="off">
+    </div>
+    <div class="field">
+      <span>보낼 아이템 / 메모</span>
+      <textarea id="wEditItems" placeholder="예:&#10;· 시간의 조각 30개&#10;· 어둠의 장갑 1개&#10;· 메소 5,000,000"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="wEditCancelBtn">취소</button>
+      <button type="button" class="btn-settle btn-sm" id="wEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="statsModal" hidden>
   <div class="modal modal-stats" role="dialog" aria-labelledby="statsModalTitle">
     <h3 id="statsModalTitle">퉁공대 통계</h3>
@@ -1124,7 +1188,8 @@
     members: [...DEFAULT_MEMBERS],
     cycles: [],
     activeCycleId: null,
-    viewCycleId: null
+    viewCycleId: null,
+    warehouseChars: []
   };
   let sortState = { column: 'date', direction: 'asc' };
   let currentSplit = [...DEFAULT_SPLIT];
@@ -1134,6 +1199,7 @@
   let editingHistoryId = null;
   let editingEntryId = null;
   let editingExpId = null;
+  let editingWarehouseId = null;
   let editEntrySplit = [...DEFAULT_SPLIT];
   let editExpSplit = [...DEFAULT_SPLIT];
   let supabaseClient = null;
@@ -1443,21 +1509,34 @@
   function modalBlocksRemote() {
     return editingField
       || !$('cycleMoreModal').hidden
+      || !$('warehouseModal').hidden
+      || !$('warehouseEditModal').hidden
       || !$('historyEditModal').hidden
       || !$('entryEditModal').hidden
       || !$('expEditModal').hidden;
   }
 
+  function normalizeWarehouseChars(list) {
+    return (list || []).map((w) => ({
+      id: w.id || genId(),
+      nickname: String(w.nickname != null ? w.nickname : '').trim(),
+      itemsNote: String(w.itemsNote != null ? w.itemsNote : (w.items || '')).trim()
+    }));
+  }
+
   function parseStoredState(raw) {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     const next = migrateParsedToCycles(parsed);
+    next.warehouseChars = normalizeWarehouseChars(parsed.warehouseChars);
     return { next, needsResave: !!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length };
   }
 
   function applyStateFromRemote(next, needsResave) {
     state = next;
+    if (!state.warehouseChars) state.warehouseChars = [];
     if (needsResave) scheduleSave();
     render();
+    if (!$('warehouseModal').hidden) renderWarehouseList();
   }
 
   function shareUrl() {
@@ -1993,6 +2072,101 @@
     state.activeCycleId = id;
     state.viewCycleId = id;
     relabelCycles(state.cycles);
+  }
+
+  function renderWarehouseList() {
+    const list = $('warehouseList');
+    const empty = $('warehouseEmpty');
+    const chars = state.warehouseChars || [];
+    list.innerHTML = '';
+    empty.style.display = chars.length === 0 ? 'block' : 'none';
+    chars.forEach((w) => {
+      const card = document.createElement('div');
+      card.className = 'warehouse-card';
+      const itemsCls = w.itemsNote ? 'warehouse-items' : 'warehouse-items empty';
+      const itemsText = w.itemsNote || '보낼 아이템 메모 없음';
+      card.innerHTML = `
+        <div class="warehouse-card-head">
+          <span class="warehouse-nick">${escapeHtml(w.nickname || '(닉네임 없음)')}</span>
+          <div class="warehouse-card-actions">
+            <button type="button" class="btn-row-edit wh-edit-btn" data-id="${escapeHtml(w.id)}">수정</button>
+            <button type="button" class="btn-row-del wh-del-btn" data-id="${escapeHtml(w.id)}" title="삭제" aria-label="삭제">×</button>
+          </div>
+        </div>
+        <div class="${itemsCls}">${escapeHtml(itemsText)}</div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.wh-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openWarehouseEdit(btn.dataset.id));
+    });
+    list.querySelectorAll('.wh-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => deleteWarehouseChar(btn.dataset.id));
+    });
+  }
+
+  function openWarehouseModal() {
+    renderWarehouseList();
+    $('warehouseModal').hidden = false;
+  }
+
+  function closeWarehouseModal() {
+    $('warehouseModal').hidden = true;
+  }
+
+  function openWarehouseEdit(id) {
+    editingWarehouseId = id || null;
+    editingField = true;
+    if (id) {
+      const w = (state.warehouseChars || []).find((x) => x.id === id);
+      if (!w) return;
+      $('warehouseEditTitle').textContent = '창고캐 수정';
+      $('wEditNickname').value = w.nickname || '';
+      $('wEditItems').value = w.itemsNote || '';
+    } else {
+      $('warehouseEditTitle').textContent = '캐릭터 추가';
+      $('wEditNickname').value = '';
+      $('wEditItems').value = '';
+    }
+    $('warehouseEditModal').hidden = false;
+    $('wEditNickname').focus();
+  }
+
+  function closeWarehouseEdit() {
+    editingWarehouseId = null;
+    editingField = false;
+    $('warehouseEditModal').hidden = true;
+  }
+
+  function saveWarehouseEdit() {
+    const nickname = $('wEditNickname').value.trim();
+    const itemsNote = $('wEditItems').value.trim();
+    if (!nickname) {
+      $('wEditNickname').focus();
+      return;
+    }
+    if (!state.warehouseChars) state.warehouseChars = [];
+    if (editingWarehouseId) {
+      const w = state.warehouseChars.find((x) => x.id === editingWarehouseId);
+      if (!w) return;
+      w.nickname = nickname;
+      w.itemsNote = itemsNote;
+    } else {
+      state.warehouseChars.push({ id: genId(), nickname, itemsNote });
+    }
+    closeWarehouseEdit();
+    scheduleSave();
+    renderWarehouseList();
+  }
+
+  function deleteWarehouseChar(id) {
+    const w = (state.warehouseChars || []).find((x) => x.id === id);
+    if (!w) return;
+    const label = w.nickname || '이 캐릭터';
+    if (!confirm(`${label} 창고캐 기록을 삭제할까요?`)) return;
+    state.warehouseChars = state.warehouseChars.filter((x) => x.id !== id);
+    scheduleSave();
+    renderWarehouseList();
   }
 
   function openStatsModal() {
@@ -2703,6 +2877,21 @@
   $('resetSortBtn').addEventListener('click', () => {
     sortState = { column: 'date', direction: 'asc' };
     renderLedger();
+  });
+
+  $('warehouseBtn').addEventListener('click', () => openWarehouseModal());
+  $('warehouseCloseBtn').addEventListener('click', closeWarehouseModal);
+  $('warehouseAddBtn').addEventListener('click', () => openWarehouseEdit(null));
+  $('warehouseModal').addEventListener('click', (e) => {
+    if (e.target.id === 'warehouseModal') closeWarehouseModal();
+  });
+  $('wEditCancelBtn').addEventListener('click', closeWarehouseEdit);
+  $('wEditSaveBtn').addEventListener('click', saveWarehouseEdit);
+  $('warehouseEditModal').addEventListener('click', (e) => {
+    if (e.target.id === 'warehouseEditModal') closeWarehouseEdit();
+  });
+  $('wEditNickname').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveWarehouseEdit(); }
   });
 
   $('statsBtn').addEventListener('click', () => openStatsModal());
