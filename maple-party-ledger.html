@@ -748,7 +748,40 @@
   .modal-net-preview { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
   .modal-net-preview strong { color: var(--accent-net); }
 
+  .modal-stats { max-width: 680px; }
+  .stats-section { margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--line-strong); }
+  .stats-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+  .stats-section-title { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 10px; }
+  .stats-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stats-badge {
+    font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px;
+    border: 1.5px solid var(--line-strong); background: #fff; color: var(--ink-soft);
+  }
+  .stats-badge.warn { border-color: #FECDD3; background: var(--rust-soft); color: var(--rust); }
+  .stats-badge.ok { border-color: #A7F3D0; background: var(--forest-soft); color: var(--forest); }
+  .stats-member-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .stats-member-card {
+    border: 2px solid var(--line-strong); border-radius: 10px; padding: 12px 10px; background: #fff;
+  }
+  .stats-member-name { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--ink); text-align: center; }
+  .stats-kv {
+    display: flex; justify-content: space-between; gap: 8px; font-size: 12px;
+    color: var(--ink-soft); margin-top: 5px; line-height: 1.35;
+  }
+  .stats-kv strong { color: var(--ink); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .stats-kv.diff-pos strong { color: var(--rust); }
+  .stats-kv.diff-neg strong { color: var(--forest); }
+  .stats-top-list { list-style: none; padding: 0; margin: 0; }
+  .stats-top-list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px;
+  }
+  .stats-top-list li:last-child { border-bottom: none; }
+  .stats-top-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stats-empty { font-size: 14px; color: var(--ink-soft); text-align: center; padding: 16px 8px; }
+
   @media (max-width: 720px) {
+    .stats-member-grid { grid-template-columns: 1fr; }
     .settle-grid { grid-template-columns: 1fr; }
     .settle-takehome-grid { grid-template-columns: 1fr; }
   }
@@ -778,6 +811,7 @@
     <div class="status-row">
       <span id="statusText">불러오는 중…</span>
       <div class="status-actions">
+        <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">퉁공대 통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
       </div>
     </div>
@@ -956,6 +990,17 @@
     <div class="modal-foot">
       <button type="button" class="btn-light" id="xEditCancelBtn">취소</button>
       <button type="button" class="btn-settle btn-sm" id="xEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="statsModal" hidden>
+  <div class="modal modal-stats" role="dialog" aria-labelledby="statsModalTitle">
+    <h3 id="statsModalTitle">퉁공대 통계</h3>
+    <p style="margin:-8px 0 14px;font-size:13px;color:var(--ink-soft);">지금 장부·지출·정산 기준 (실시간)</p>
+    <div id="statsBody"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="statsCloseBtn">닫기</button>
     </div>
   </div>
 </div>
@@ -1602,16 +1647,126 @@
     return fair;
   }
 
-  function renderSettlement() {
-    const held = computeHeld();
-    const fair = computeFairShare();
-    const diffs = state.members.map((_, i) => held[i] - fair[i]);
-
+  function computeExpShare() {
     const expShare = state.members.map(() => 0);
     state.expenditures.forEach(x => {
       const split = (x.split && x.split.length === 3) ? x.split : [...DEFAULT_SPLIT];
       split.forEach((p, i) => { expShare[i] += Number(x.amount) * (Number(p) / 100); });
     });
+    return expShare;
+  }
+
+  function renderStatsModal() {
+    const held = computeHeld();
+    const fair = computeFairShare();
+    const diffs = state.members.map((_, i) => held[i] - fair[i]);
+    const expShare = computeExpShare();
+    const entryTotal = state.entries.filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
+    const expTotal = state.expenditures.reduce((s, x) => s + Number(x.amount), 0);
+    const netTotal = entryTotal - expTotal;
+    const soldCount = state.entries.filter(isSoldEntry).length;
+    const unsoldCount = countUnsoldEntries();
+    const expCount = state.expenditures.length;
+    const settleCount = (state.history || []).length;
+    const historyNet = (state.history || []).reduce((s, h) => {
+      const et = h.entryTotal != null ? h.entryTotal : 0;
+      const xt = h.expTotal != null ? h.expTotal : 0;
+      const net = h.netTotal != null ? h.netTotal : (et - xt);
+      return s + net;
+    }, 0);
+
+    const memberStats = state.members.map((name, i) => {
+      const asOwner = state.entries.filter((e) => isSoldEntry(e) && Number(e.ownerIdx) === i);
+      const salesSum = asOwner.reduce((s, e) => s + Number(e.price), 0);
+      let contribCount = 0;
+      state.entries.forEach((e) => {
+        if (getContributorIdxs(e).includes(i)) contribCount++;
+      });
+      return { name, salesCount: asOwner.length, salesSum, contribCount };
+    });
+
+    const topItems = [...state.entries]
+      .filter(isSoldEntry)
+      .sort((a, b) => Number(b.price) - Number(a.price))
+      .slice(0, 5);
+
+    const settleBadge = unsoldCount > 0
+      ? `<span class="stats-badge warn">미판매 ${unsoldCount}건 · 정산 전 처리 필요</span>`
+      : `<span class="stats-badge ok">정산 가능</span>`;
+
+    const memberCards = memberStats.map((m, i) => {
+      const diff = diffs[i];
+      let diffCls = '';
+      let diffLabel = '맞음';
+      let diffVal = '0';
+      if (diff > 1) {
+        diffCls = 'diff-pos';
+        diffLabel = '더 보냄';
+        diffVal = fmtNum(Math.round(diff));
+      } else if (diff < -1) {
+        diffCls = 'diff-neg';
+        diffLabel = '더 받음';
+        diffVal = fmtNum(Math.round(-diff));
+      }
+      return `
+        <div class="stats-member-card">
+          <div class="stats-member-name">${escapeHtml(m.name)}</div>
+          <div class="stats-kv"><span>획득 등록</span><strong>${m.salesCount}건 · ${fmtNum(m.salesSum)}</strong></div>
+          <div class="stats-kv"><span>함께 기여 기록</span><strong>${m.contribCount}건</strong></div>
+          <div class="stats-kv"><span>보유(판매)</span><strong>${fmtNum(Math.round(held[i]))}</strong></div>
+          <div class="stats-kv"><span>몫(지출 반영)</span><strong>${fmtNum(Math.round(fair[i]))}</strong></div>
+          <div class="stats-kv"><span>공동 지출 부담</span><strong>${fmtNum(Math.round(expShare[i]))}</strong></div>
+          <div class="stats-kv ${diffCls}"><span>차액 · ${diffLabel}</span><strong>${diffVal}</strong></div>
+        </div>
+      `;
+    }).join('');
+
+    const topHtml = topItems.length
+      ? `<ul class="stats-top-list">${topItems.map((e) => `
+          <li>
+            <span class="stats-top-name" title="${escapeHtml(e.item)}">${escapeHtml(e.item)}</span>
+            <span>${fmt(e.price)}</span>
+          </li>`).join('')}</ul>`
+      : '<div class="stats-empty">판매 완료 획득 기록이 없어요.</div>';
+
+    $('statsBody').innerHTML = `
+      <div class="stats-section">
+        <div class="stats-section-title">장부 요약</div>
+        ${statPillsHtml(entryTotal, expTotal, netTotal)}
+        <div class="stats-badges" style="margin-top:12px;">
+          ${settleBadge}
+          <span class="stats-badge">판매 완료 ${soldCount}건</span>
+          <span class="stats-badge">지출 ${expCount}건</span>
+          <span class="stats-badge">지난 정산 ${settleCount}회</span>
+          ${settleCount ? `<span class="stats-badge">역대 나눈 돈 합 ${fmtNum(Math.round(historyNet))}</span>` : ''}
+        </div>
+      </div>
+      <div class="stats-section">
+        <div class="stats-section-title">공대원별</div>
+        <div class="stats-member-grid">${memberCards}</div>
+      </div>
+      <div class="stats-section">
+        <div class="stats-section-title">판매가 TOP 5</div>
+        ${topHtml}
+      </div>
+    `;
+  }
+
+  function openStatsModal() {
+    renderStatsModal();
+    $('statsModal').hidden = false;
+  }
+
+  function closeStatsModal() {
+    $('statsModal').hidden = true;
+  }
+
+  function renderSettlement() {
+    const held = computeHeld();
+    const fair = computeFairShare();
+    const diffs = state.members.map((_, i) => held[i] - fair[i]);
+
+    const expShare = computeExpShare();
 
     const debtors = state.members.map((name, i) => ({ name, amt: diffs[i] })).filter(d => d.amt > 1).sort((a, b) => b.amt - a.amt);
     const creditors = state.members.map((name, i) => ({ name, amt: -diffs[i] })).filter(d => d.amt > 1).sort((a, b) => b.amt - a.amt);
@@ -2188,6 +2343,12 @@
   $('resetSortBtn').addEventListener('click', () => {
     sortState = { column: 'date', direction: 'asc' };
     renderLedger();
+  });
+
+  $('statsBtn').addEventListener('click', () => openStatsModal());
+  $('statsCloseBtn').addEventListener('click', () => closeStatsModal());
+  $('statsModal').addEventListener('click', (e) => {
+    if (e.target.id === 'statsModal') closeStatsModal();
   });
 
   $('copyLinkBtn').addEventListener('click', async () => {
