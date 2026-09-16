@@ -430,7 +430,7 @@
     white-space: nowrap;
     text-align: center;
     vertical-align: middle;
-    padding: 10px 14px 10px 10px;
+    padding: 10px 8px;
   }
   table.data-table thead th {
     text-align: left;
@@ -483,14 +483,13 @@
     text-align: center;
   }
   th.col-split, td.col-split { text-align: center; }
-  .row-actions {
+  table.data-table td.col-actions .row-actions {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     white-space: nowrap;
-    margin: 0 auto;
-    padding: 2px 4px;
+    vertical-align: middle;
   }
   .btn-row-edit {
     background: #fff;
@@ -2770,9 +2769,11 @@
         <td class="owner-tags-cell">${acquirerCellHtml(entry)}</td>
         <td class="col-status">${statusBadge}</td>
         <td class="split-cell col-split" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
-        <td class="row-actions col-actions">
-          <button type="button" class="btn-row-edit entry-edit-btn" data-id="${entry.id}">수정</button>
-          <button type="button" class="btn-row-del entry-del-btn" data-id="${entry.id}" title="삭제" aria-label="삭제">×</button>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button type="button" class="btn-row-edit entry-edit-btn" data-id="${entry.id}">수정</button>
+            <button type="button" class="btn-row-del entry-del-btn" data-id="${entry.id}" title="삭제" aria-label="삭제">×</button>
+          </div>
         </td>
       `;
       body.appendChild(tr);
@@ -2819,9 +2820,11 @@
         <td class="price-cell">${fmt(x.amount)}</td>
         <td><span class="owner-tag" style="background:var(--rust-soft);color:var(--rust);">${escapeHtml(ben)}</span></td>
         <td class="split-cell col-split" title="${escapeHtml(splitTitle)}">${split.map(v => Math.round(v * 100) / 100).join(' / ')}%</td>
-        <td class="row-actions col-actions">
-          <button type="button" class="btn-row-edit exp-edit-btn" data-id="${x.id}">수정</button>
-          <button type="button" class="btn-row-del exp-del-btn" data-id="${x.id}" title="삭제" aria-label="삭제">×</button>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button type="button" class="btn-row-edit exp-edit-btn" data-id="${x.id}">수정</button>
+            <button type="button" class="btn-row-del exp-del-btn" data-id="${x.id}" title="삭제" aria-label="삭제">×</button>
+          </div>
         </td>
       `;
       body.appendChild(tr);
@@ -3351,9 +3354,11 @@
         <td class="price-cell">${fmt(t.minPrice)}</td>
         <td>${escapeHtml(acq)}</td>
         <td class="price-cell">${fmtNum(share)} × 2명</td>
-        <td class="row-actions col-actions">
-          <button type="button" class="btn-row-edit take-edit-btn" data-id="${escapeHtml(t.id)}">수정</button>
-          <button type="button" class="btn-row-del take-del-btn" data-id="${escapeHtml(t.id)}" title="삭제">×</button>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button type="button" class="btn-row-edit take-edit-btn" data-id="${escapeHtml(t.id)}">수정</button>
+            <button type="button" class="btn-row-del take-del-btn" data-id="${escapeHtml(t.id)}" title="삭제">×</button>
+          </div>
         </td>
       `;
       body.appendChild(tr);
@@ -3437,9 +3442,11 @@
         <td class="price-cell">${makerTierCountsHtml(row.yieldLow, row.yieldMid, row.yieldHigh, 'yield')}</td>
         <td class="price-cell">${fmt(meso)}<span class="maker-col-hint">선납</span></td>
         <td class="price-cell"><span class="maker-burden-mini">메소⅓</span>${fmtNum(perMemberMeso)}</td>
-        <td class="row-actions col-actions">
-          <button type="button" class="btn-row-edit maker-edit-btn" data-id="${escapeHtml(row.id)}">수정</button>
-          <button type="button" class="btn-row-del maker-del-btn" data-id="${escapeHtml(row.id)}" title="삭제">×</button>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button type="button" class="btn-row-edit maker-edit-btn" data-id="${escapeHtml(row.id)}">수정</button>
+            <button type="button" class="btn-row-del maker-del-btn" data-id="${escapeHtml(row.id)}" title="삭제">×</button>
+          </div>
         </td>
       `;
       body.appendChild(tr);
