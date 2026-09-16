@@ -547,7 +547,20 @@
     display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 14px; color: var(--ink);
   }
   .settle-parcel-check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--settle); }
-  .settle-parcel-hint { font-size: 12px; color: var(--ink-soft); margin: 6px 0 0 26px; line-height: 1.45; }
+  .settle-parcel-hint { font-size: 12px; color: var(--ink-soft); margin: 6px 0 0; line-height: 1.45; margin-bottom: 10px; }
+  .settle-parcel-members { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+  .settle-parcel-member {
+    display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink);
+    padding: 6px 10px; background: #fff; border: 1px solid var(--line); border-radius: 8px;
+  }
+  .settle-parcel-member input { width: 16px; height: 16px; accent-color: var(--settle); }
+
+  .card-zone-takeover { border-top: 4px solid #8B5CF6; }
+  .takeover-form {
+    display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 10px; align-items: end;
+  }
+  .takeover-hint { font-size: 13px; color: var(--ink-soft); margin: -6px 0 12px; line-height: 1.5; }
+  .takeover-pay-preview { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
 
   .settle-breakdown {
     border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); margin-bottom: 4px;
@@ -940,7 +953,12 @@
     .entry-form, .exp-form { grid-template-columns: 1fr 1fr; }
     .entry-form .btn-income, .exp-form .btn-expense { grid-column: 1 / -1; justify-self: stretch; }
   }
+  @media (max-width: 860px) {
+    .takeover-form { grid-template-columns: 1fr 1fr; }
+    .takeover-form .btn-settle { grid-column: 1 / -1; justify-self: stretch; }
+  }
   @media (max-width: 640px) {
+    .takeover-form { grid-template-columns: 1fr; }
     .card { padding: 16px 14px; }
     header h1 { font-size: 26px; }
     .entry-form, .exp-form { grid-template-columns: 1fr; }
@@ -1017,6 +1035,24 @@
     <div class="total-row"><span>판매 완료 합계</span><strong id="totalAmount"></strong></div>
   </div>
 
+  <div class="card card-zone-takeover">
+    <h2>인수 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 기준</span></h2>
+    <p class="takeover-hint">분배 가능 템을 한 명이 인수하면, 최소가의 <strong>⅓</strong>씩 나머지 두 명에게 보냅니다. 정산 송금 안내에 합쳐서 표시돼요.</p>
+    <div class="takeover-form">
+      <div class="field"><span>아이템명</span><input id="fTakeItem" type="text" placeholder="예: 어둠의 장갑"></div>
+      <div class="field"><span>경매장 최소가</span><input id="fTakeMinPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+      <div class="field"><span>인수자</span><select id="fTakeOwner"></select></div>
+      <button type="button" class="btn-settle" id="takeAddBtn">인수 추가</button>
+    </div>
+    <div class="table-scroll" style="margin-top:14px;">
+      <table class="data-table">
+        <thead><tr><th>아이템</th><th class="col-amount">최소가</th><th>인수자</th><th class="col-amount">1인당 송금</th><th class="col-actions"></th></tr></thead>
+        <tbody id="takeoverBody"></tbody>
+      </table>
+    </div>
+    <div id="takeoverEmpty" class="empty-state" style="display:none;">인수 기록이 없어요.</div>
+  </div>
+
   <div class="card card-zone-expense">
     <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
@@ -1053,11 +1089,8 @@
       <div class="settle-takehome-grid" id="settleTakehomeGrid"></div>
     </div>
     <div class="settle-parcel-opt" id="settleParcelOptWrap" style="display:none;">
-      <label class="settle-parcel-check">
-        <input type="checkbox" id="settleParcelCheck">
-        <span>택배로 분배 (몫에서 택배 수수료 차감)</span>
-      </label>
-      <p class="settle-parcel-hint">몫만큼 보낼 때 택배 원금을 줄여서, 받는 사람이 수수료만큼 덜 받는 방식이에요. 아래 금액을 택배에 넣으면 됩니다.</p>
+      <p class="settle-parcel-hint" style="margin-top:0;">받는 사람이 <strong>택배</strong>로 받을 때만, 몫에서 택배 수수료를 뺀 금액을 택배에 넣으면 됩니다.</p>
+      <div class="settle-parcel-members" id="settleParcelMembers"></div>
     </div>
     <div id="settleHero"></div>
     <details class="settle-breakdown" id="settleBreakdown">
@@ -1145,6 +1178,21 @@
     <div class="modal-foot">
       <button type="button" class="btn-light" id="eEditCancelBtn">취소</button>
       <button type="button" class="btn-settle btn-sm" id="eEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="takeoverEditModal" hidden>
+  <div class="modal" role="dialog">
+    <h3>인수 수정</h3>
+    <div class="modal-grid">
+      <div class="field"><span>아이템명</span><input id="tEditItem" type="text"></div>
+      <div class="field"><span>경매장 최소가</span><input id="tEditMinPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><span>인수자</span><select id="tEditOwner"></select></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="tEditCancelBtn">취소</button>
+      <button type="button" class="btn-settle btn-sm" id="tEditSaveBtn">저장</button>
     </div>
   </div>
 </div>
@@ -1283,7 +1331,7 @@
     activeCycleId: null,
     viewCycleId: null,
     warehouseChars: [],
-    settleParcelDist: false
+    memberParcelReceive: [false, false, false]
   };
   let sortState = { column: 'date', direction: 'asc' };
   let currentSplit = [...DEFAULT_SPLIT];
@@ -1294,6 +1342,7 @@
   let editingEntryId = null;
   let editingExpId = null;
   let editingWarehouseId = null;
+  let editingTakeoverId = null;
   let editEntrySplit = [...DEFAULT_SPLIT];
   let editExpSplit = [...DEFAULT_SPLIT];
   let supabaseClient = null;
@@ -1367,8 +1416,67 @@
       expTotal: c.expTotal,
       netTotal: c.netTotal,
       txList: Array.isArray(c.txList) ? c.txList.map((t) => ({ ...t })) : [],
+      takeovers: (c.takeovers || []).map(normalizeTakeover),
       legacySummaryOnly
     };
+  }
+
+  function normalizeTakeover(t) {
+    return {
+      id: t.id || genId(),
+      item: String(t.item || '').trim(),
+      minPrice: Math.max(0, Math.round(Number(t.minPrice) || 0)),
+      acquirerIdx: Number(t.acquirerIdx) != null && Number(t.acquirerIdx) >= 0 ? Number(t.acquirerIdx) : 0,
+      date: t.date || todayStr()
+    };
+  }
+
+  function takeoverShareAmount(minPrice) {
+    return Math.round(Number(minPrice) / 3);
+  }
+
+  function viewTakeovers() {
+    return getViewCycle().takeovers || [];
+  }
+
+  function memberReceivesViaParcel(memberIdx) {
+    const flags = state.memberParcelReceive;
+    return !!(flags && flags[memberIdx]);
+  }
+
+  function normalizeMemberParcelReceive(parsed) {
+    if (Array.isArray(parsed.memberParcelReceive) && parsed.memberParcelReceive.length === 3) {
+      return parsed.memberParcelReceive.map(Boolean);
+    }
+    if (parsed.settleParcelDist) return [true, true, true];
+    return [false, false, false];
+  }
+
+  function computeTakeoverTxList() {
+    const out = [];
+    viewTakeovers().forEach((t) => {
+      const share = takeoverShareAmount(t.minPrice);
+      if (share <= 0) return;
+      const acq = t.acquirerIdx;
+      if (acq < 0 || acq >= state.members.length) return;
+      const from = state.members[acq];
+      state.members.forEach((to, i) => {
+        if (i === acq) return;
+        out.push({ from, to, amt: share, source: 'takeover' });
+      });
+    });
+    return out;
+  }
+
+  function mergeTxLists(base, extra) {
+    const map = new Map();
+    base.concat(extra).forEach((tx) => {
+      const key = `${tx.from}\u0001${tx.to}`;
+      const prev = map.get(key);
+      if (prev) prev.amt += tx.amt;
+      else map.set(key, { from: tx.from, to: tx.to, amt: tx.amt });
+    });
+    return [...map.values()].filter((t) => t.amt > 1);
   }
 
   function getActiveCycle() {
@@ -1607,7 +1715,8 @@
       || !$('warehouseEditModal').hidden
       || !$('historyEditModal').hidden
       || !$('entryEditModal').hidden
-      || !$('expEditModal').hidden;
+      || !$('expEditModal').hidden
+      || !$('takeoverEditModal').hidden;
   }
 
   function parcelFeeRateForAmount(amount) {
@@ -1636,7 +1745,9 @@
         <span class="person-badge to">${escapeHtml(tx.to)}</span>
       </div>`;
     const fair = Math.round(tx.amt);
-    if (!state.settleParcelDist) {
+    const toIdx = state.members.indexOf(tx.to);
+    const useParcel = toIdx >= 0 && memberReceivesViaParcel(toIdx);
+    if (!useParcel) {
       return `
         <div class="settle-tx-row">
           ${flow}
@@ -1667,14 +1778,16 @@
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     const next = migrateParsedToCycles(parsed);
     next.warehouseChars = normalizeWarehouseChars(parsed.warehouseChars);
-    next.settleParcelDist = !!parsed.settleParcelDist;
+    next.memberParcelReceive = normalizeMemberParcelReceive(parsed);
     return { next, needsResave: !!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length };
   }
 
   function applyStateFromRemote(next, needsResave) {
     state = next;
     if (!state.warehouseChars) state.warehouseChars = [];
-    if (state.settleParcelDist == null) state.settleParcelDist = false;
+    if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
+      state.memberParcelReceive = normalizeMemberParcelReceive(state);
+    }
     if (needsResave) scheduleSave();
     render();
     if (!$('warehouseModal').hidden) renderWarehouseList();
@@ -1866,6 +1979,8 @@
     populateMemberSelect($('fExpBeneficiary'));
     populateMemberSelect($('eEditOwner'));
     populateMemberSelect($('xEditBen'));
+    populateMemberSelect($('fTakeOwner'));
+    populateMemberSelect($('tEditOwner'));
     refreshFormContributors();
   }
 
@@ -1911,12 +2026,26 @@
     if (submitBtn) submitBtn.disabled = bad;
   }
 
-  /** 획득자 선택 시 그 사람만 34%, 나머지 33% (획득 추가용 분배 비율) */
-  function applySplitForAcquirer(ownerIdx) {
+  function splitForAcquirer(ownerIdx) {
     const i = Number(ownerIdx);
-    if (Number.isNaN(i) || i < 0 || i >= state.members.length) return;
-    currentSplit = state.members.map((_, idx) => (idx === i ? 34 : 33));
+    if (Number.isNaN(i) || i < 0 || i >= state.members.length) return [...DEFAULT_SPLIT];
+    return state.members.map((_, idx) => (idx === i ? 34 : 33));
+  }
+
+  /** 획득자 선택 시 그 사람만 34%, 나머지 33% */
+  function applySplitForAcquirer(ownerIdx) {
+    currentSplit = splitForAcquirer(ownerIdx);
     renderSplitFields();
+  }
+
+  function syncOuterSplitFromEntryEdit() {
+    currentSplit = [...editEntrySplit];
+    renderSplitFields();
+  }
+
+  function syncOuterExpSplitFromEdit() {
+    currentExpSplit = [...editExpSplit];
+    renderExpSplitFields();
   }
 
   function renderSplitFields() {
@@ -2334,22 +2463,24 @@
     const debtors = state.members.map((name, i) => ({ name, amt: diffs[i] })).filter(d => d.amt > 1).sort((a, b) => b.amt - a.amt);
     const creditors = state.members.map((name, i) => ({ name, amt: -diffs[i] })).filter(d => d.amt > 1).sort((a, b) => b.amt - a.amt);
 
-    const txList = [];
+    const baseTxList = [];
     let di = 0, ci = 0;
     while (di < debtors.length && ci < creditors.length) {
       const d = debtors[di], c = creditors[ci];
       const amt = Math.min(d.amt, c.amt);
-      if (amt > 1) txList.push({ from: d.name, to: c.name, amt });
+      if (amt > 1) baseTxList.push({ from: d.name, to: c.name, amt });
       d.amt -= amt;
       c.amt -= amt;
       if (d.amt <= 1) di++;
       if (c.amt <= 1) ci++;
     }
+    const txList = mergeTxLists(baseTxList, computeTakeoverTxList());
 
     const entryTotal = viewEntries().filter(isSoldEntry).reduce((s, e) => s + Number(e.price), 0);
     const expTotal = viewExpenditures().reduce((s, x) => s + Number(x.amount), 0);
     const netTotal = entryTotal - expTotal;
-    const hasSettleData = viewEntries().length > 0 || viewExpenditures().length > 0;
+    const hasTakeovers = viewTakeovers().length > 0;
+    const hasSettleData = viewEntries().length > 0 || viewExpenditures().length > 0 || hasTakeovers;
 
     $('settleLead').style.display = hasSettleData ? 'block' : 'none';
     $('settleBreakdown').style.display = hasSettleData ? 'block' : 'none';
@@ -2384,11 +2515,8 @@
     }
 
     const parcelWrap = $('settleParcelOptWrap');
-    const parcelCheck = $('settleParcelCheck');
     parcelWrap.style.display = hasSettleData && txList.length > 0 ? 'block' : 'none';
-    if (hasSettleData && txList.length > 0) {
-      parcelCheck.checked = !!state.settleParcelDist;
-    }
+    if (hasSettleData && txList.length > 0) renderParcelMemberChecks();
 
     const heroWrap = $('settleHero');
     heroWrap.innerHTML = '';
@@ -2398,8 +2526,12 @@
       heroWrap.innerHTML = '<div class="settle-hero even-state"><div class="settle-hero-title">송금할 차액 없음</div><p class="settle-hero-sub">각자 몫만큼 이미 맞춰져 있어요. 확인 후 정산 완료만 누르면 돼요.</p></div>';
     } else {
       const rows = txList.map((tx) => settleTxRowHtml(tx)).join('');
-      const heroTitle = state.settleParcelDist
-        ? `택배로 이렇게 보내면 끝 (${txList.length}건 · 큰 숫자 = 택배 입력)`
+      const anyParcel = txList.some((tx) => {
+        const i = state.members.indexOf(tx.to);
+        return i >= 0 && memberReceivesViaParcel(i);
+      });
+      const heroTitle = anyParcel
+        ? `이렇게 보내면 끝 (${txList.length}건 · 택배 받는 사람은 큰 숫자 = 택배 입력)`
         : `이렇게만 보내면 끝 (${txList.length}건)`;
       heroWrap.innerHTML = `
         <div class="settle-hero">
@@ -2512,18 +2644,115 @@
 
   function renderEditEntrySplitFields() {
     bindSplitFields($('eEditSplitFields'), editEntrySplit, (sumOnly) => {
-      if (sumOnly) updateSplitSumDisplay(editEntrySplit, $('eEditSplitSum'), $('eEditSaveBtn'));
-      else renderEditEntrySplitFields();
+      if (sumOnly) {
+        updateSplitSumDisplay(editEntrySplit, $('eEditSplitSum'), $('eEditSaveBtn'));
+        if (editingEntryId) syncOuterSplitFromEntryEdit();
+      } else renderEditEntrySplitFields();
     });
     updateSplitSumDisplay(editEntrySplit, $('eEditSplitSum'), $('eEditSaveBtn'));
+    if (editingEntryId) syncOuterSplitFromEntryEdit();
   }
 
   function renderEditExpSplitFields() {
     bindSplitFields($('xEditSplitFields'), editExpSplit, (sumOnly) => {
-      if (sumOnly) updateSplitSumDisplay(editExpSplit, $('xEditSplitSum'), $('xEditSaveBtn'));
-      else renderEditExpSplitFields();
+      if (sumOnly) {
+        updateSplitSumDisplay(editExpSplit, $('xEditSplitSum'), $('xEditSaveBtn'));
+        if (editingExpId) syncOuterExpSplitFromEdit();
+      } else renderEditExpSplitFields();
     });
     updateSplitSumDisplay(editExpSplit, $('xEditSplitSum'), $('xEditSaveBtn'));
+    if (editingExpId) syncOuterExpSplitFromEdit();
+  }
+
+  function renderParcelMemberChecks() {
+    const wrap = $('settleParcelMembers');
+    wrap.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const label = document.createElement('label');
+      label.className = 'settle-parcel-member';
+      const checked = memberReceivesViaParcel(i);
+      label.innerHTML = `<input type="checkbox" data-i="${i}"><span>${escapeHtml(name)} · 택배로 받음</span>`;
+      const input = label.querySelector('input');
+      input.checked = checked;
+      input.addEventListener('change', () => {
+        state.memberParcelReceive[i] = input.checked;
+        scheduleSave();
+        renderSettlement();
+      });
+      wrap.appendChild(label);
+    });
+  }
+
+  function renderTakeovers() {
+    const body = $('takeoverBody');
+    const list = viewTakeovers();
+    body.innerHTML = '';
+    $('takeoverEmpty').style.display = list.length === 0 ? 'block' : 'none';
+    list.forEach((t) => {
+      const share = takeoverShareAmount(t.minPrice);
+      const acq = state.members[t.acquirerIdx] || '?';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="item-name">${escapeHtml(t.item)}</td>
+        <td class="price-cell">${fmt(t.minPrice)}</td>
+        <td>${escapeHtml(acq)}</td>
+        <td class="price-cell">${fmtNum(share)} × 2명</td>
+        <td class="row-actions col-actions">
+          <button type="button" class="btn-row-edit take-edit-btn" data-id="${escapeHtml(t.id)}">수정</button>
+          <button type="button" class="btn-row-del take-del-btn" data-id="${escapeHtml(t.id)}" title="삭제">×</button>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.take-edit-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openTakeoverEdit(btn.dataset.id));
+    });
+    body.querySelectorAll('.take-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => deleteTakeover(btn.dataset.id));
+    });
+  }
+
+  function openTakeoverEdit(id) {
+    const t = viewTakeovers().find((x) => x.id === id);
+    if (!t) return;
+    editingTakeoverId = id;
+    editingField = true;
+    $('tEditItem').value = t.item;
+    $('tEditMinPrice').value = formatMoneyInput(t.minPrice);
+    $('tEditOwner').value = t.acquirerIdx;
+    $('takeoverEditModal').hidden = false;
+  }
+
+  function closeTakeoverEdit() {
+    editingTakeoverId = null;
+    editingField = false;
+    $('takeoverEditModal').hidden = true;
+  }
+
+  function saveTakeoverEdit() {
+    if (!editingTakeoverId) return;
+    const t = viewTakeovers().find((x) => x.id === editingTakeoverId);
+    if (!t) return;
+    const item = $('tEditItem').value.trim();
+    const minPrice = parseMoneyInput($('tEditMinPrice').value);
+    if (!item) { $('tEditItem').focus(); return; }
+    if (!minPrice || minPrice <= 0) { $('tEditMinPrice').focus(); return; }
+    t.item = item;
+    t.minPrice = minPrice;
+    t.acquirerIdx = Number($('tEditOwner').value);
+    closeTakeoverEdit();
+    scheduleSave();
+    renderTakeovers();
+    renderSettlement();
+  }
+
+  function deleteTakeover(id) {
+    if (!confirm('이 인수 기록을 삭제할까요?')) return;
+    const c = getViewCycle();
+    c.takeovers = (c.takeovers || []).filter((x) => x.id !== id);
+    scheduleSave();
+    renderTakeovers();
+    renderSettlement();
   }
 
   function openEntryEdit(id) {
@@ -2539,6 +2768,8 @@
     refreshEditContributors(getContributorIdxs(entry));
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
+    currentSplit = [...editEntrySplit];
+    renderSplitFields();
     renderEditEntrySplitFields();
     $('entryEditModal').hidden = false;
   }
@@ -2566,6 +2797,8 @@
     entry.split = [...editEntrySplit];
     entry.status = unsold ? 'unsold' : 'sold';
     entry.price = unsold ? 0 : price;
+    currentSplit = [...editEntrySplit];
+    renderSplitFields();
     closeEntryEdit();
     scheduleSave();
     renderLedger();
@@ -2582,6 +2815,8 @@
     $('xEditBen').value = x.beneficiaryIdx;
     $('xEditDate').value = x.date || todayStr();
     editExpSplit = [...((x.split && x.split.length === 3) ? x.split : DEFAULT_SPLIT)];
+    currentExpSplit = [...editExpSplit];
+    renderExpSplitFields();
     renderEditExpSplitFields();
     $('expEditModal').hidden = false;
   }
@@ -2607,6 +2842,8 @@
     x.beneficiaryIdx = Number($('xEditBen').value);
     x.date = $('xEditDate').value || todayStr();
     x.split = [...editExpSplit];
+    currentExpSplit = [...editExpSplit];
+    renderExpSplitFields();
     closeExpEdit();
     scheduleSave();
     renderExpenditures();
@@ -2905,6 +3142,7 @@
     renderSplitFields();
     renderExpSplitFields();
     renderLedger();
+    renderTakeovers();
     renderExpenditures();
     renderSettlement();
     renderCycleBar();
@@ -2948,6 +3186,8 @@
   });
 
   $('eEditOwner').addEventListener('change', () => {
+    editEntrySplit = splitForAcquirer(Number($('eEditOwner').value));
+    renderEditEntrySplitFields();
     refreshEditContributors();
   });
 
@@ -3021,10 +3261,34 @@
     renderLedger();
   });
 
-  $('settleParcelCheck').addEventListener('change', () => {
-    state.settleParcelDist = $('settleParcelCheck').checked;
+  bindMoneyInput('fTakeMinPrice');
+  bindMoneyInput('tEditMinPrice');
+  $('takeAddBtn').addEventListener('click', () => {
+    const item = $('fTakeItem').value.trim();
+    const minPrice = parseMoneyInput($('fTakeMinPrice').value);
+    const acquirerIdx = Number($('fTakeOwner').value);
+    if (!item) { $('fTakeItem').focus(); return; }
+    if (!minPrice || minPrice <= 0) { $('fTakeMinPrice').focus(); return; }
+    const c = getViewCycle();
+    if (!c.takeovers) c.takeovers = [];
+    c.takeovers.push(normalizeTakeover({
+      id: genId(),
+      item,
+      minPrice,
+      acquirerIdx,
+      date: todayStr()
+    }));
+    $('fTakeItem').value = '';
+    $('fTakeMinPrice').value = '';
+    $('fTakeItem').focus();
     scheduleSave();
+    renderTakeovers();
     renderSettlement();
+  });
+  $('tEditCancelBtn').addEventListener('click', closeTakeoverEdit);
+  $('tEditSaveBtn').addEventListener('click', saveTakeoverEdit);
+  $('takeoverEditModal').addEventListener('click', (e) => {
+    if (e.target.id === 'takeoverEditModal') closeTakeoverEdit();
   });
 
   $('feeInfoBtn').addEventListener('click', () => { $('feeInfoModal').hidden = false; });
