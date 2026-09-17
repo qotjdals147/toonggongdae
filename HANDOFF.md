@@ -46,7 +46,7 @@ members[3], cycles[], activeCycleId, viewCycleId (비영속)
 warehouseChars[], memberParcelReceive[3]
 entryPriceBasis: 'listing' | (legacy net → 1회 마이그)
 entryPriceNetUpgraded: boolean
-itemCatalog: { id, name, itemId? }[]   // 공대 자체 목록, 스탯 없음
+itemCatalog: { id, name, itemId?, aliases? }[]   // 공대 자체 목록, 스탯 없음
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -116,8 +116,10 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 6.1 현재 구현 (사이트)
 
-- `state.itemCatalog[]`: `{ id, name, itemId? }`.
+- `state.itemCatalog[]`: `{ id, name, itemId?, aliases? }` — `aliases`는 쉼표로 등록한 **검색 줄임말**(예: `어크`).
 - **자동완성:** `attachCatalogAutocomplete` on `eEditItem`, `fTakeItem`, `fMakerGem`, `mEditGem`, `tEditItem`.
+- **검색:** `filterCatalogItems` — 이름 부분일치 + **띄어쓰기 단어 첫 글자 줄임**(하급/중급/상급 접두는 줄임 계산에서 제외) + `aliases`. 목록에 없는 이름은 그대로 입력·저장(아이콘 없음).
+- **UI:** 입력 1글자 이상 + 매칭 있을 때만 드롭다운(아이콘+이름, ↑↓·Enter·클릭).
 - **아이콘 URL** (코드 상수):
 
 ```text
@@ -192,6 +194,7 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-17** — itemCatalog 자동완성: 줄임 검색(어크 등)·aliases·검색 결과 UI(키보드 안내)
 - **2026-09-17** — HANDOFF·규칙: 작업 후 **자동 push** + **HANDOFF 자동 갱신** §13 의무화
 - **2026-09-17** — HANDOFF.md + `.cursor/rules` 최초 추가 (질문-only, push 규칙)
 - 등록가 + 거래소 5% 3등분 정산

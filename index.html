@@ -1027,12 +1027,25 @@
   .catalog-row-icon { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
   .field.field-ac { position: relative; }
   .item-ac-menu {
-    position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% - 2px);
-    max-height: 220px; overflow-y: auto; margin: 0; padding: 4px 0; list-style: none;
+    position: absolute; z-index: 120; left: 0; right: 0; top: calc(100% - 2px);
+    max-height: 280px; overflow-y: auto; margin: 0; padding: 0; list-style: none;
     background: #fff; border: 1.5px solid var(--line-strong); border-radius: 8px;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   }
+  .modal .item-ac-menu { z-index: 200; }
   .item-ac-menu[hidden] { display: none; }
+  .item-ac-head {
+    position: sticky; top: 0; z-index: 1; padding: 8px 12px 6px; font-size: 12px; font-weight: 600;
+    color: var(--ink-soft); background: #fff; border-bottom: 1px solid var(--line);
+  }
+  .item-ac-foot {
+    position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 12px 8px;
+    font-size: 11px; color: var(--ink-soft); background: var(--surface-muted); border-top: 1px solid var(--line);
+  }
+  .item-ac-foot kbd {
+    display: inline-block; padding: 1px 5px; margin-right: 3px; font-size: 10px; font-family: inherit;
+    background: #fff; border: 1px solid var(--line); border-radius: 4px;
+  }
   .item-ac-option {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 14px;
   }
@@ -1625,10 +1638,11 @@
     <h3 id="itemCatalogModalTitle">아이템 목록</h3>
     <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">표시 이름 + <strong>아이템 ID</strong>(아이콘용, 선택). 스탯 없음 · 공대원과 공유.</p>
     <div class="catalog-add-row">
-      <input id="catalogAddInput" type="text" autocomplete="off" placeholder="이름 (예: 다이아몬드)">
+      <input id="catalogAddInput" type="text" autocomplete="off" placeholder="이름 (예: 어둠의 크리스탈)">
       <input id="catalogAddItemId" type="text" inputmode="numeric" autocomplete="off" placeholder="ID (선택)" style="max-width:120px;">
       <button type="button" class="btn-settle btn-sm" id="catalogAddBtn">추가</button>
     </div>
+    <input id="catalogAddAliases" type="text" autocomplete="off" placeholder="검색 줄임말 (선택, 쉼표 · 예: 어크)" style="width:100%;margin:-4px 0 12px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:8px;font-size:14px;box-sizing:border-box;">
     <div class="warehouse-list" id="catalogList"></div>
     <div class="empty-state" id="catalogEmpty" style="display:none;">목록이 비어 있어요.</div>
     <div class="modal-foot">
@@ -2516,7 +2530,8 @@
       out.push({
         id: (raw && raw.id) || genId(),
         name,
-        itemId: parseCatalogItemId(raw && raw.itemId)
+        itemId: parseCatalogItemId(raw && raw.itemId),
+        aliases: parseCatalogAliases(raw && raw.aliases)
       });
     });
     out.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
@@ -2536,31 +2551,101 @@
     return `<img src="${url}" alt="" class="${c}" loading="lazy" decoding="async" onerror="this.hidden=true">`;
   }
 
-  function filterCatalogItems(query, limit) {
-    const q = String(query || '').trim().toLowerCase();
-    const max = limit != null ? limit : 12;
-    let items = state.itemCatalog || [];
-    if (q) {
-      items = items.filter((i) => i.name.toLowerCase().includes(q));
+  function parseCatalogAliases(raw) {
+    if (Array.isArray(raw)) {
+      return [...new Set(raw.map((a) => String(a).trim()).filter(Boolean))];
     }
-    return items.slice(0, max);
+    if (raw == null || raw === '') return [];
+    return [...new Set(String(raw).split(/[,，]/).map((s) => s.trim()).filter(Boolean))];
   }
 
-  function addCatalogItem(name, itemId) {
+  function mergeCatalogAliases(existing, incoming) {
+    const set = new Set(parseCatalogAliases(existing));
+    parseCatalogAliases(incoming).forEach((a) => set.add(a));
+    return [...set];
+  }
+
+  const CATALOG_TIER_PREFIX = /^(하급|중급|상급|하|중|상)\s+/;
+
+  function catalogAbbrevKeys(name) {
+    const keys = new Set();
+    let bare = String(name || '').trim().replace(/\[.*?\]\s*/g, '').trim();
+    if (!bare) return keys;
+    keys.add(bare.toLowerCase().replace(/\s+/g, ''));
+    const parts = bare.split(/\s+/).filter(Boolean);
+    if (parts.length) keys.add(parts.map((p) => p.charAt(0)).join('').toLowerCase());
+    const noTier = bare.replace(CATALOG_TIER_PREFIX, '').trim();
+    if (noTier !== bare) {
+      const parts2 = noTier.split(/\s+/).filter(Boolean);
+      if (parts2.length) keys.add(parts2.map((p) => p.charAt(0)).join('').toLowerCase());
+      keys.add(noTier.toLowerCase().replace(/\s+/g, ''));
+    }
+    return keys;
+  }
+
+  function catalogItemMatchScore(item, q) {
+    if (!q) return 0;
+    const ql = q.toLowerCase();
+    const name = item.name.toLowerCase();
+    if (name === ql) return 100;
+    if (name.startsWith(ql)) return 80;
+    if (name.includes(ql)) return 60;
+    for (const a of item.aliases || []) {
+      const al = String(a).toLowerCase();
+      if (al === ql) return 92;
+      if (al.startsWith(ql)) return 72;
+      if (al.includes(ql)) return 52;
+    }
+    for (const k of catalogAbbrevKeys(item.name)) {
+      if (k === ql) return 88;
+      if (k.startsWith(ql)) return 78;
+      if (k.includes(ql)) return 58;
+    }
+    for (const a of item.aliases || []) {
+      for (const k of catalogAbbrevKeys(a)) {
+        if (k === ql) return 86;
+        if (k.startsWith(ql)) return 76;
+        if (k.includes(ql)) return 56;
+      }
+    }
+    return 0;
+  }
+
+  function filterCatalogItems(query, limit) {
+    const q = String(query || '').trim().toLowerCase();
+    const max = limit != null ? limit : 16;
+    const items = state.itemCatalog || [];
+    if (!q) return [];
+    return items
+      .map((i) => ({ item: i, score: catalogItemMatchScore(i, q) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, 'ko'))
+      .slice(0, max)
+      .map((x) => x.item);
+  }
+
+  function addCatalogItem(name, itemId, aliasesRaw) {
     const n = String(name || '').trim();
     if (!n) return false;
     if (!state.itemCatalog) state.itemCatalog = [];
     const key = n.toLowerCase();
     const idNum = parseCatalogItemId(itemId);
+    const newAliases = parseCatalogAliases(aliasesRaw);
     const existing = state.itemCatalog.find((i) => i.name.toLowerCase() === key);
     if (existing) {
-      if (idNum && !existing.itemId) existing.itemId = idNum;
-      else if (idNum && existing.itemId !== idNum) existing.itemId = idNum;
-      else return false;
+      let changed = false;
+      if (idNum && !existing.itemId) { existing.itemId = idNum; changed = true; }
+      else if (idNum && existing.itemId !== idNum) { existing.itemId = idNum; changed = true; }
+      const merged = mergeCatalogAliases(existing.aliases, newAliases);
+      if (merged.length !== (existing.aliases || []).length) {
+        existing.aliases = merged;
+        changed = true;
+      }
+      if (!changed) return false;
       state.itemCatalog.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
       return true;
     }
-    state.itemCatalog.push({ id: genId(), name: n, itemId: idNum });
+    state.itemCatalog.push({ id: genId(), name: n, itemId: idNum, aliases: newAliases });
     state.itemCatalog.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     return true;
   }
@@ -2583,10 +2668,12 @@
       const row = document.createElement('div');
       row.className = 'catalog-row';
       const idLabel = item.itemId ? `<span style="font-size:11px;color:var(--ink-soft);">ID ${item.itemId}</span>` : '';
+      const aliasLabel = (item.aliases && item.aliases.length)
+        ? `<span style="font-size:11px;color:var(--ink-soft);"> · ${escapeHtml(item.aliases.join(', '))}</span>` : '';
       row.innerHTML = `
         <div class="catalog-row-left">
           ${catalogIconHtml(item.itemId, 'catalog-row-icon')}
-          <span class="catalog-row-name">${escapeHtml(item.name)} ${idLabel}</span>
+          <span class="catalog-row-name">${escapeHtml(item.name)} ${idLabel}${aliasLabel}</span>
         </div>
         <button type="button" class="btn-row-del catalog-del-btn" data-id="${escapeHtml(item.id)}" title="삭제" aria-label="삭제">×</button>
       `;
@@ -2621,13 +2708,28 @@
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
+    function scrollActiveOption() {
+      const active = menu.querySelector('.item-ac-option.item-ac-active');
+      if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+
     function renderMenu() {
-      const items = filterCatalogItems(input.value, 12);
+      const q = String(input.value || '').trim();
+      if (!q || !(state.itemCatalog || []).length) {
+        closeMenu();
+        return;
+      }
+      const items = filterCatalogItems(input.value, 16);
       menu.innerHTML = '';
       if (items.length === 0) {
         closeMenu();
         return;
       }
+      const head = document.createElement('li');
+      head.className = 'item-ac-head';
+      head.setAttribute('aria-hidden', 'true');
+      head.textContent = '검색 결과';
+      menu.appendChild(head);
       items.forEach((item, idx) => {
         const li = document.createElement('li');
         li.className = 'item-ac-option';
@@ -2645,15 +2747,17 @@
         });
         menu.appendChild(li);
       });
+      const foot = document.createElement('li');
+      foot.className = 'item-ac-foot';
+      foot.setAttribute('aria-hidden', 'true');
+      foot.innerHTML = '<span><kbd>↓</kbd>아래</span><span><kbd>↑</kbd>위</span><span><kbd>Enter</kbd>선택</span>';
+      menu.appendChild(foot);
       menu.hidden = false;
       activeIdx = 0;
       menu.querySelector('.item-ac-option')?.classList.add('item-ac-active');
     }
 
     input.addEventListener('input', () => renderMenu());
-    input.addEventListener('focus', () => {
-      if ((state.itemCatalog || []).length) renderMenu();
-    });
     input.addEventListener('blur', () => { setTimeout(closeMenu, 120); });
     input.addEventListener('keydown', (e) => {
       if (menu.hidden) return;
@@ -2667,11 +2771,12 @@
         activeIdx = Math.max(activeIdx - 1, 0);
       } else if (e.key === 'Enter' && activeIdx >= 0) {
         e.preventDefault();
-        const items = filterCatalogItems(input.value, 12);
+        const items = filterCatalogItems(input.value, 16);
         if (items[activeIdx]) pick(items[activeIdx]);
         return;
       } else return;
       opts.forEach((el, i) => el.classList.toggle('item-ac-active', i === activeIdx));
+      scrollActiveOption();
     });
   }
 
@@ -4497,10 +4602,12 @@
   $('catalogAddBtn').addEventListener('click', () => {
     const name = $('catalogAddInput').value.trim();
     const itemId = $('catalogAddItemId').value;
+    const aliases = $('catalogAddAliases').value;
     if (!name) { $('catalogAddInput').focus(); return; }
-    if (addCatalogItem(name, itemId)) scheduleSave();
+    if (addCatalogItem(name, itemId, aliases)) scheduleSave();
     $('catalogAddInput').value = '';
     $('catalogAddItemId').value = '';
+    $('catalogAddAliases').value = '';
     renderItemCatalogList();
     $('catalogAddInput').focus();
   });
