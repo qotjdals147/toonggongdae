@@ -121,6 +121,7 @@ legacySummaryOnly (옛 회차 요약만)
 - `images`: JPEG **data URL** — `compressImageBlobToDataUrl` (최대 약 1280px, 품질 자동 하향).
 - **입력:** `#hotIssueCompose` — 파일 첨부, **Ctrl+V** 캡처 붙여넣기, **Ctrl+Enter** 등록.
 - **사진 보기:** 썸네일 클릭 → `#hotIssueLightbox` (data URL은 새 탭 URL 한도로 깨질 수 있어 라이트박스 사용).
+- **오늘 알림:** `#hotIssueBadge` — `createdAt`이 **로컬 달력 오늘**인 글이 1건 이상이면 `N` + 버튼 glow (자정 넘기면 1분 주기로 갱신).
 - **한도:** `HOT_ISSUE_MAX_IMAGES = 4`, 장당 data URL 길이 상한 (`HOT_ISSUE_MAX_DATA_URL_LEN`).
 - **주의:** Supabase `jsonb` 전체 크기 — 사진 많이 쌓이면 저장 실패 가능. (추후 Storage 분리는 요청 시)
 
@@ -165,6 +166,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 헤더 가운데 정렬·제목 **퉁퉁이 공대** · 핫이슈 **오늘 글 N 뱃지**(로컬 날짜)
 - **2026-09-17** — 핫이슈 사진 **라이트박스**(썸네일 클릭 확대, Esc/바깥 닫기)
 - **2026-09-17** — itemCatalog 제거 · 상단 `.app-header` 툴바 · **퉁공대 핫이슈**(텍스트+사진 붙여넣기)
 - **2026-09-17** — itemCatalog 자동완성: 줄임 검색(어크 등)·aliases·검색 결과 UI(키보드 안내)
@@ -232,4 +234,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-17 (핫이슈·헤더)*
+*Last updated: 2026-09-18*

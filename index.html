@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>퉁퉁이 공대 장부</title>
+<title>퉁퉁이 공대</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -60,23 +60,16 @@
   }
   .app-header-main {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .app-brand-eyebrow {
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    color: var(--ink-soft);
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
   }
   header.app-header h1 {
     font-family: 'Fraunces', serif;
     font-optical-sizing: auto;
     font-weight: 700;
-    font-size: 30px;
+    font-size: 32px;
     margin: 0;
     color: var(--ink);
     letter-spacing: -0.02em;
@@ -85,10 +78,11 @@
   .app-header-meta {
     display: flex;
     align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
-    padding-top: 8px;
     max-width: 100%;
   }
   .live-pill {
@@ -107,18 +101,31 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px 16px;
+    justify-content: center;
+    gap: 10px 18px;
     margin-top: 18px;
-    padding-top: 14px;
+    padding-top: 16px;
     border-top: 1px solid var(--line);
   }
   .app-toolbar-group {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 8px;
   }
-  .app-toolbar-group--end { margin-left: auto; }
+  .app-toolbar-group + .app-toolbar-group {
+    padding-left: 18px;
+    border-left: 1px solid var(--line);
+  }
+  @media (max-width: 640px) {
+    .app-toolbar-group + .app-toolbar-group {
+      padding-left: 0;
+      border-left: none;
+      width: 100%;
+      justify-content: center;
+    }
+  }
   .app-toolbar-label {
     font-size: 10px;
     font-weight: 700;
@@ -133,6 +140,8 @@
     border-radius: 8px;
   }
   .btn-hot-issue {
+    position: relative;
+    overflow: visible;
     background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
     color: #fff !important;
     border: none !important;
@@ -142,6 +151,37 @@
   .btn-hot-issue:hover {
     background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%) !important;
     color: #fff !important;
+  }
+  .btn-hot-issue.has-today-hot {
+    animation: hot-btn-glow 2s ease-in-out infinite;
+  }
+  @keyframes hot-btn-glow {
+    0%, 100% { box-shadow: 0 1px 3px rgba(109, 40, 217, 0.35); }
+    50% { box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.5), 0 2px 8px rgba(109, 40, 217, 0.45); }
+  }
+  .hot-issue-badge {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f87171 0%, #ef4444 100%);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 20px;
+    text-align: center;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(239, 68, 68, 0.45);
+    animation: hot-badge-pulse 1.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .hot-issue-badge[hidden] { display: none; }
+  @keyframes hot-badge-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+    50% { transform: scale(1.1); box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
   }
   .btn-light {
     background: #fff !important;
@@ -1443,10 +1483,7 @@
 
   <header class="app-header">
     <div class="app-header-main">
-      <div class="app-brand">
-        <p class="app-brand-eyebrow">메이플랜드 · 3인 파티 정산</p>
-        <h1>퉁퉁이 공대 장부</h1>
-      </div>
+      <h1>퉁퉁이 공대</h1>
       <div class="app-header-meta">
         <span class="live-pill" id="livePill" data-live="off" aria-hidden="true"></span>
         <span id="statusText">불러오는 중…</span>
@@ -1460,10 +1497,11 @@
       <div class="app-toolbar-group">
         <span class="app-toolbar-label">운영</span>
         <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
-        <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">퉁공대 핫이슈</button>
+        <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
+          퉁공대 핫이슈
+          <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
+        </button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
-      </div>
-      <div class="app-toolbar-group app-toolbar-group--end">
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 공유</button>
       </div>
     </nav>
@@ -2758,6 +2796,46 @@
     }
   }
 
+  /** 브라우저 로컬 날짜(한국 사용 시 09.18 기준) */
+  function localCalendarDateStr(date) {
+    const d = date instanceof Date ? date : new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function hotIssuePostLocalDate(createdAt) {
+    try {
+      return localCalendarDateStr(new Date(createdAt));
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function countHotIssuesOnLocalDate(dateStr) {
+    return (state.hotIssues || []).filter((p) => hotIssuePostLocalDate(p.createdAt) === dateStr).length;
+  }
+
+  let hotIssueBadgeWatchDate = '';
+
+  function updateHotIssueTodayBadge() {
+    const btn = $('hotIssueBtn');
+    const badge = $('hotIssueBadge');
+    if (!btn || !badge) return;
+    const today = localCalendarDateStr();
+    hotIssueBadgeWatchDate = today;
+    const n = countHotIssuesOnLocalDate(today);
+    const show = n > 0;
+    badge.hidden = !show;
+    btn.classList.toggle('has-today-hot', show);
+    if (show) {
+      btn.setAttribute('aria-label', `퉁공대 핫이슈, 오늘 새 글 ${n}건`);
+    } else {
+      btn.removeAttribute('aria-label');
+    }
+  }
+
   function compressImageBlobToDataUrl(blob, maxW) {
     maxW = maxW || 1280;
     return new Promise((resolve, reject) => {
@@ -2922,6 +3000,7 @@
         state.hotIssues = (state.hotIssues || []).filter((p) => p.id !== btn.dataset.id);
         scheduleSave();
         renderHotIssueFeed();
+        updateHotIssueTodayBadge();
       });
     });
   }
@@ -2955,6 +3034,7 @@
     scheduleSave();
     resetHotIssueCompose();
     renderHotIssueFeed();
+    updateHotIssueTodayBadge();
   }
 
   function parseStoredState(raw) {
@@ -4613,6 +4693,7 @@
     renderExpenditures();
     renderSettlement();
     renderCycleBar();
+    updateHotIssueTodayBadge();
   }
 
   $('fExpDate').value = todayStr();
@@ -4901,6 +4982,10 @@
     }, 12000);
   }
   loadState();
+  setInterval(() => {
+    const today = localCalendarDateStr();
+    if (today !== hotIssueBadgeWatchDate) updateHotIssueTodayBadge();
+  }, 60000);
 })();
 </script>
 </body>
