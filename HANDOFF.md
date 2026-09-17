@@ -46,7 +46,7 @@ members[3], cycles[], activeCycleId, viewCycleId (비영속)
 warehouseChars[], memberParcelReceive[3]
 entryPriceBasis: 'listing' | (legacy net → 1회 마이그)
 entryPriceNetUpgraded: boolean
-itemCatalog: { id, name, itemId?, aliases? }[]   // 공대 자체 목록, 스탯 없음
+hotIssues: { id, createdAt, text, images[] }[]   // 핫이슈 게시(텍스트+사진 data URL)
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -102,8 +102,9 @@ legacySummaryOnly (옛 회차 요약만)
 | 지출 | `renderExpenditures` |
 | 정산 | `renderSettlement`, `computeHeld`, `computeFairShare` |
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
-| 아이템 목록 | `itemCatalog`, `openItemCatalogModal`, `attachCatalogAutocomplete` |
+| 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
+| 상단 헤더 | `.app-header`, `.app-toolbar` — 참고/운영/링크 공유 그룹 |
 
 ### 5.1 표 CSS 주의
 
@@ -112,50 +113,19 @@ legacySummaryOnly (옛 회차 요약만)
 
 ---
 
-## 6. 아이템 **아이콘·이름** (풀 DB 아님)
+## 6. 퉁공대 **핫이슈** · 아이템명
 
-### 6.1 현재 구현 (사이트)
+### 6.1 핫이슈
 
-- `state.itemCatalog[]`: `{ id, name, itemId?, aliases? }` — `aliases`는 쉼표로 등록한 **검색 줄임말**(예: `어크`).
-- **자동완성:** `attachCatalogAutocomplete` on `eEditItem`, `fTakeItem`, `fMakerGem`, `mEditGem`, `tEditItem`.
-- **검색:** `filterCatalogItems` — 이름 부분일치 + **띄어쓰기 단어 첫 글자 줄임**(하급/중급/상급 접두는 줄임 계산에서 제외) + `aliases`. 목록에 없는 이름은 그대로 입력·저장(아이콘 없음).
-- **UI:** 입력 1글자 이상 + 매칭 있을 때만 드롭다운(아이콘+이름, ↑↓·Enter·클릭).
-- **아이콘 URL** (코드 상수):
+- `state.hotIssues[]`: `{ id, createdAt (ISO), text, images[] }`.
+- `images`: JPEG **data URL** — `compressImageBlobToDataUrl` (최대 약 1280px, 품질 자동 하향).
+- **입력:** `#hotIssueCompose` — 파일 첨부, **Ctrl+V** 캡처 붙여넣기, **Ctrl+Enter** 등록.
+- **한도:** `HOT_ISSUE_MAX_IMAGES = 4`, 장당 data URL 길이 상한 (`HOT_ISSUE_MAX_DATA_URL_LEN`).
+- **주의:** Supabase `jsonb` 전체 크기 — 사진 많이 쌓이면 저장 실패 가능. (추후 Storage 분리는 요청 시)
 
-```text
-ITEM_ICON_IO_REGION = 'gms'
-ITEM_ICON_IO_VERSION = 'latest'
-https://maplestory.io/api/gms/latest/item/{itemId}/icon
-```
+### 6.2 아이템명
 
-- ID 없으면 이름만 자동완성. ID 틀리면 `onerror`로 아이콘 숨김.
-- **메이플랜드와 100% 일치 보장 없음** — 비공식 CDN.
-
-### 6.2 아이콘/데이터를 **구하는 수단** (에이전트 참고용)
-
-| 수단 | 설명 | 이 프로젝트에 쓰기 |
-|------|------|---------------------|
-| **MapleStory.io API** | REST: item JSON, `/icon`, `/iconRaw`. [maplestory.io](https://maplestory.io/) · 소스 [crrio/maplestory.io](https://github.com/crrio/maplestory.io) | **현재 사용 중** (아이콘만). region/version 맞춰야 함. |
-| **WZ 클라이언트** | `Item.wz`, `String.wz` — MapleLib / HaRepacker | 풀 DB 안 만들 거면 **직접 추출 불필요**. 특정 ID 아이콘 PNG만 뽑을 때. |
-| **DumpItems / wztosql** | 서버 소스의 Java 덤프 → MySQL | 사설서버 운영자용. 정적 JSON 생성 파이프라인 참고만. |
-| **커뮤니티 사이트** | maplelog.gg, malan-util, 메이플노트 등 — WZ 대조 + 제보 | **공식 API 아님.** 장부에 크롤링/임베드 **하지 말 것** (ToS·유지보수). |
-| **자체 호스팅** | WZ에서 PNG 추출 → `image/items/{id}.png` | 100개 미만이면 **가장 안정적**. CDN 의존 제거. |
-| **인게임 ID 확인** | 툴팁/메랜 DB/커뮤니티에서 numeric ID | `itemCatalog`에 수동 등록. |
-
-### 6.3 100개 미만 수동 카탈로그 권장 흐름
-
-1. 사용자가 **표시 이름** + **아이템 ID**를 「아이템 목록」에 추가.
-2. 자동완성 + 아이콘 (MapleStory.io 또는 추후 `image/items/`).
-3. **스탯·드랍·가격 DB 확장은 사용자가 원할 때만** — 질문만 했을 때 구현 금지.
-
-### 6.4 MapleStory.io 예시 (참고)
-
-```http
-GET https://maplestory.io/api/gms/latest/item/{itemId}
-GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
-```
-
-버전을 옛날 클래식에 맞추려면 `latest` 대신 특정 버전 문자열 조사 필요 (문서/Swagger).
+- **itemCatalog / MapleStory.io 자동완성 제거** (2026-09-17). 획득·인수·메이커 등 **자유 텍스트**만.
 
 ---
 
@@ -194,6 +164,7 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-17** — itemCatalog 제거 · 상단 `.app-header` 툴바 · **퉁공대 핫이슈**(텍스트+사진 붙여넣기)
 - **2026-09-17** — itemCatalog 자동완성: 줄임 검색(어크 등)·aliases·검색 결과 UI(키보드 안내)
 - **2026-09-17** — HANDOFF·규칙: 작업 후 **자동 push** + **HANDOFF 자동 갱신** §13 의무화
 - **2026-09-17** — HANDOFF.md + `.cursor/rules` 최초 추가 (질문-only, push 규칙)
@@ -208,8 +179,7 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 
 ## 11. 다음에 손대기 쉬운 개선 (요청 시만)
 
-- [ ] `image/items/` 로 아이콘 self-host (MapleStory.io 의존 줄이기)
-- [ ] itemCatalog CSV import/export
+- [ ] 핫이슈 이미지 Supabase Storage 분리 (JSON 용량)
 - [ ] closed cycle `entryTotal`에 메이커 반영 여부 정리
 - [ ] AGENTS.md 없음 — **이 HANDOFF가 AGENTS 역할**
 
@@ -260,4 +230,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-17*
+*Last updated: 2026-09-17 (핫이슈·헤더)*

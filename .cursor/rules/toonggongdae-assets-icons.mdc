@@ -1,25 +1,21 @@
 ---
-description: 메이플 아이템 아이콘·이름 데이터 — 추출 수단 (풀 DB 없이)
+description: 핫이슈·정적 이미지 (itemCatalog 제거됨)
 globs: index.html
 alwaysApply: false
 ---
 
-# 아이템 아이콘·이름 (경량)
+# 이미지·기록
 
-## 현재 사이트
+## 핫이슈 (`state.hotIssues`)
 
-- `state.itemCatalog`: `{ name, itemId? }` — **스탯 없음**
-- 아이콘: `https://maplestory.io/api/gms/latest/item/{id}/icon` (상수 `ITEM_ICON_IO_*`)
-- UI: `attachCatalogAutocomplete`, 모달 `#itemCatalogModal`
+- `{ id, createdAt, text, images[] }` — `images`는 JPEG **data URL** (붙여넣기·첨부 시 자동 축소)
+- UI: `#hotIssueModal`, `openHotIssueModal`, `postHotIssue`
+- Supabase JSON 크기 주의 — 장당 최대 4장, 과대 이미지는 거부
 
-## 아이콘 구하는 방법 (우선순위)
+## 정적 에셋
 
-1. **수동 ID + MapleStory.io** — 목록에 ID 등록 (지금 방식)
-2. **Self-host** — WZ/툴로 PNG → `image/items/{id}.png` (100개 미만에 적합)
-3. **WZ 파이프라인** — MapleLib, DumpItems → JSON (풀 DB; **요청 없으면 안 함**)
-4. **타 사이트 DB** — 참고만; 크롤링·전체 임베드 금지
+- `image/` — meso·섹션 아이콘 등
 
-## 확장 시
+## (과거) itemCatalog / MapleStory.io
 
-- 메이플랜드 ≠ gms/latest 일 수 있음 → version 조정 또는 self-host
-- 상세: **`HANDOFF.md` §6**
+- **2026-09-17 제거** — 볼륨·유지보수 부담. 아이템명은 자유 입력.
