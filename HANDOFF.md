@@ -1,7 +1,7 @@
 # 퉁공대 장부 — HANDOFF (에이전트·개발 인수인계)
 
 > **목적:** 새 채팅/새 에이전트가 맥락 없이 들어와도 이 파일만 읽고 이어서 작업할 수 있게 한다.  
-> **소유자 의도:** 질문에는 **답만** · 구현은 **명시 요청 시만** · 구현 후 **`index.html`/`maple-party-ledger.html` 동기화 + git commit + push** (`.cursor/rules` 참고).
+> **소유자 의도:** 질문에는 **답만** · 구현은 **명시 요청 시만** · 구현 후 **§13 종료 체크리스트 전부** (코드 sync · **HANDOFF 갱신** · commit · **push**) — **빠지면 안 됨.** (`.cursor/rules` 참고)
 
 ---
 
@@ -167,13 +167,15 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 
 ## 8. Git · 배포 워크플로 (팀 규칙)
 
-1. **`index.html` 수정**
-2. **`Copy-Item -Force index.html maple-party-ledger.html`**
-3. `git add` relevant files
-4. **`git commit`** — 사용자가 commit만 따로 요청한 경우는 그때만; **기본은 구현 완료 시 commit**
-5. **`git push origin main`** — **구현 작업 마치면 항상 push** (Pages 반영)
+구현 작업의 **마지막 단계는 항상 §13**. 요약:
 
-커밋 메시지: 한국어 한 줄, **why** 위주.
+1. 코드 (`index.html` → mirror)
+2. **`HANDOFF.md` 자동 인수인계 갱신** (§13.2)
+3. **`git commit` + `git push origin main`** — **매번 자동.** 별도 “푸시해줘” 없어도 push.
+
+커밋 메시지: 한국어 한 줄, **why** 위주. HANDOFF만 고친 commit도 push.
+
+**예외:** 사용자가 **push/commit 하지 마**라고 한 경우, 또는 **질문-only** 턴(§9).
 
 ---
 
@@ -182,14 +184,16 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 | 상황 | 행동 |
 |------|------|
 | **질문만** (“가능해?”, “어디서 구해?”) | **답변만.** 코드/커밋/push **하지 않음.** |
-| **“해줘”, “구현”, “적용”** 등 명시 | 구현 → sync → commit → push |
+| **“해줘”, “구현”, “적용”** 등 명시 | 구현 → **§13 전체** (HANDOFF 포함) → push |
 | **commit만 요청** | user rule git protocol 따름 |
 | **과도한 기능** (풀 DB, 자동 마이그레이션 등) | 먼저 범위 확인 |
 
 ---
 
-## 10. 최근 주요 커밋 테마 (맥락)
+## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-17** — HANDOFF·규칙: 작업 후 **자동 push** + **HANDOFF 자동 갱신** §13 의무화
+- **2026-09-17** — HANDOFF.md + `.cursor/rules` 최초 추가 (질문-only, push 규칙)
 - 등록가 + 거래소 5% 3등분 정산
 - 메이커 재련 메소만
 - `entryPriceBasis` 유실 버그 수정 (등록가 inflation)
@@ -208,7 +212,7 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 
 ---
 
-## 12. 에이전트 시작 체크리스트
+## 12. 에이전트 **시작** 체크리스트
 
 1. Read **`HANDOFF.md`** (this file)
 2. Read **`.cursor/rules/*.mdc`**
@@ -216,4 +220,41 @@ GET https://maplestory.io/api/gms/latest/item/{itemId}/icon
 4. 금액 로직 변경 시 §4 regression mentally check
 5. 질문-only 턴인지 확인 (§9)
 
-*Last updated: 2026-09-17 (handoff created)*
+---
+
+## 13. 에이전트 **작업 종료** 체크리스트 (구현마다 필수 · 생략 금지)
+
+구현·버그fix·문서(규칙) 변경을 **한 턴이라도** 코드/repo에 반영했으면, 사용자에게 “완료” 말하기 **전에** 아래를 **전부** 수행.
+
+### 13.1 코드·배포
+
+- [ ] `index.html` 수정했다면 **`maple-party-ledger.html` 동기화** (`Copy-Item -Force`)
+- [ ] `git add` — 변경된 파일만 (secret 없음)
+
+### 13.2 HANDOFF **자동 인수인계** (항상)
+
+**`HANDOFF.md`를 같은 턴에서 반드시 갱신.** “나중에” 금지.
+
+| 변경 종류 | HANDOFF 어디에 반영 |
+|-----------|---------------------|
+| 정산·금액·수수료 | §4 |
+| 새 UI / 함수 / state 필드 | §3, §5 |
+| 아이템·아이콘 | §6 |
+| Supabase·배포 | §7, §8 |
+| 아무 구현이나 | **§10 맨 위 한 줄** (날짜 + 요약) |
+| TODO 완료/추가 | §11 |
+| — | **`Last updated` 날짜** |
+
+HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
+
+### 13.3 Git push (항상 자동)
+
+- [ ] `git commit` — 한국어, why
+- [ ] **`git push origin main`** — **별도 요청 없이 매번**
+- [ ] push 실패 시 사용자에게 알리고 재시도/원인 보고 (멈춘 채로 “완료” 금지)
+
+### 13.4 사용자에게 보고
+
+- 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
+
+*Last updated: 2026-09-17*
