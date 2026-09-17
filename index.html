@@ -1376,6 +1376,99 @@
   }
   .stats-net-line strong { color: var(--ink); }
 
+  .ledger-cycle-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff 0%, var(--surface-muted) 100%);
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .ledger-cycle-summary strong { color: var(--ink); font-weight: 700; }
+  .ledger-cycle-summary .summary-warn {
+    color: var(--rust);
+    font-weight: 600;
+  }
+  .ledger-summary-link {
+    padding: 4px 10px;
+    border: none;
+    border-radius: 100px;
+    background: var(--settle-soft);
+    color: var(--settle);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .ledger-summary-link:hover { background: #DBEAFE; }
+  .ledger-jump-nav {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    margin-bottom: 18px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid var(--line-strong);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+  }
+  .ledger-jump-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .ledger-jump-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 76px;
+    padding: 8px 14px 7px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  }
+  .ledger-jump-btn:hover {
+    border-color: var(--line-strong);
+    background: var(--surface-muted);
+  }
+  .ledger-jump-btn.is-active {
+    border-color: var(--settle);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14);
+    background: #fff;
+  }
+  .ledger-jump-btn--settle {
+    border-color: #93C5FD;
+    background: linear-gradient(180deg, #fff 0%, var(--settle-soft) 100%);
+  }
+  .ledger-jump-btn--settle.is-active {
+    border-color: var(--settle);
+  }
+  .ledger-jump-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .ledger-jump-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    line-height: 1.2;
+  }
+  .ledger-jump-badge.is-warn { color: var(--rust); }
+
   .cycle-strip {
     margin-bottom: 14px; padding: 14px 16px 12px;
     border: 1px solid var(--line); border-radius: 12px;
@@ -1527,7 +1620,12 @@
     <div class="members-grid" id="membersGrid"></div>
   </div>
 
-  <div class="card card-zone-ledger">
+  <div class="ledger-cycle-summary" id="ledgerCycleSummary" aria-live="polite"></div>
+  <nav class="ledger-jump-nav" id="ledgerJumpNav" aria-label="장부 구역 이동">
+    <div class="ledger-jump-inner" id="ledgerJumpInner"></div>
+  </nav>
+
+  <div class="card card-zone-ledger" id="zoneLedger">
     <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
     <div class="ledger-toolbar">
       <button type="button" class="btn-income" id="openEntryAddBtn">+ 획득 추가</button>
@@ -1545,7 +1643,7 @@
     <p class="takeover-hint" id="totalListHint" style="margin:6px 0 0;display:none;"></p>
   </div>
 
-  <div class="card card-zone-takeover">
+  <div class="card card-zone-takeover" id="zoneTakeover">
     <h2>인수 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 기준</span></h2>
     <p class="takeover-hint">분배 가능 템을 한 명이 인수하면, 최소가의 <strong>⅓</strong>씩 나머지 두 명에게 보냅니다. 정산 송금 안내에 합쳐서 표시돼요.</p>
     <div class="takeover-form">
@@ -1563,7 +1661,7 @@
     <div id="takeoverEmpty" class="empty-state" style="display:none;">인수 기록이 없어요.</div>
   </div>
 
-  <div class="card card-zone-maker">
+  <div class="card card-zone-maker" id="zoneMaker">
     <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 재련 메소만 정산</span></h2>
     <p class="takeover-hint">원석·재료는 <strong>파티 보유 재고</strong>라 정산 비용에 넣지 않아요. <strong>재련자가 낸 11/33/55만</strong>만 반영 · <strong>판매 수익</strong>은 획득 장부.</p>
     <div class="maker-form">
@@ -1606,7 +1704,7 @@
     <p class="takeover-hint" id="makerProfitHint" style="display:none;margin-top:12px;"></p>
   </div>
 
-  <div class="card card-zone-expense">
+  <div class="card card-zone-expense" id="zoneExpense">
     <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
       <div class="field"><span>지출 항목</span><input id="fExpDesc" type="text" placeholder="예: 무기 구매"></div>
@@ -1633,7 +1731,7 @@
     <div class="total-row"><span>총 지출액</span><strong id="expTotalAmount"></strong></div>
   </div>
 
-  <div class="card card-zone-settle">
+  <div class="card card-zone-settle" id="zoneSettle">
     <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
     <div id="makerSettleSummary" style="display:none;margin-bottom:14px;"></div>
@@ -4711,6 +4809,141 @@
     });
   }
 
+  const LEDGER_JUMP_ZONES = [
+    { id: 'zoneLedger', label: '획득', key: 'ledger' },
+    { id: 'zoneTakeover', label: '인수', key: 'takeover' },
+    { id: 'zoneMaker', label: '메이커', key: 'maker' },
+    { id: 'zoneExpense', label: '지출', key: 'expense' },
+    { id: 'zoneSettle', label: '정산', key: 'settle', settle: true },
+  ];
+
+  function buildLedgerNavSnapshot() {
+    const entries = viewEntries();
+    const entryCount = entries.length;
+    const soldCount = entries.filter(isSoldEntry).length;
+    const unsold = countUnsoldEntries();
+    const entryTotal = soldEntriesNetTotal(entries);
+    const takeovers = viewTakeovers();
+    const maker = viewMakerRefines();
+    const exps = viewExpenditures();
+    const expCount = exps.length;
+    const expTotal = exps.reduce((s, x) => s + Number(x.amount), 0);
+    const txCount = (state._lastTxList || []).length;
+    const hasData = entryCount > 0 || expCount > 0 || takeovers.length > 0 || maker.length > 0;
+
+    let ledgerBadge = '—';
+    let ledgerWarn = false;
+    if (entryCount) {
+      if (unsold > 0) {
+        ledgerBadge = `미판매 ${unsold}`;
+        ledgerWarn = true;
+      } else {
+        ledgerBadge = `${entryCount}건`;
+        if (soldCount < entryCount) ledgerBadge = `판매 ${soldCount}`;
+      }
+    }
+
+    return {
+      entryCount,
+      expCount,
+      entryTotal,
+      expTotal,
+      netTotal: entryTotal - expTotal,
+      unsold,
+      badges: {
+        ledger: ledgerBadge,
+        takeover: takeovers.length ? `${takeovers.length}건` : '—',
+        maker: maker.length ? `${maker.length}건` : '—',
+        expense: expCount ? fmtNum(expTotal) : '—',
+        settle: unsold > 0 ? '미판매 있음' : (txCount ? `송금 ${txCount}건` : (hasData ? '확인' : '—')),
+      },
+      badgeWarn: {
+        ledger: ledgerWarn,
+        takeover: false,
+        maker: false,
+        expense: false,
+        settle: unsold > 0,
+      },
+    };
+  }
+
+  function scrollToLedgerZone(zoneId) {
+    const el = $(zoneId);
+    if (!el) return;
+    const nav = $('ledgerJumpNav');
+    const offset = (nav ? nav.getBoundingClientRect().height : 0) + 12;
+    const y = window.scrollY + el.getBoundingClientRect().top - offset;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }
+
+  function renderLedgerCycleSummary(snap) {
+    const el = $('ledgerCycleSummary');
+    if (!el) return;
+    const parts = [];
+    parts.push(`<span>판매 실수령 <strong>${fmtNum(snap.entryTotal)}</strong></span>`);
+    parts.push(`<span>지출 <strong>${fmtNum(snap.expTotal)}</strong></span>`);
+    if (snap.unsold > 0) {
+      parts.push(`<span class="summary-warn">미판매 ${snap.unsold}건 · 정산 전 확인</span>`);
+    } else if (snap.entryCount > 0 || snap.expCount > 0) {
+      parts.push(`<span>나눌 돈 <strong>${fmtNum(snap.netTotal)}</strong></span>`);
+    }
+    parts.push('<button type="button" class="ledger-summary-link" data-jump="zoneSettle">정산 보기</button>');
+    el.innerHTML = parts.join('<span aria-hidden="true"> · </span>');
+  }
+
+  function refreshLedgerJumpActive() {
+    const nav = $('ledgerJumpNav');
+    if (!nav || nav.hidden) return;
+    const navH = nav.getBoundingClientRect().height + 12;
+    let activeId = LEDGER_JUMP_ZONES[0].id;
+    let best = -Infinity;
+    LEDGER_JUMP_ZONES.forEach((z) => {
+      const zoneEl = $(z.id);
+      if (!zoneEl) return;
+      const rect = zoneEl.getBoundingClientRect();
+      const visibleTop = Math.max(rect.top, navH);
+      const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+      const visible = Math.max(0, visibleBottom - visibleTop);
+      if (visible > best) {
+        best = visible;
+        activeId = z.id;
+      }
+    });
+    $('ledgerJumpInner')?.querySelectorAll('.ledger-jump-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.jump === activeId);
+    });
+  }
+
+  function renderLedgerJumpNav() {
+    const snap = buildLedgerNavSnapshot();
+    renderLedgerCycleSummary(snap);
+    const inner = $('ledgerJumpInner');
+    if (!inner) return;
+    inner.innerHTML = LEDGER_JUMP_ZONES.map((z) => {
+      const badge = snap.badges[z.key];
+      const warn = snap.badgeWarn[z.key];
+      const cls = ['ledger-jump-btn', z.settle ? 'ledger-jump-btn--settle' : ''].filter(Boolean).join(' ');
+      return `<button type="button" class="${cls}" data-jump="${z.id}">
+        <span class="ledger-jump-label">${z.label}</span>
+        <span class="ledger-jump-badge${warn ? ' is-warn' : ''}">${escapeHtml(badge)}</span>
+      </button>`;
+    }).join('');
+    refreshLedgerJumpActive();
+  }
+
+  let ledgerJumpObserver = null;
+
+  function ensureLedgerJumpObserver() {
+    if (ledgerJumpObserver) return;
+    ledgerJumpObserver = new IntersectionObserver(() => {
+      refreshLedgerJumpActive();
+    }, { root: null, rootMargin: '-72px 0px -55% 0px', threshold: [0, 0.1, 0.2] });
+    LEDGER_JUMP_ZONES.forEach((z) => {
+      const el = $(z.id);
+      if (el) ledgerJumpObserver.observe(el);
+    });
+  }
+
   function renderCycleBar() {
     if (!state.cycles || !state.cycles.length) return;
     relabelCycles(state.cycles);
@@ -4759,8 +4992,28 @@
     renderExpenditures();
     renderSettlement();
     renderCycleBar();
+    renderLedgerJumpNav();
     updateHotIssueTodayBadge();
   }
+
+  $('ledgerJumpInner').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-jump]');
+    if (btn) scrollToLedgerZone(btn.dataset.jump);
+  });
+  $('ledgerCycleSummary').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-jump]');
+    if (btn) scrollToLedgerZone(btn.dataset.jump);
+  });
+  let ledgerJumpScrollTick = false;
+  window.addEventListener('scroll', () => {
+    if (ledgerJumpScrollTick) return;
+    ledgerJumpScrollTick = true;
+    requestAnimationFrame(() => {
+      ledgerJumpScrollTick = false;
+      refreshLedgerJumpActive();
+    });
+  }, { passive: true });
+  ensureLedgerJumpObserver();
 
   $('fExpDate').value = todayStr();
   bindMoneyInput('fExpAmount');

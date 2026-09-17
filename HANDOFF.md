@@ -105,6 +105,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
 | 상단 헤더 | `.app-header`, `.app-toolbar` — 참고/운영/링크 공유 그룹 |
+| 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `renderLedgerJumpNav`, `scrollToLedgerZone` |
 
 ### 5.1 표 CSS 주의
 
@@ -167,6 +168,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 장부 **점프 내비·회차 요약 스트립**(sticky, 구역별 뱃지, 접기 없음)
 - **2026-09-18** — 핫이슈 **글 수정**(작성란 재사용·사진 편집·`updatedAt`)
 - **2026-09-18** — 헤더 가운데 정렬·제목 **퉁퉁이 공대** · 핫이슈 **오늘 글 N 뱃지**(로컬 날짜)
 - **2026-09-17** — 핫이슈 사진 **라이트박스**(썸네일 클릭 확대, Esc/바깥 닫기)
