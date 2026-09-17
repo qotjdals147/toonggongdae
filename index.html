@@ -1016,6 +1016,13 @@
   .modal-warehouse { max-width: 560px; }
   .warehouse-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
   .warehouse-list { display: flex; flex-direction: column; gap: 10px; max-height: min(50vh, 420px); overflow-y: auto; }
+  .catalog-add-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .catalog-add-row input { flex: 1; min-width: 140px; padding: 9px 11px; border: 1.5px solid var(--line-strong); border-radius: 8px; font-size: 14px; }
+  .catalog-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff;
+  }
+  .catalog-row-name { font-weight: 600; font-size: 14px; color: var(--ink); }
   .warehouse-card {
     border: 2px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; background: #fff;
   }
@@ -1219,6 +1226,7 @@
       <div class="status-actions">
         <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
         <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
+        <button type="button" class="btn-light btn-sm" id="itemCatalogBtn" title="자주 쓰는 아이템·보석 이름">아이템 목록</button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">퉁공대 통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
       </div>
@@ -1260,7 +1268,7 @@
     <h2>인수 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 기준</span></h2>
     <p class="takeover-hint">분배 가능 템을 한 명이 인수하면, 최소가의 <strong>⅓</strong>씩 나머지 두 명에게 보냅니다. 정산 송금 안내에 합쳐서 표시돼요.</p>
     <div class="takeover-form">
-      <div class="field"><span>아이템명</span><input id="fTakeItem" type="text"></div>
+      <div class="field"><span>아이템명</span><input id="fTakeItem" type="text" list="itemCatalogList" autocomplete="off"></div>
       <div class="field"><span>경매장 최소가</span><input id="fTakeMinPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
       <div class="field"><span>인수자</span><select id="fTakeOwner"></select></div>
       <button type="button" class="btn-settle" id="takeAddBtn">인수 추가</button>
@@ -1278,7 +1286,7 @@
     <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 재련 메소만 정산</span></h2>
     <p class="takeover-hint">원석·재료는 <strong>파티 보유 재고</strong>라 정산 비용에 넣지 않아요. <strong>재련자가 낸 11/33/55만</strong>만 반영 · <strong>판매 수익</strong>은 획득 장부.</p>
     <div class="maker-form">
-      <div class="field"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
+      <div class="field"><span>보석명</span><input id="fMakerGem" type="text" list="itemCatalogList" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
       <div class="maker-form-block maker-form-block--cost">
         <div class="maker-form-block-head">
@@ -1423,7 +1431,11 @@
   <div class="modal" role="dialog">
     <h3 id="entryEditTitle">획득 기록 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>아이템명</span><input id="eEditItem" type="text"></div>
+      <div class="field"><span>아이템명</span><input id="eEditItem" type="text" list="itemCatalogList" autocomplete="off"></div>
+      <label class="entry-seller-check" style="grid-column:1/-1;margin-top:-4px;">
+        <input type="checkbox" id="eEditSaveToCatalog" checked>
+        <span>저장 시 자주 쓰는 목록에도 추가</span>
+      </label>
       <div class="field"><span>거래소 등록가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="올린 금액"></div>
       <p class="takeover-hint" id="eEditAhPreview" style="grid-column:1/-1;margin:0;"></p>
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
@@ -1462,7 +1474,7 @@
   <div class="modal" role="dialog">
     <h3>메이커 재련 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>보석명</span><input id="mEditGem" type="text"></div>
+      <div class="field"><span>보석명</span><input id="mEditGem" type="text" list="itemCatalogList" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="mEditOwner"></select></div>
       <div class="field"><span>하급 재련 횟수</span><input id="mEditRefineLow" type="number" min="0" step="1"></div>
       <div class="field"><span>중급 재련 횟수</span><input id="mEditRefineMid" type="number" min="0" step="1"></div>
@@ -1483,7 +1495,7 @@
   <div class="modal" role="dialog">
     <h3>인수 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>아이템명</span><input id="tEditItem" type="text"></div>
+      <div class="field"><span>아이템명</span><input id="tEditItem" type="text" list="itemCatalogList" autocomplete="off"></div>
       <div class="field"><span>경매장 최소가</span><input id="tEditMinPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
       <div class="field"><span>인수자</span><select id="tEditOwner"></select></div>
     </div>
@@ -1596,6 +1608,25 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="itemCatalogModal" hidden>
+  <div class="modal modal-warehouse" role="dialog" aria-labelledby="itemCatalogModalTitle">
+    <h3 id="itemCatalogModalTitle">자주 쓰는 아이템</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">풀 DB가 아니라 <strong>우리 공대만</strong> 쓰는 이름 목록이에요. 획득·인수·메이커 입력할 때 자동완성됩니다. Supabase에 같이 저장돼요.</p>
+    <div class="catalog-add-row">
+      <input id="catalogAddInput" type="text" autocomplete="off" placeholder="이름 추가 (예: 시조, 다이아몬드)">
+      <button type="button" class="btn-settle btn-sm" id="catalogAddBtn">추가</button>
+      <button type="button" class="btn-light btn-sm" id="catalogHarvestBtn" title="모든 회차 장부·인수·메이커 이름 수집">장부에서 모으기</button>
+    </div>
+    <div class="warehouse-list" id="catalogList"></div>
+    <div class="empty-state" id="catalogEmpty" style="display:none;">아직 없어요. 위에서 추가하거나 획득 저장 시 「목록에도 추가」를 켜 두세요.</div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="itemCatalogCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="itemCatalogList"></datalist>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (function () {
@@ -1635,6 +1666,7 @@
     warehouseChars: [],
     memberParcelReceive: [false, false, false],
     entryPriceBasis: 'listing',
+    itemCatalog: [],
   };
   let sortState = { column: 'date', direction: 'asc' };
   let currentExpSplit = [...DEFAULT_SPLIT];
@@ -2372,6 +2404,7 @@
       || !$('entryEditModal').hidden
       || !$('expEditModal').hidden
       || !$('takeoverEditModal').hidden
+      || !$('itemCatalogModal').hidden
       || !$('makerEditModal').hidden;
   }
 
@@ -2452,6 +2485,100 @@
     }));
   }
 
+  function normalizeItemCatalog(list) {
+    const out = [];
+    const seen = new Set();
+    (list || []).forEach((raw) => {
+      const name = String(raw && raw.name != null ? raw.name : raw || '').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ id: (raw && raw.id) || genId(), name });
+    });
+    out.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    return out;
+  }
+
+  function refreshItemCatalogDatalist() {
+    const list = $('itemCatalogList');
+    if (!list) return;
+    list.innerHTML = '';
+    (state.itemCatalog || []).forEach((item) => {
+      const opt = document.createElement('option');
+      opt.value = item.name;
+      list.appendChild(opt);
+    });
+  }
+
+  function rememberCatalogName(name) {
+    const n = String(name || '').trim();
+    if (!n) return false;
+    if (!state.itemCatalog) state.itemCatalog = [];
+    const key = n.toLowerCase();
+    if (state.itemCatalog.some((i) => i.name.toLowerCase() === key)) return false;
+    state.itemCatalog.push({ id: genId(), name: n });
+    state.itemCatalog.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    refreshItemCatalogDatalist();
+    return true;
+  }
+
+  function removeCatalogItem(id) {
+    if (!state.itemCatalog) return;
+    state.itemCatalog = state.itemCatalog.filter((i) => i.id !== id);
+    refreshItemCatalogDatalist();
+    scheduleSave();
+    renderItemCatalogList();
+  }
+
+  function harvestNamesIntoCatalog() {
+    const names = [];
+    (state.cycles || []).forEach((c) => {
+      (c.entries || []).forEach((e) => { if (e.item) names.push(String(e.item).trim()); });
+      (c.takeovers || []).forEach((t) => { if (t.item) names.push(String(t.item).trim()); });
+      (c.makerRefines || []).forEach((m) => {
+        const g = m.gemName != null ? m.gemName : m.item;
+        if (g) names.push(String(g).trim());
+      });
+    });
+    let added = 0;
+    names.forEach((n) => { if (rememberCatalogName(n)) added++; });
+    if (added > 0) scheduleSave();
+    renderItemCatalogList();
+    return added;
+  }
+
+  function renderItemCatalogList() {
+    const list = $('catalogList');
+    const empty = $('catalogEmpty');
+    if (!list) return;
+    const items = state.itemCatalog || [];
+    list.innerHTML = '';
+    empty.style.display = items.length === 0 ? 'block' : 'none';
+    items.forEach((item) => {
+      const row = document.createElement('div');
+      row.className = 'catalog-row';
+      row.innerHTML = `
+        <span class="catalog-row-name">${escapeHtml(item.name)}</span>
+        <button type="button" class="btn-row-del catalog-del-btn" data-id="${escapeHtml(item.id)}" title="목록에서 삭제" aria-label="삭제">×</button>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.catalog-del-btn').forEach((btn) => {
+      btn.addEventListener('click', () => removeCatalogItem(btn.dataset.id));
+    });
+  }
+
+  function openItemCatalogModal() {
+    renderItemCatalogList();
+    $('itemCatalogModal').hidden = false;
+    $('catalogAddInput').focus();
+  }
+
+  function closeItemCatalogModal() {
+    $('itemCatalogModal').hidden = true;
+  }
+
   function parseStoredState(raw) {
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     const next = migrateParsedToCycles(parsed);
@@ -2459,6 +2586,7 @@
     next.memberParcelReceive = normalizeMemberParcelReceive(parsed);
     next.entryPriceBasis = parsed.entryPriceBasis;
     next.entryPriceNetUpgraded = parsed.entryPriceNetUpgraded;
+    next.itemCatalog = normalizeItemCatalog(parsed.itemCatalog);
     const priceMigrated = migrateEntryPriceBasisToListing(next, parsed);
     const needsResave = (!!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length) || priceMigrated;
     return { next, needsResave };
@@ -2472,6 +2600,8 @@
       state.memberParcelReceive = normalizeMemberParcelReceive(state);
     }
     if (!state.entryPriceBasis) state.entryPriceBasis = 'listing';
+    state.itemCatalog = normalizeItemCatalog(state.itemCatalog);
+    refreshItemCatalogDatalist();
     if (!hasInitialViewFocus) {
       snapViewToActiveOpenCycle();
       hasInitialViewFocus = true;
@@ -3676,6 +3806,7 @@
     $('eEditDate').value = todayStr();
     editEntrySplit = splitForAcquirer(0);
     renderEditEntrySplitFields();
+    $('eEditSaveToCatalog').checked = true;
     updateEntryPricePreview();
     $('entryEditModal').hidden = false;
     $('eEditItem').focus();
@@ -3752,6 +3883,8 @@
       entry.status = status;
       entry.price = priceVal;
     }
+
+    if ($('eEditSaveToCatalog').checked) rememberCatalogName(item);
 
     closeEntryEdit();
     scheduleSave();
@@ -4100,6 +4233,7 @@
     renderExpenditures();
     renderSettlement();
     renderCycleBar();
+    refreshItemCatalogDatalist();
   }
 
   $('fExpDate').value = todayStr();
@@ -4250,6 +4384,26 @@
   });
 
   $('warehouseBtn').addEventListener('click', () => openWarehouseModal());
+  $('itemCatalogBtn').addEventListener('click', () => openItemCatalogModal());
+  $('itemCatalogCloseBtn').addEventListener('click', closeItemCatalogModal);
+  $('itemCatalogModal').addEventListener('click', (e) => {
+    if (e.target.id === 'itemCatalogModal') closeItemCatalogModal();
+  });
+  $('catalogAddBtn').addEventListener('click', () => {
+    const name = $('catalogAddInput').value.trim();
+    if (!name) { $('catalogAddInput').focus(); return; }
+    if (rememberCatalogName(name)) scheduleSave();
+    $('catalogAddInput').value = '';
+    renderItemCatalogList();
+    $('catalogAddInput').focus();
+  });
+  $('catalogAddInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('catalogAddBtn').click();
+  });
+  $('catalogHarvestBtn').addEventListener('click', () => {
+    const added = harvestNamesIntoCatalog();
+    alert(added > 0 ? `${added}개 이름을 목록에 추가했어요.` : '새로 넣을 이름이 없어요. (이미 목록에 있음)');
+  });
   $('warehouseCloseBtn').addEventListener('click', closeWarehouseModal);
   $('warehouseAddBtn').addEventListener('click', () => openWarehouseEdit(null));
   $('warehouseModal').addEventListener('click', (e) => {
