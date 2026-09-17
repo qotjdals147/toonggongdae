@@ -4828,6 +4828,8 @@
     const exps = viewExpenditures();
     const expCount = exps.length;
     const expTotal = exps.reduce((s, x) => s + Number(x.amount), 0);
+    const makerTotal = makerCycleCostTotal();
+    const partyNet = Math.round(entryTotal - expTotal - makerTotal);
     const txCount = (state._lastTxList || []).length;
     const hasData = entryCount > 0 || expCount > 0 || takeovers.length > 0 || maker.length > 0;
 
@@ -4848,14 +4850,19 @@
       expCount,
       entryTotal,
       expTotal,
-      netTotal: entryTotal - expTotal,
+      makerTotal,
+      partyNet,
       unsold,
       badges: {
         ledger: ledgerBadge,
         takeover: takeovers.length ? `${takeovers.length}건` : '—',
-        maker: maker.length ? `${maker.length}건` : '—',
+        maker: maker.length
+          ? (makerTotal > 0 ? `${maker.length}건 · ${fmtNum(makerTotal)}` : `${maker.length}건`)
+          : '—',
         expense: expCount ? fmtNum(expTotal) : '—',
-        settle: unsold > 0 ? '미판매 있음' : (txCount ? `송금 ${txCount}건` : (hasData ? '확인' : '—')),
+        settle: unsold > 0
+          ? '미판매 있음'
+          : (txCount ? `송금 ${txCount}건` : (hasData ? (makerTotal > 0 ? fmtNum(partyNet) : '확인') : '—')),
       },
       badgeWarn: {
         ledger: ledgerWarn,
@@ -4882,10 +4889,17 @@
     const parts = [];
     parts.push(`<span>판매 실수령 <strong>${fmtNum(snap.entryTotal)}</strong></span>`);
     parts.push(`<span>지출 <strong>${fmtNum(snap.expTotal)}</strong></span>`);
+    if (snap.makerTotal > 0) {
+      parts.push(`<span title="재련 메소만 · 정산과 동일">재련 메소 <strong>${fmtNum(snap.makerTotal)}</strong></span>`);
+    }
     if (snap.unsold > 0) {
       parts.push(`<span class="summary-warn">미판매 ${snap.unsold}건 · 정산 전 확인</span>`);
-    } else if (snap.entryCount > 0 || snap.expCount > 0) {
-      parts.push(`<span>나눌 돈 <strong>${fmtNum(snap.netTotal)}</strong></span>`);
+    } else if (snap.entryCount > 0 || snap.expCount > 0 || snap.makerTotal > 0) {
+      const netLabel = snap.makerTotal > 0 ? '순수익 (메이커 반영)' : '나눌 돈';
+      const netHint = snap.makerTotal > 0
+        ? ' title="판매 실수령 − 지출 − 재련 메소 · 정산 「메이커 포함 순수익」과 같음"'
+        : ' title="판매 실수령 − 지출"';
+      parts.push(`<span${netHint}>${netLabel} <strong>${fmtNum(snap.partyNet)}</strong></span>`);
     }
     parts.push('<button type="button" class="ledger-summary-link" data-jump="zoneSettle">정산 보기</button>');
     el.innerHTML = parts.join('<span aria-hidden="true"> · </span>');
