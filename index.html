@@ -1022,7 +1022,23 @@
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff;
   }
-  .catalog-row-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .catalog-row-name { font-weight: 600; font-size: 14px; color: var(--ink); flex: 1; min-width: 0; }
+  .catalog-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .catalog-row-icon { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+  .field.field-ac { position: relative; }
+  .item-ac-menu {
+    position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% - 2px);
+    max-height: 220px; overflow-y: auto; margin: 0; padding: 4px 0; list-style: none;
+    background: #fff; border: 1.5px solid var(--line-strong); border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  }
+  .item-ac-menu[hidden] { display: none; }
+  .item-ac-option {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 14px;
+  }
+  .item-ac-option:hover, .item-ac-option.item-ac-active { background: var(--surface-muted); }
+  .item-ac-icon { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+  .item-ac-icon--empty { width: 32px; height: 32px; flex-shrink: 0; }
   .warehouse-card {
     border: 2px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; background: #fff;
   }
@@ -1226,7 +1242,7 @@
       <div class="status-actions">
         <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
         <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
-        <button type="button" class="btn-light btn-sm" id="itemCatalogBtn" title="자주 쓰는 아이템·보석 이름">아이템 목록</button>
+        <button type="button" class="btn-light btn-sm" id="itemCatalogBtn" title="이름·아이콘(아이템 ID) 등록">아이템 목록</button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">퉁공대 통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 복사</button>
       </div>
@@ -1268,7 +1284,7 @@
     <h2>인수 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 경매장 최소가 기준</span></h2>
     <p class="takeover-hint">분배 가능 템을 한 명이 인수하면, 최소가의 <strong>⅓</strong>씩 나머지 두 명에게 보냅니다. 정산 송금 안내에 합쳐서 표시돼요.</p>
     <div class="takeover-form">
-      <div class="field"><span>아이템명</span><input id="fTakeItem" type="text" list="itemCatalogList" autocomplete="off"></div>
+      <div class="field field-ac"><span>아이템명</span><input id="fTakeItem" type="text" autocomplete="off"></div>
       <div class="field"><span>경매장 최소가</span><input id="fTakeMinPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
       <div class="field"><span>인수자</span><select id="fTakeOwner"></select></div>
       <button type="button" class="btn-settle" id="takeAddBtn">인수 추가</button>
@@ -1286,7 +1302,7 @@
     <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 재련 메소만 정산</span></h2>
     <p class="takeover-hint">원석·재료는 <strong>파티 보유 재고</strong>라 정산 비용에 넣지 않아요. <strong>재련자가 낸 11/33/55만</strong>만 반영 · <strong>판매 수익</strong>은 획득 장부.</p>
     <div class="maker-form">
-      <div class="field"><span>보석명</span><input id="fMakerGem" type="text" list="itemCatalogList" autocomplete="off"></div>
+      <div class="field field-ac"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
       <div class="maker-form-block maker-form-block--cost">
         <div class="maker-form-block-head">
@@ -1431,11 +1447,7 @@
   <div class="modal" role="dialog">
     <h3 id="entryEditTitle">획득 기록 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>아이템명</span><input id="eEditItem" type="text" list="itemCatalogList" autocomplete="off"></div>
-      <label class="entry-seller-check" style="grid-column:1/-1;margin-top:-4px;">
-        <input type="checkbox" id="eEditSaveToCatalog" checked>
-        <span>저장 시 자주 쓰는 목록에도 추가</span>
-      </label>
+      <div class="field field-ac"><span>아이템명</span><input id="eEditItem" type="text" autocomplete="off"></div>
       <div class="field"><span>거래소 등록가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="올린 금액"></div>
       <p class="takeover-hint" id="eEditAhPreview" style="grid-column:1/-1;margin:0;"></p>
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
@@ -1474,7 +1486,7 @@
   <div class="modal" role="dialog">
     <h3>메이커 재련 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>보석명</span><input id="mEditGem" type="text" list="itemCatalogList" autocomplete="off"></div>
+      <div class="field field-ac"><span>보석명</span><input id="mEditGem" type="text" autocomplete="off"></div>
       <div class="field"><span>재련자</span><select id="mEditOwner"></select></div>
       <div class="field"><span>하급 재련 횟수</span><input id="mEditRefineLow" type="number" min="0" step="1"></div>
       <div class="field"><span>중급 재련 횟수</span><input id="mEditRefineMid" type="number" min="0" step="1"></div>
@@ -1495,7 +1507,7 @@
   <div class="modal" role="dialog">
     <h3>인수 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>아이템명</span><input id="tEditItem" type="text" list="itemCatalogList" autocomplete="off"></div>
+      <div class="field field-ac"><span>아이템명</span><input id="tEditItem" type="text" autocomplete="off"></div>
       <div class="field"><span>경매장 최소가</span><input id="tEditMinPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
       <div class="field"><span>인수자</span><select id="tEditOwner"></select></div>
     </div>
@@ -1610,22 +1622,20 @@
 
 <div class="modal-backdrop" id="itemCatalogModal" hidden>
   <div class="modal modal-warehouse" role="dialog" aria-labelledby="itemCatalogModalTitle">
-    <h3 id="itemCatalogModalTitle">자주 쓰는 아이템</h3>
-    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">풀 DB가 아니라 <strong>우리 공대만</strong> 쓰는 이름 목록이에요. 획득·인수·메이커 입력할 때 자동완성됩니다. Supabase에 같이 저장돼요.</p>
+    <h3 id="itemCatalogModalTitle">아이템 목록</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">표시 이름 + <strong>아이템 ID</strong>(아이콘용, 선택). 스탯 없음 · 공대원과 공유.</p>
     <div class="catalog-add-row">
-      <input id="catalogAddInput" type="text" autocomplete="off" placeholder="이름 추가 (예: 시조, 다이아몬드)">
+      <input id="catalogAddInput" type="text" autocomplete="off" placeholder="이름 (예: 다이아몬드)">
+      <input id="catalogAddItemId" type="text" inputmode="numeric" autocomplete="off" placeholder="ID (선택)" style="max-width:120px;">
       <button type="button" class="btn-settle btn-sm" id="catalogAddBtn">추가</button>
-      <button type="button" class="btn-light btn-sm" id="catalogHarvestBtn" title="모든 회차 장부·인수·메이커 이름 수집">장부에서 모으기</button>
     </div>
     <div class="warehouse-list" id="catalogList"></div>
-    <div class="empty-state" id="catalogEmpty" style="display:none;">아직 없어요. 위에서 추가하거나 획득 저장 시 「목록에도 추가」를 켜 두세요.</div>
+    <div class="empty-state" id="catalogEmpty" style="display:none;">목록이 비어 있어요.</div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="itemCatalogCloseBtn">닫기</button>
     </div>
   </div>
 </div>
-
-<datalist id="itemCatalogList"></datalist>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1657,6 +1667,9 @@
   const MAKER_REFINE_MESO = { low: 110_000, mid: 330_000, high: 550_000 };
   /** 거래소 성사액(등록가) 기준 판매 수수료 */
   const AH_SALE_FEE_RATE = 0.05;
+  /** 아이콘만 MapleStory.io CDN (비공식). ID·버전이 안 맞으면 아이콘만 안 나옴 */
+  const ITEM_ICON_IO_REGION = 'gms';
+  const ITEM_ICON_IO_VERSION = 'latest';
 
   let state = {
     members: [...DEFAULT_MEMBERS],
@@ -2485,6 +2498,12 @@
     }));
   }
 
+  function parseCatalogItemId(raw) {
+    if (raw == null || raw === '') return null;
+    const n = Math.round(Number(String(raw).replace(/[^\d]/g, '')));
+    return n > 0 ? n : null;
+  }
+
   function normalizeItemCatalog(list) {
     const out = [];
     const seen = new Set();
@@ -2494,58 +2513,63 @@
       const key = name.toLowerCase();
       if (seen.has(key)) return;
       seen.add(key);
-      out.push({ id: (raw && raw.id) || genId(), name });
+      out.push({
+        id: (raw && raw.id) || genId(),
+        name,
+        itemId: parseCatalogItemId(raw && raw.itemId)
+      });
     });
     out.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     return out;
   }
 
-  function refreshItemCatalogDatalist() {
-    const list = $('itemCatalogList');
-    if (!list) return;
-    list.innerHTML = '';
-    (state.itemCatalog || []).forEach((item) => {
-      const opt = document.createElement('option');
-      opt.value = item.name;
-      list.appendChild(opt);
-    });
+  function itemIconUrl(itemId) {
+    const id = parseCatalogItemId(itemId);
+    if (!id) return '';
+    return `https://maplestory.io/api/${ITEM_ICON_IO_REGION}/${ITEM_ICON_IO_VERSION}/item/${id}/icon`;
   }
 
-  function rememberCatalogName(name) {
+  function catalogIconHtml(itemId, cls) {
+    const url = itemIconUrl(itemId);
+    const c = cls || 'catalog-row-icon';
+    if (!url) return `<span class="item-ac-icon--empty ${c}" aria-hidden="true"></span>`;
+    return `<img src="${url}" alt="" class="${c}" loading="lazy" decoding="async" onerror="this.hidden=true">`;
+  }
+
+  function filterCatalogItems(query, limit) {
+    const q = String(query || '').trim().toLowerCase();
+    const max = limit != null ? limit : 12;
+    let items = state.itemCatalog || [];
+    if (q) {
+      items = items.filter((i) => i.name.toLowerCase().includes(q));
+    }
+    return items.slice(0, max);
+  }
+
+  function addCatalogItem(name, itemId) {
     const n = String(name || '').trim();
     if (!n) return false;
     if (!state.itemCatalog) state.itemCatalog = [];
     const key = n.toLowerCase();
-    if (state.itemCatalog.some((i) => i.name.toLowerCase() === key)) return false;
-    state.itemCatalog.push({ id: genId(), name: n });
+    const idNum = parseCatalogItemId(itemId);
+    const existing = state.itemCatalog.find((i) => i.name.toLowerCase() === key);
+    if (existing) {
+      if (idNum && !existing.itemId) existing.itemId = idNum;
+      else if (idNum && existing.itemId !== idNum) existing.itemId = idNum;
+      else return false;
+      state.itemCatalog.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      return true;
+    }
+    state.itemCatalog.push({ id: genId(), name: n, itemId: idNum });
     state.itemCatalog.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    refreshItemCatalogDatalist();
     return true;
   }
 
   function removeCatalogItem(id) {
     if (!state.itemCatalog) return;
     state.itemCatalog = state.itemCatalog.filter((i) => i.id !== id);
-    refreshItemCatalogDatalist();
     scheduleSave();
     renderItemCatalogList();
-  }
-
-  function harvestNamesIntoCatalog() {
-    const names = [];
-    (state.cycles || []).forEach((c) => {
-      (c.entries || []).forEach((e) => { if (e.item) names.push(String(e.item).trim()); });
-      (c.takeovers || []).forEach((t) => { if (t.item) names.push(String(t.item).trim()); });
-      (c.makerRefines || []).forEach((m) => {
-        const g = m.gemName != null ? m.gemName : m.item;
-        if (g) names.push(String(g).trim());
-      });
-    });
-    let added = 0;
-    names.forEach((n) => { if (rememberCatalogName(n)) added++; });
-    if (added > 0) scheduleSave();
-    renderItemCatalogList();
-    return added;
   }
 
   function renderItemCatalogList() {
@@ -2558,15 +2582,101 @@
     items.forEach((item) => {
       const row = document.createElement('div');
       row.className = 'catalog-row';
+      const idLabel = item.itemId ? `<span style="font-size:11px;color:var(--ink-soft);">ID ${item.itemId}</span>` : '';
       row.innerHTML = `
-        <span class="catalog-row-name">${escapeHtml(item.name)}</span>
-        <button type="button" class="btn-row-del catalog-del-btn" data-id="${escapeHtml(item.id)}" title="목록에서 삭제" aria-label="삭제">×</button>
+        <div class="catalog-row-left">
+          ${catalogIconHtml(item.itemId, 'catalog-row-icon')}
+          <span class="catalog-row-name">${escapeHtml(item.name)} ${idLabel}</span>
+        </div>
+        <button type="button" class="btn-row-del catalog-del-btn" data-id="${escapeHtml(item.id)}" title="삭제" aria-label="삭제">×</button>
       `;
       list.appendChild(row);
     });
     list.querySelectorAll('.catalog-del-btn').forEach((btn) => {
       btn.addEventListener('click', () => removeCatalogItem(btn.dataset.id));
     });
+  }
+
+  function attachCatalogAutocomplete(inputId) {
+    const input = $(inputId);
+    if (!input || input.dataset.catalogAc === '1') return;
+    input.dataset.catalogAc = '1';
+    const field = input.closest('.field') || input.parentElement;
+    if (field && !field.classList.contains('field-ac')) field.classList.add('field-ac');
+    const menu = document.createElement('ul');
+    menu.className = 'item-ac-menu';
+    menu.hidden = true;
+    menu.setAttribute('role', 'listbox');
+    field.appendChild(menu);
+    let activeIdx = -1;
+
+    function closeMenu() {
+      menu.hidden = true;
+      activeIdx = -1;
+    }
+
+    function pick(item) {
+      input.value = item.name;
+      closeMenu();
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function renderMenu() {
+      const items = filterCatalogItems(input.value, 12);
+      menu.innerHTML = '';
+      if (items.length === 0) {
+        closeMenu();
+        return;
+      }
+      items.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = 'item-ac-option';
+        li.setAttribute('role', 'option');
+        li.innerHTML = `${catalogIconHtml(item.itemId, 'item-ac-icon')}<span>${escapeHtml(item.name)}</span>`;
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          pick(item);
+        });
+        li.addEventListener('mouseenter', () => {
+          activeIdx = idx;
+          menu.querySelectorAll('.item-ac-option').forEach((el, i) => {
+            el.classList.toggle('item-ac-active', i === activeIdx);
+          });
+        });
+        menu.appendChild(li);
+      });
+      menu.hidden = false;
+      activeIdx = 0;
+      menu.querySelector('.item-ac-option')?.classList.add('item-ac-active');
+    }
+
+    input.addEventListener('input', () => renderMenu());
+    input.addEventListener('focus', () => {
+      if ((state.itemCatalog || []).length) renderMenu();
+    });
+    input.addEventListener('blur', () => { setTimeout(closeMenu, 120); });
+    input.addEventListener('keydown', (e) => {
+      if (menu.hidden) return;
+      const opts = [...menu.querySelectorAll('.item-ac-option')];
+      if (e.key === 'Escape') { closeMenu(); return; }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = Math.min(activeIdx + 1, opts.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = Math.max(activeIdx - 1, 0);
+      } else if (e.key === 'Enter' && activeIdx >= 0) {
+        e.preventDefault();
+        const items = filterCatalogItems(input.value, 12);
+        if (items[activeIdx]) pick(items[activeIdx]);
+        return;
+      } else return;
+      opts.forEach((el, i) => el.classList.toggle('item-ac-active', i === activeIdx));
+    });
+  }
+
+  function wireCatalogAutocompletes() {
+    ['eEditItem', 'fTakeItem', 'fMakerGem', 'mEditGem', 'tEditItem'].forEach(attachCatalogAutocomplete);
   }
 
   function openItemCatalogModal() {
@@ -2601,7 +2711,6 @@
     }
     if (!state.entryPriceBasis) state.entryPriceBasis = 'listing';
     state.itemCatalog = normalizeItemCatalog(state.itemCatalog);
-    refreshItemCatalogDatalist();
     if (!hasInitialViewFocus) {
       snapViewToActiveOpenCycle();
       hasInitialViewFocus = true;
@@ -3806,7 +3915,6 @@
     $('eEditDate').value = todayStr();
     editEntrySplit = splitForAcquirer(0);
     renderEditEntrySplitFields();
-    $('eEditSaveToCatalog').checked = true;
     updateEntryPricePreview();
     $('entryEditModal').hidden = false;
     $('eEditItem').focus();
@@ -3883,8 +3991,6 @@
       entry.status = status;
       entry.price = priceVal;
     }
-
-    if ($('eEditSaveToCatalog').checked) rememberCatalogName(item);
 
     closeEntryEdit();
     scheduleSave();
@@ -4233,7 +4339,6 @@
     renderExpenditures();
     renderSettlement();
     renderCycleBar();
-    refreshItemCatalogDatalist();
   }
 
   $('fExpDate').value = todayStr();
@@ -4391,19 +4496,18 @@
   });
   $('catalogAddBtn').addEventListener('click', () => {
     const name = $('catalogAddInput').value.trim();
+    const itemId = $('catalogAddItemId').value;
     if (!name) { $('catalogAddInput').focus(); return; }
-    if (rememberCatalogName(name)) scheduleSave();
+    if (addCatalogItem(name, itemId)) scheduleSave();
     $('catalogAddInput').value = '';
+    $('catalogAddItemId').value = '';
     renderItemCatalogList();
     $('catalogAddInput').focus();
   });
   $('catalogAddInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('catalogAddBtn').click();
   });
-  $('catalogHarvestBtn').addEventListener('click', () => {
-    const added = harvestNamesIntoCatalog();
-    alert(added > 0 ? `${added}개 이름을 목록에 추가했어요.` : '새로 넣을 이름이 없어요. (이미 목록에 있음)');
-  });
+  wireCatalogAutocompletes();
   $('warehouseCloseBtn').addEventListener('click', closeWarehouseModal);
   $('warehouseAddBtn').addEventListener('click', () => openWarehouseEdit(null));
   $('warehouseModal').addEventListener('click', (e) => {
