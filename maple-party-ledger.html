@@ -1178,15 +1178,73 @@
     gap: 8px;
     margin-top: 10px;
   }
-  .hot-post-imgs a {
+  .hot-post-imgs .hot-post-img-btn {
     display: block;
     width: 96px;
     height: 96px;
+    padding: 0;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--line);
+    background: none;
+    cursor: zoom-in;
   }
-  .hot-post-imgs img { width: 100%; height: 100%; object-fit: cover; }
+  .hot-post-imgs .hot-post-img-btn:hover { border-color: var(--settle); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }
+  .hot-post-imgs img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .hot-draft-thumb { cursor: zoom-in; }
+  .hot-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(15, 23, 42, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 52px 16px 16px;
+    box-sizing: border-box;
+  }
+  .hot-lightbox[hidden] { display: none; }
+  .hot-lightbox-inner {
+    max-width: min(96vw, 960px);
+    max-height: min(88vh, 900px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hot-lightbox-inner img {
+    max-width: 100%;
+    max-height: min(88vh, 900px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  }
+  .hot-lightbox-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .hot-lightbox-close:hover { background: rgba(255, 255, 255, 0.22); }
+  .hot-lightbox-hint {
+    position: absolute;
+    bottom: 14px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.65);
+  }
   .warehouse-card {
     border: 2px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; background: #fff;
   }
@@ -1802,6 +1860,14 @@
       <button type="button" class="btn-light" id="hotIssueCloseBtn">닫기</button>
     </div>
   </div>
+</div>
+
+<div class="hot-lightbox" id="hotIssueLightbox" hidden role="dialog" aria-modal="true" aria-label="사진 크게 보기">
+  <button type="button" class="hot-lightbox-close" id="hotIssueLightboxClose" aria-label="닫기">×</button>
+  <div class="hot-lightbox-inner" id="hotIssueLightboxInner">
+    <img id="hotIssueLightboxImg" alt="">
+  </div>
+  <p class="hot-lightbox-hint">바깥 클릭 또는 Esc 로 닫기</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -2752,6 +2818,24 @@
       : `최대 ${HOT_ISSUE_MAX_IMAGES}장 · 자동 축소 저장 · Ctrl+V 붙여넣기`;
   }
 
+  function openHotIssueLightbox(src, alt) {
+    if (!src) return;
+    const lb = $('hotIssueLightbox');
+    const img = $('hotIssueLightboxImg');
+    img.src = src;
+    img.alt = alt || '첨부 사진';
+    lb.hidden = false;
+  }
+
+  function closeHotIssueLightbox() {
+    const lb = $('hotIssueLightbox');
+    if (!lb || lb.hidden) return;
+    lb.hidden = true;
+    const img = $('hotIssueLightboxImg');
+    img.removeAttribute('src');
+    img.alt = '';
+  }
+
   function renderHotIssueDraftImgs() {
     const wrap = $('hotIssueDraftImgs');
     if (!wrap) return;
@@ -2759,12 +2843,25 @@
     hotIssueDraftImages.forEach((url, idx) => {
       const div = document.createElement('div');
       div.className = 'hot-draft-thumb';
-      div.innerHTML = `<img src="${url}" alt=""><button type="button" aria-label="첨부 삭제">×</button>`;
-      div.querySelector('button').addEventListener('click', () => {
+      const thumbImg = document.createElement('img');
+      thumbImg.src = url;
+      thumbImg.alt = '첨부 미리보기';
+      thumbImg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openHotIssueLightbox(url, thumbImg.alt);
+      });
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.setAttribute('aria-label', '첨부 삭제');
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         hotIssueDraftImages.splice(idx, 1);
         renderHotIssueDraftImgs();
         updateHotIssueComposeHint();
       });
+      div.appendChild(thumbImg);
+      div.appendChild(delBtn);
       wrap.appendChild(div);
     });
   }
@@ -2787,20 +2884,36 @@
     posts.forEach((post) => {
       const card = document.createElement('article');
       card.className = 'hot-post';
-      const imgs = (post.images || []).map((src, i) =>
-        `<a href="${src}" target="_blank" rel="noopener noreferrer" title="크게 보기"><img src="${src}" alt="첨부 ${i + 1}"></a>`
-      ).join('');
-      const bodyHtml = post.text
-        ? `<div class="hot-post-body">${escapeHtml(post.text)}</div>`
-        : '';
-      card.innerHTML = `
-        <div class="hot-post-head">
-          <span class="hot-post-when">${escapeHtml(formatHotIssueWhen(post.createdAt))}</span>
-          <button type="button" class="btn-row-del hot-post-del" data-id="${escapeHtml(post.id)}" title="삭제" aria-label="삭제">×</button>
-        </div>
-        ${bodyHtml}
-        ${imgs ? `<div class="hot-post-imgs">${imgs}</div>` : ''}
+      const head = document.createElement('div');
+      head.className = 'hot-post-head';
+      head.innerHTML = `
+        <span class="hot-post-when">${escapeHtml(formatHotIssueWhen(post.createdAt))}</span>
+        <button type="button" class="btn-row-del hot-post-del" data-id="${escapeHtml(post.id)}" title="삭제" aria-label="삭제">×</button>
       `;
+      card.appendChild(head);
+      if (post.text) {
+        const body = document.createElement('div');
+        body.className = 'hot-post-body';
+        body.textContent = post.text;
+        card.appendChild(body);
+      }
+      if (post.images && post.images.length) {
+        const imgsWrap = document.createElement('div');
+        imgsWrap.className = 'hot-post-imgs';
+        post.images.forEach((src, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'hot-post-img-btn';
+          btn.title = '크게 보기';
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = `첨부 ${i + 1}`;
+          btn.appendChild(img);
+          btn.addEventListener('click', () => openHotIssueLightbox(src, img.alt));
+          imgsWrap.appendChild(btn);
+        });
+        card.appendChild(imgsWrap);
+      }
       feed.appendChild(card);
     });
     feed.querySelectorAll('.hot-post-del').forEach((btn) => {
@@ -2821,6 +2934,7 @@
   }
 
   function closeHotIssueModal() {
+    closeHotIssueLightbox();
     $('hotIssueModal').hidden = true;
   }
 
@@ -4681,6 +4795,16 @@
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       postHotIssue();
+    }
+  });
+  $('hotIssueLightboxClose').addEventListener('click', closeHotIssueLightbox);
+  $('hotIssueLightbox').addEventListener('click', (e) => {
+    if (e.target.id === 'hotIssueLightbox' || e.target.id === 'hotIssueLightboxInner') closeHotIssueLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('hotIssueLightbox') && !$('hotIssueLightbox').hidden) {
+      e.preventDefault();
+      closeHotIssueLightbox();
     }
   });
   $('warehouseCloseBtn').addEventListener('click', closeWarehouseModal);
