@@ -1204,7 +1204,14 @@
     gap: 8px;
     margin-bottom: 8px;
   }
+  .hot-post-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .hot-post--editing {
+    border-color: var(--settle);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+  .hot-compose.is-editing { border-color: var(--settle); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12); }
   .hot-post-when { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .hot-post-edited { font-weight: 500; color: var(--ink-soft); opacity: 0.85; }
   .hot-post-body {
     font-size: 14px;
     line-height: 1.55;
@@ -1889,6 +1896,7 @@
         <input type="file" id="hotIssueFile" accept="image/*" multiple hidden>
         <button type="button" class="btn-light btn-sm" id="hotIssueAttachBtn">사진 첨부</button>
         <span class="hot-compose-hint" id="hotIssueComposeHint">최대 4장 · 자동 축소 저장</span>
+        <button type="button" class="btn-light btn-sm" id="hotIssueEditCancelBtn" hidden>수정 취소</button>
         <button type="button" class="btn-settle btn-sm" id="hotIssuePostBtn">등록</button>
       </div>
     </div>
@@ -1952,6 +1960,7 @@
     hotIssues: [],
   };
   let hotIssueDraftImages = [];
+  let editingHotIssueId = null;
   let sortState = { column: 'date', direction: 'asc' };
   let currentExpSplit = [...DEFAULT_SPLIT];
   let saveTimeout = null;
@@ -2777,9 +2786,11 @@
         .filter((u) => typeof u === 'string' && u.startsWith('data:image/'))
         .slice(0, HOT_ISSUE_MAX_IMAGES);
       if (!text && !images.length) return;
+      const updatedAt = raw && raw.updatedAt ? String(raw.updatedAt) : null;
       out.push({
         id: (raw && raw.id) || genId(),
         createdAt: (raw && raw.createdAt) || new Date().toISOString(),
+        updatedAt: updatedAt || null,
         text,
         images
       });
@@ -2944,12 +2955,44 @@
     });
   }
 
+  function updateHotIssueComposeModeUi() {
+    const editing = !!editingHotIssueId;
+    const postBtn = $('hotIssuePostBtn');
+    const cancelBtn = $('hotIssueEditCancelBtn');
+    const compose = document.querySelector('.hot-compose');
+    if (postBtn) postBtn.textContent = editing ? '저장' : '등록';
+    if (cancelBtn) cancelBtn.hidden = !editing;
+    if (compose) compose.classList.toggle('is-editing', editing);
+  }
+
+  function cancelHotIssueEdit() {
+    editingHotIssueId = null;
+    resetHotIssueCompose();
+    renderHotIssueFeed();
+  }
+
+  function startHotIssueEdit(id) {
+    const post = (state.hotIssues || []).find((p) => p.id === id);
+    if (!post) return;
+    editingHotIssueId = id;
+    $('hotIssueCompose').value = post.text || '';
+    hotIssueDraftImages = (post.images || []).slice();
+    renderHotIssueDraftImgs();
+    updateHotIssueComposeHint();
+    updateHotIssueComposeModeUi();
+    renderHotIssueFeed();
+    $('hotIssueCompose').focus();
+    document.querySelector('.hot-compose')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   function resetHotIssueCompose() {
+    editingHotIssueId = null;
     hotIssueDraftImages = [];
     $('hotIssueCompose').value = '';
     renderHotIssueDraftImgs();
     updateHotIssueComposeHint();
     $('hotIssueFile').value = '';
+    updateHotIssueComposeModeUi();
   }
 
   function renderHotIssueFeed() {
@@ -2961,12 +3004,17 @@
     empty.style.display = posts.length === 0 ? 'block' : 'none';
     posts.forEach((post) => {
       const card = document.createElement('article');
-      card.className = 'hot-post';
+      card.className = 'hot-post' + (post.id === editingHotIssueId ? ' hot-post--editing' : '');
+      const whenLabel = escapeHtml(formatHotIssueWhen(post.createdAt))
+        + (post.updatedAt ? ` <span class="hot-post-edited">· 수정 ${escapeHtml(formatHotIssueWhen(post.updatedAt))}</span>` : '');
       const head = document.createElement('div');
       head.className = 'hot-post-head';
       head.innerHTML = `
-        <span class="hot-post-when">${escapeHtml(formatHotIssueWhen(post.createdAt))}</span>
-        <button type="button" class="btn-row-del hot-post-del" data-id="${escapeHtml(post.id)}" title="삭제" aria-label="삭제">×</button>
+        <span class="hot-post-when">${whenLabel}</span>
+        <div class="hot-post-actions">
+          <button type="button" class="btn-row-edit hot-post-edit" data-id="${escapeHtml(post.id)}">수정</button>
+          <button type="button" class="btn-row-del hot-post-del" data-id="${escapeHtml(post.id)}" title="삭제" aria-label="삭제">×</button>
+        </div>
       `;
       card.appendChild(head);
       if (post.text) {
@@ -2994,11 +3042,16 @@
       }
       feed.appendChild(card);
     });
+    feed.querySelectorAll('.hot-post-edit').forEach((btn) => {
+      btn.addEventListener('click', () => startHotIssueEdit(btn.dataset.id));
+    });
     feed.querySelectorAll('.hot-post-del').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (!confirm('이 핫이슈를 삭제할까요?')) return;
+        if (editingHotIssueId === btn.dataset.id) editingHotIssueId = null;
         state.hotIssues = (state.hotIssues || []).filter((p) => p.id !== btn.dataset.id);
         scheduleSave();
+        resetHotIssueCompose();
         renderHotIssueFeed();
         updateHotIssueTodayBadge();
       });
@@ -3014,6 +3067,7 @@
 
   function closeHotIssueModal() {
     closeHotIssueLightbox();
+    cancelHotIssueEdit();
     $('hotIssueModal').hidden = true;
   }
 
@@ -3025,12 +3079,24 @@
       return;
     }
     if (!state.hotIssues) state.hotIssues = [];
-    state.hotIssues.unshift({
-      id: genId(),
-      createdAt: new Date().toISOString(),
-      text,
-      images
-    });
+    if (editingHotIssueId) {
+      const post = state.hotIssues.find((p) => p.id === editingHotIssueId);
+      if (!post) {
+        cancelHotIssueEdit();
+        return;
+      }
+      post.text = text;
+      post.images = images;
+      post.updatedAt = new Date().toISOString();
+    } else {
+      state.hotIssues.unshift({
+        id: genId(),
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        text,
+        images
+      });
+    }
     scheduleSave();
     resetHotIssueCompose();
     renderHotIssueFeed();
@@ -4850,6 +4916,7 @@
     if (e.target.id === 'hotIssueModal') closeHotIssueModal();
   });
   $('hotIssuePostBtn').addEventListener('click', () => postHotIssue());
+  $('hotIssueEditCancelBtn').addEventListener('click', () => cancelHotIssueEdit());
   $('hotIssueAttachBtn').addEventListener('click', () => $('hotIssueFile').click());
   $('hotIssueFile').addEventListener('change', async () => {
     const files = [...($('hotIssueFile').files || [])];
