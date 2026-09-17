@@ -1,0 +1,25 @@
+---
+description: 메이플 아이템 아이콘·이름 데이터 — 추출 수단 (풀 DB 없이)
+globs: index.html
+alwaysApply: false
+---
+
+# 아이템 아이콘·이름 (경량)
+
+## 현재 사이트
+
+- `state.itemCatalog`: `{ name, itemId? }` — **스탯 없음**
+- 아이콘: `https://maplestory.io/api/gms/latest/item/{id}/icon` (상수 `ITEM_ICON_IO_*`)
+- UI: `attachCatalogAutocomplete`, 모달 `#itemCatalogModal`
+
+## 아이콘 구하는 방법 (우선순위)
+
+1. **수동 ID + MapleStory.io** — 목록에 ID 등록 (지금 방식)
+2. **Self-host** — WZ/툴로 PNG → `image/items/{id}.png` (100개 미만에 적합)
+3. **WZ 파이프라인** — MapleLib, DumpItems → JSON (풀 DB; **요청 없으면 안 함**)
+4. **타 사이트 DB** — 참고만; 크롤링·전체 임베드 금지
+
+## 확장 시
+
+- 메이플랜드 ≠ gms/latest 일 수 있음 → version 조정 또는 self-host
+- 상세: **`HANDOFF.md` §6**

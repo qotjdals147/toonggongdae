@@ -1,0 +1,34 @@
+---
+description: 퉁공대 장부 — 질문 vs 구현, commit/push, 파일 동기화
+alwaysApply: true
+---
+
+# 퉁공대 장부 워크플로
+
+## 인수인계
+
+- 새 세션·큰 작업 전 **`HANDOFF.md`** (repo 루트)를 읽고 맥락 맞출 것.
+
+## 질문 vs 구현
+
+- **질문만** (가능해?, 왜?, 어디서?, 설명해줘, ~인가요?) → **답변만.** 코드 수정·commit·push **금지.**
+- **구현 요청** (해줘, 적용, 만들어, 고쳐, 추가, push까지 등 **명시적 작업 지시**) → 그때만 코드 변경.
+
+## 코드 변경 시
+
+- 소스: **`index.html`만** 편집 (단일 페이지 앱).
+- 반드시 **`maple-party-ledger.html`** 을 `index.html`과 동일하게 복사.
+- 금액·정산: `HANDOFF.md` §4 (등록가, 5% 3등분, 메이커 meso only, `entryPriceBasis` 유지).
+
+## Git (구현 작업을 마친 뒤)
+
+1. `git add` (관련 파일만)
+2. `git commit` — 한국어, why 중심
+3. **`git push origin main`** — GitHub Pages 반영을 위해 **구현 완료 시 항상 push**
+- 사용자가 **commit만** 또는 **push 하지 마**라고 하면 그에 따름.
+
+## 금지
+
+- 질문-only 턴에 “미리” 기능 추가·push
+- `git config` 변경, force push to main
+- `<td>`에 flex 직접 적용 (표 격자 깨짐)
