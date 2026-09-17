@@ -4895,9 +4895,9 @@
     if (snap.unsold > 0) {
       parts.push(`<span class="summary-warn">미판매 ${snap.unsold}건 · 정산 전 확인</span>`);
     } else if (snap.entryCount > 0 || snap.expCount > 0 || snap.makerTotal > 0) {
-      const netLabel = snap.makerTotal > 0 ? '순수익 (메이커 반영)' : '나눌 돈';
+      const netLabel = snap.makerTotal > 0 ? '순수익' : '나눌 돈';
       const netHint = snap.makerTotal > 0
-        ? ' title="판매 실수령 − 지출 − 재련 메소 · 정산 「메이커 포함 순수익」과 같음"'
+        ? ' title="판매 실수령 − 지출 − 재련 메소"'
         : ' title="판매 실수령 − 지출"';
       parts.push(`<span${netHint}>${netLabel} <strong>${fmtNum(snap.partyNet)}</strong></span>`);
     }
