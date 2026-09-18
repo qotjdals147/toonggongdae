@@ -854,6 +854,13 @@
     font-weight: 600;
     min-width: 92px;
   }
+  .ch-row-xp-wrap .ch-row-xp {
+    width: 96px;
+    padding: 6px 8px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 8px;
+    font-size: 13px;
+  }
   .ch-admin-section-title {
     margin: 14px 0 6px;
     font-size: 13px;
@@ -2620,7 +2627,7 @@
           </div>
           <p style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);"><strong>아이템 추가</strong> 탭에 등록된 이름만 도전 조건으로 쓸 수 있어요.</p>
         </div>
-        <div class="field"><span>XP 보상</span><input id="chAdminXp" type="number" min="0" value="120"></div>
+        <div class="field"><span>도전 완료 XP</span><input id="chAdminXp" type="number" min="0" step="1" value="120" title="달성 시 훈장 + 경험치 내역(훈장·도전)"></div>
         <div class="field" style="grid-column:1/-1;">
           <span>뱃지 배경색</span>
           <div class="ch-badge-color-field">
@@ -3080,6 +3087,9 @@
     '건 공격력 주문서',
     '너클 공격력 주문서', '너클 명중률 주문서',
   ];
+  /** 고유 훈장 XP 티어 · 상(리버스·예정 샤프30)=150 · 중(샤프20)=80 */
+  const EXCLUSIVE_XP_TIER_HIGH = 150;
+  const EXCLUSIVE_XP_TIER_MID = 80;
   /** 도전과제와 무관 · memberIdx 전용 (코드 등록) */
   const EXCLUSIVE_TITLE_DEFS = [
     {
@@ -3091,7 +3101,7 @@
       badgeColor: '#0a0a0a',
       badgeTextColor: '#f5f5f5',
       badgeEffect: 'burn',
-      xpReward: 150,
+      xpReward: EXCLUSIVE_XP_TIER_HIGH,
       bonuses: { xpGainRate: 0.05 },
     },
     {
@@ -3103,7 +3113,7 @@
       badgeColor: '#0a0a0a',
       badgeTextColor: '#ffffff',
       badgeEffect: 'sharp-zap',
-      xpReward: 0,
+      xpReward: EXCLUSIVE_XP_TIER_MID,
     },
   ];
   const INVEN_TITLE_ICON_REF = 'https://www.inven.co.kr/board/maple/2304/7662';
@@ -6593,7 +6603,12 @@
       const colorVal = normalizeBadgeColor(ch.badgeColor) || DEFAULT_BADGE_COLOR;
       const textVal = normalizeBadgeColor(ch.badgeTextColor) || DEFAULT_BADGE_TEXT_COLOR;
       row.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(ch.titleName)}</strong></div>
-        <div class="challenge-meta">${escapeHtml(label)} · XP ${fmtNum(ch.xpReward || 0)}</div>
+        <div class="challenge-meta">${escapeHtml(label)}</div>
+        <div class="ch-row-badge-color-wrap ch-row-xp-wrap">
+          <span class="challenge-meta">도전 완료 XP</span>
+          <input type="number" class="ch-row-xp" min="0" step="1" value="${Math.max(0, Math.round(Number(ch.xpReward) || 0))}">
+        </div>
+        <p class="challenge-meta" style="margin:0 0 8px;font-size:11px;color:var(--ink-soft);">달성 시 훈장 지급 + 위 XP가 경험치 내역(훈장·도전)에 기록돼요.</p>
         <div class="ch-row-badge-color-wrap">
           <span class="challenge-meta">배경</span>
           <input type="color" class="ch-row-badge-color" value="${colorVal}">
@@ -6621,6 +6636,7 @@
       const textHexInp = row.querySelector('.ch-row-badge-text-hex');
       const preview = row.querySelector('.ch-row-badge-preview');
       const descTa = row.querySelector('.ch-row-desc');
+      const xpInp = row.querySelector('.ch-row-xp');
       const bonusMount = row.querySelector('.ch-row-bonus-mount');
       const bonusCtrl = mountMedalBonusEditor(bonusMount, ch.bonuses, () => paintRowPreview());
       const paintRowPreview = () => {
@@ -6644,6 +6660,7 @@
         if (tc) ch.badgeTextColor = tc;
         else delete ch.badgeTextColor;
         ch.description = descTa.value.trim();
+        ch.xpReward = Math.max(0, Math.round(Number(xpInp.value) || 0));
         const b = bonusCtrl.getBonuses();
         if (Object.keys(b).length) ch.bonuses = b;
         else delete ch.bonuses;

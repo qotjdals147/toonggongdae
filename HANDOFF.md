@@ -172,7 +172,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **replay 호출 예:** 획득 저장/삭제 · 도전 추가/삭제 · 회차 마감 · 핫이슈 등록 · **카탈로그 추가/저장/삭제** · `runGamificationAfterStateLoad`.
 - **주의:** **카탈로그 항목 자체는 XP를 주지 않음.** 카탈로그 변경으로 **도전 완료 조건(매칭)이 바뀔 때만** ach XP가 replay로 변동. 획득 줄 삭제는 acq/sale XP 감소.
 - **금지(재귀):** `ensureGamificationState` 안에서 **`syncExclusiveTitlesAll()` 호출 금지** · `syncExclusiveTitlesForMember` 안에서 **`ensureGamificationState()` 호출 금지** (과거 불러오기 멈춤 버그).
-- **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
+- **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `EXCLUSIVE_XP_TIER_HIGH`(150)·`TIER_MID`(80) · unlock 시 `exclusive:{id}:{idx}` → 내역 **고유 훈장 · 이름** · **장착 시** EXP 보너스 · 예: 중급 샤프20=80 · (예정) 샤프30=150=리버스.
+- **도전 XP:** `challengeDefs[].xpReward` · 달성 시 `ach:{chId}:{idx}` · 내역 **도전과제 · 훈장명** · **도전 추가**·**등록된 도전**에서 편집 · 저장 후 replay.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
 - **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전 / 고유 훈장** · **고유**=`EXCLUSIVE_TITLE_DEFS`(코드) + `exclusiveTitleMeta` 오버라이드 · `resolveExclusiveTitleDef` · XP 보상·대상 멤버는 코드 고정.
@@ -238,6 +239,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — **등록된 도전** XP 편집 · 중급 샤프 **80 XP** (상티어 150=리버스·예정 샤프30)
 - **2026-09-18** — 지퉁 고유 **중급 샤프아이즈** · `sharp-zap` 연두 번개 이펙트
 - **2026-09-18** — 주문서 아이콘 **여백 큰 PNG 보정** (`catalog-scroll-icon-slot` 확대)
 - **2026-09-18** — 주문서 아이콘 **URL 인코딩** · AC 정렬 **100→60→10**
@@ -349,4 +351,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (지퉁 고유훈장 샤프아이즈)*
+*Last updated: 2026-09-18 (도전·고유 XP UI/티어)*
