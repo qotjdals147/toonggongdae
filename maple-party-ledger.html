@@ -2417,11 +2417,23 @@
   let authSession = null;
 
   const LOGIN_ID_SLUG = { '순퉁': 'suntung', '지퉁': 'jitung', '배퉁': 'baetung' };
+  const LOGIN_ID_TO_MEMBER_IDX = { '순퉁': 0, '지퉁': 1, '배퉁': 2 };
   const DEFAULT_PARTY_ROSTER_TONGTONGI = [
     { loginId: '순퉁', memberIdx: 0 },
     { loginId: '지퉁', memberIdx: 1 },
     { loginId: '배퉁', memberIdx: 2 },
   ];
+
+  function memberIdxForLoginId(loginId) {
+    const id = String(loginId || '').trim();
+    if (Object.prototype.hasOwnProperty.call(LOGIN_ID_TO_MEMBER_IDX, id)) {
+      return LOGIN_ID_TO_MEMBER_IDX[id];
+    }
+    const roster = getPartyRoster();
+    const row = roster && roster.find((r) => r.loginId === id);
+    if (row && row.memberIdx >= 0 && row.memberIdx <= 2) return Number(row.memberIdx);
+    return 0;
+  }
 
   const $ = (id) => document.getElementById(id);
   const MESO_ICON_HTML = '<img src="image/아이콘/meso.png" alt="" class="meso-icon" decoding="async">';
@@ -2449,10 +2461,15 @@
 
   function normalizePartyRoster(raw) {
     if (!raw || !Array.isArray(raw) || raw.length !== 3) return null;
-    return raw.map((r, i) => ({
+    const rows = raw.map((r, i) => ({
       loginId: String(r.loginId != null ? r.loginId : '').trim(),
       memberIdx: r.memberIdx != null ? Number(r.memberIdx) : i,
     })).filter((r) => r.loginId);
+    if (rows.length !== 3) return null;
+    if (ROOM_ID === 'tongtongi') {
+      return DEFAULT_PARTY_ROSTER_TONGTONGI.map((def) => ({ loginId: def.loginId, memberIdx: def.memberIdx }));
+    }
+    return rows;
   }
 
   function ensurePartyRosterOnState() {
@@ -2465,9 +2482,14 @@
   }
 
   function loginIdForMemberIdx(idx) {
+    const n = Number(idx);
+    if (ROOM_ID === 'tongtongi') {
+      const def = DEFAULT_PARTY_ROSTER_TONGTONGI.find((r) => r.memberIdx === n);
+      if (def) return def.loginId;
+    }
     const roster = getPartyRoster();
     if (!roster) return '';
-    const row = roster.find((r) => r.memberIdx === idx);
+    const row = roster.find((r) => r.memberIdx === n);
     return row ? row.loginId : '';
   }
 
@@ -2506,11 +2528,7 @@
 
   async function resolveAuthMember(user) {
     if (!supabaseClient || !user) return null;
-    const roster = getPartyRoster() || DEFAULT_PARTY_ROSTER_TONGTONGI;
-    let rosterEntry = pendingSignInLoginId
-      ? roster.find((r) => r.loginId === pendingSignInLoginId)
-      : null;
-    if (!rosterEntry) rosterEntry = rosterEntryForAuthEmail(user.email);
+    const signInId = pendingSignInLoginId;
     pendingSignInLoginId = null;
 
     const { data, error } = await supabaseClient
@@ -2519,22 +2537,25 @@
       .eq('room_id', ROOM_ID)
       .eq('user_id', user.id)
       .maybeSingle();
-    if (error) {
-      console.warn('party_room_access lookup', error.message);
-    }
-    if (!data && !rosterEntry) return null;
+    if (error) console.warn('party_room_access lookup', error.message);
 
-    if (rosterEntry) {
-      return {
-        userId: user.id,
-        loginId: rosterEntry.loginId,
-        memberIdx: Number(rosterEntry.memberIdx),
-      };
+    if (data) {
+      const loginId = String(data.login_id || '').trim()
+        || signInId
+        || (rosterEntryForAuthEmail(user.email) || {}).loginId
+        || '';
+      const idx = Number(data.member_idx);
+      const memberIdx = idx >= 0 && idx <= 2 ? idx : memberIdxForLoginId(loginId);
+      return { userId: user.id, loginId, memberIdx };
     }
+
+    const loginId = signInId
+      || (rosterEntryForAuthEmail(user.email) || {}).loginId;
+    if (!loginId) return null;
     return {
       userId: user.id,
-      loginId: data.login_id,
-      memberIdx: Number(data.member_idx),
+      loginId,
+      memberIdx: memberIdxForLoginId(loginId),
     };
   }
 
@@ -2571,6 +2592,9 @@
     }
     authSession = resolved;
     ensurePartyRosterOnState();
+    if (ROOM_ID === 'tongtongi') {
+      state.partyRoster = DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
+    }
     showAppShell();
     return true;
   }
@@ -3822,6 +3846,9 @@
     if (!state.entryPriceBasis) state.entryPriceBasis = 'listing';
     state.hotIssues = normalizeHotIssues(state.hotIssues);
     ensurePartyRosterOnState();
+    if (ROOM_ID === 'tongtongi') {
+      state.partyRoster = DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
+    }
     if (!hasInitialViewFocus) {
       snapViewToActiveOpenCycle();
       hasInitialViewFocus = true;
