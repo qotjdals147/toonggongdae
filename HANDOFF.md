@@ -55,6 +55,7 @@ xpGrantKeys[]      // XP 중복 방지 · acq:/sale:/cycle:/hot:/login:/ach:/exc
 challengeDefs[]    // 배퉁 · bonuses?, badgeColor?, badgeTextColor?, description?, optionsText?, …
 levelTitleBadgeColors{}  // 레벨 훈장 4종 · badgeColor
 levelTitleMeta{}       // 레벨 · description, optionsText, badgeTextColor, bonuses?
+exclusiveTitleMeta{} // 고유 훈장 UI 오버라이드 · id → description, badgeColor, badgeTextColor, bonuses?
 challengeItemCatalog[]  // { id, canonical, aliases[] } · 장부·도전 자동완성 · 집계 매칭
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
 ```
@@ -166,7 +167,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
-- **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전** · **훈장 옵션**=`MEDAL_BONUS_TEMPLATES`(+옵션 추가·수치) → `bonuses` 저장 · `syncMedalOptionsTextFromBonuses`로 툴팁 문구 자동 · 카드별 **저장** 후 **`gamificationReplayAndRefresh`**(옵션 변경 시 XP 재계산).
+- **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전 / 고유 훈장** · **고유**=`EXCLUSIVE_TITLE_DEFS`(코드) + `exclusiveTitleMeta` 오버라이드 · `resolveExclusiveTitleDef` · XP 보상·대상 멤버는 코드 고정.
 - **장착 시만:** `equippedTitleDef` → `grantMedalBonusKeys` / `equippedMedalBonuses` · **장착·해제** 시 replay · (주의) replay는 **현재 장착** 기준으로 과거 키에도 medal suffix 재부여 — 장착 바꾸면 totalXp 변동.
 - **`bonuses` 필드:** `xpGainRate`(전체 %), `flatAcq`, `achXpRate`, `flatCycleClose`, `hotXpRate` · grant suffix `:medalXp`, `:medalFlatAcq`, `:medalFlatCycle`, `:medalAchPct`, `:medalHotPct`.
 - **툴팁:** `medalBonusLinesFromBonuses` · legacy `optionsText` fallback.
@@ -229,6 +230,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 마스터 옵션 **고유 훈장** 탭 · `exclusiveTitleMeta`
 - **2026-09-18** — 훈장 **옵션 템플릿 5종** · `bonuses` 자동 적용 · 장착 시 replay
 - **2026-09-18** — HANDOFF **§6.2~6.4** · replay/카탈로그/함수맵 · §13 인수인계 보강
 - **2026-09-18** — XP **replay** · 카탈로그 변경·도전 훈장 unlock 재계산 · exclusive XP replay 복원

@@ -2410,6 +2410,7 @@
       <button type="button" class="mypage-tab" id="chAdminTabItems" data-ch-admin-tab="items">아이템 추가</button>
       <button type="button" class="mypage-tab" id="chAdminTabLevel" data-ch-admin-tab="level">레벨 훈장</button>
       <button type="button" class="mypage-tab" id="chAdminTabList" data-ch-admin-tab="list">등록된 도전</button>
+      <button type="button" class="mypage-tab" id="chAdminTabExclusive" data-ch-admin-tab="exclusive">고유 훈장</button>
     </div>
     <div class="ch-admin-tab-panel" id="chAdminPanelAdd">
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">조건·XP·훈장 정보를 입력한 뒤 아래 <strong>도전과제 추가</strong>로 등록해요.</p>
@@ -2477,6 +2478,10 @@
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelList" hidden>
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">등록된 조건부 도전 · 수정 후 <strong>저장</strong>, 삭제는 되돌릴 수 없어요.</p>
       <div class="challenge-list" id="challengeAdminList" style="margin-top:0;"></div>
+    </div>
+    <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelExclusive" hidden>
+      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">코드로 등록된 고유 훈장 · 대상·이름은 고정 · 설명·색·옵션만 <strong>저장</strong>.</p>
+      <div class="challenge-list" id="exclusiveTitleAdminList" style="margin-top:0;"></div>
     </div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="challengeAdminCloseBtn">닫기</button>
@@ -4284,6 +4289,9 @@
     if (parsed.levelTitleMeta && typeof parsed.levelTitleMeta === 'object') {
       next.levelTitleMeta = { ...parsed.levelTitleMeta };
     }
+    if (parsed.exclusiveTitleMeta && typeof parsed.exclusiveTitleMeta === 'object') {
+      next.exclusiveTitleMeta = { ...parsed.exclusiveTitleMeta };
+    }
     const rosterNorm = normalizePartyRoster(parsed.partyRoster);
     if (rosterNorm) next.partyRoster = rosterNorm;
     else if (ROOM_ID === 'tongtongi') {
@@ -4676,6 +4684,19 @@
         }
       });
     }
+    if (!state.exclusiveTitleMeta || typeof state.exclusiveTitleMeta !== 'object') {
+      state.exclusiveTitleMeta = {};
+    } else {
+      Object.keys(state.exclusiveTitleMeta).forEach((id) => {
+        const meta = state.exclusiveTitleMeta[id];
+        if (!meta || typeof meta !== 'object') return;
+        if (meta.bonuses) {
+          meta.bonuses = normalizeMedalBonuses(meta.bonuses);
+          if (!Object.keys(meta.bonuses).length) delete meta.bonuses;
+          syncMedalOptionsTextFromBonuses(meta);
+        }
+      });
+    }
     if (state.gamificationSchema == null) state.gamificationSchema = 1;
   }
 
@@ -4786,8 +4807,48 @@
     return base ? resolveLevelTitleDef(base) : null;
   }
 
+  function exclusiveTitleMetaFor(id) {
+    if (!state.exclusiveTitleMeta || !state.exclusiveTitleMeta[id]) return {};
+    return state.exclusiveTitleMeta[id];
+  }
+
+  function ensureExclusiveTitleMeta(id) {
+    if (!state.exclusiveTitleMeta || typeof state.exclusiveTitleMeta !== 'object') {
+      state.exclusiveTitleMeta = {};
+    }
+    if (!state.exclusiveTitleMeta[id]) state.exclusiveTitleMeta[id] = {};
+    return state.exclusiveTitleMeta[id];
+  }
+
+  function resolveExclusiveTitleDef(base) {
+    if (!base) return null;
+    const meta = exclusiveTitleMetaFor(base.id);
+    const metaBonuses = normalizeMedalBonuses(meta.bonuses);
+    const baseBonuses = normalizeMedalBonuses(base.bonuses);
+    const bonuses = Object.keys(metaBonuses).length ? metaBonuses : baseBonuses;
+    const desc = meta.description != null
+      ? String(meta.description).trim()
+      : String(base.description || '').trim();
+    const badgeColor = normalizeBadgeColor(meta.badgeColor) || normalizeBadgeColor(base.badgeColor) || '';
+    const badgeTextColor = normalizeBadgeColor(meta.badgeTextColor) || normalizeBadgeColor(base.badgeTextColor) || '';
+    const resolved = {
+      ...base,
+      description: desc,
+      badgeColor,
+      badgeTextColor,
+      bonuses,
+    };
+    if (meta.optionsText != null) {
+      resolved.optionsText = String(meta.optionsText).trim();
+    } else {
+      syncMedalOptionsTextFromBonuses(resolved);
+    }
+    return resolved;
+  }
+
   function getExclusiveTitleDef(id) {
-    return EXCLUSIVE_TITLE_DEFS.find((t) => t.id === id) || null;
+    const base = EXCLUSIVE_TITLE_DEFS.find((t) => t.id === id);
+    return base ? resolveExclusiveTitleDef(base) : null;
   }
 
   function syncExclusiveTitlesForMember(memberIdx) {
@@ -5567,10 +5628,11 @@
       wrap.innerHTML = '<p class="challenge-meta">등록된 고유 훈장이 없어요.</p>';
       return;
     }
-    EXCLUSIVE_TITLE_DEFS.forEach((ex) => {
-      const ownerIdx = exclusiveTitleOwnerIdx(ex);
-      const equipIdx = exclusiveTitleEquippedIdx(ex);
-      const targetName = memberDisplayName(ex.memberIdx);
+    EXCLUSIVE_TITLE_DEFS.forEach((base) => {
+      const ex = getExclusiveTitleDef(base.id) || base;
+      const ownerIdx = exclusiveTitleOwnerIdx(base);
+      const equipIdx = exclusiveTitleEquippedIdx(base);
+      const targetName = memberDisplayName(base.memberIdx);
       const card = document.createElement('div');
       card.className = 'exclusive-medal-card';
       const badge = titleBadgePreviewHtml(ex, `ex-card:${ex.id}`, true);
@@ -5810,6 +5872,7 @@
       items: ['chAdminTabItems', 'chAdminPanelItems'],
       level: ['chAdminTabLevel', 'chAdminPanelLevel'],
       list: ['chAdminTabList', 'chAdminPanelList'],
+      exclusive: ['chAdminTabExclusive', 'chAdminPanelExclusive'],
     };
     Object.keys(map).forEach((t) => {
       const [tabId, panelId] = map[t];
@@ -5821,6 +5884,7 @@
     if (tab === 'level') renderLevelTitleBadgeColorsAdmin();
     if (tab === 'list') renderChallengeAdminList();
     if (tab === 'items') renderMasterItemCatalogAdmin();
+    if (tab === 'exclusive') renderExclusiveTitleAdmin();
     if (tab === 'add') {
       ensureChAdminBonusEditor();
       updateChAdminAddBadgePreview();
@@ -6054,6 +6118,123 @@
         renderChallengeAdminPanel();
       });
       wrap.appendChild(row);
+    });
+  }
+
+  function renderExclusiveTitleAdmin() {
+    const wrap = $('exclusiveTitleAdminList');
+    if (!wrap) return;
+    ensureGamificationState();
+    wrap.innerHTML = '';
+    if (!EXCLUSIVE_TITLE_DEFS.length) {
+      wrap.innerHTML = '<p class="challenge-meta">코드에 등록된 고유 훈장이 없어요.</p>';
+      return;
+    }
+    EXCLUSIVE_TITLE_DEFS.forEach((base) => {
+      const meta = ensureExclusiveTitleMeta(base.id);
+      const colorVal = normalizeBadgeColor(meta.badgeColor) || normalizeBadgeColor(base.badgeColor) || DEFAULT_BADGE_COLOR;
+      const textVal = normalizeBadgeColor(meta.badgeTextColor) || normalizeBadgeColor(base.badgeTextColor) || DEFAULT_BADGE_TEXT_COLOR;
+      const card = document.createElement('div');
+      card.className = 'challenge-card';
+      const targetName = memberDisplayName(base.memberIdx);
+      card.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(base.name)}</strong></div>
+        <p class="challenge-meta">${escapeHtml(targetName)} 전용 · XP ${fmtNum(base.xpReward || 0)} (코드)</p>`;
+      const colorRow = document.createElement('div');
+      colorRow.className = 'ch-row-badge-color-wrap';
+      colorRow.innerHTML = '<span class="challenge-meta">배경</span>';
+      const inp = document.createElement('input');
+      inp.type = 'color';
+      inp.value = colorVal;
+      const hexInp = document.createElement('input');
+      hexInp.type = 'text';
+      hexInp.className = 'ch-badge-hex-input';
+      hexInp.value = colorVal;
+      hexInp.maxLength = 7;
+      hexInp.spellcheck = false;
+      const textRow = document.createElement('div');
+      textRow.className = 'ch-row-badge-color-wrap';
+      textRow.innerHTML = '<span class="challenge-meta">글자</span>';
+      const textInp = document.createElement('input');
+      textInp.type = 'color';
+      textInp.value = textVal;
+      const textHexInp = document.createElement('input');
+      textHexInp.type = 'text';
+      textHexInp.className = 'ch-badge-hex-input';
+      textHexInp.value = textVal;
+      textHexInp.maxLength = 7;
+      textHexInp.spellcheck = false;
+      const preview = document.createElement('span');
+      preview.className = 'ch-admin-badge-preview';
+      const descTa = document.createElement('textarea');
+      descTa.placeholder = '설명 (툴팁)';
+      descTa.value = meta.description != null ? meta.description : (base.description || '');
+      const bonusMount = document.createElement('div');
+      const metaWrap = document.createElement('div');
+      metaWrap.className = 'ch-medal-meta-fields';
+      const initialBonuses = Object.keys(normalizeMedalBonuses(meta.bonuses)).length
+        ? meta.bonuses
+        : base.bonuses;
+      const bonusCtrl = mountMedalBonusEditor(bonusMount, initialBonuses, () => paint());
+      const paint = () => {
+        const c = normalizeBadgeColor(inp.value) || DEFAULT_BADGE_COLOR;
+        const tc = normalizeBadgeColor(textInp.value) || DEFAULT_BADGE_TEXT_COLOR;
+        preview.innerHTML = titleBadgePreviewHtml({
+          ...base,
+          badgeColor: c,
+          badgeTextColor: tc,
+          description: descTa.value.trim(),
+          bonuses: bonusCtrl.getBonuses(),
+          badgeEffect: base.badgeEffect,
+        }, `ex-admin:${base.id}`, true);
+        bindMemberTitleBadgeTooltips(preview);
+      };
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn-settle btn-sm';
+      saveBtn.textContent = '저장';
+      saveBtn.addEventListener('click', () => {
+        meta.description = descTa.value.trim();
+        const c = normalizeBadgeColor(inp.value);
+        if (c) meta.badgeColor = c;
+        else delete meta.badgeColor;
+        const tc = normalizeBadgeColor(textInp.value);
+        if (tc) meta.badgeTextColor = tc;
+        else delete meta.badgeTextColor;
+        const b = bonusCtrl.getBonuses();
+        if (Object.keys(b).length) meta.bonuses = b;
+        else delete meta.bonuses;
+        syncMedalOptionsTextFromBonuses(meta);
+        const empty = !meta.description && !meta.badgeColor && !meta.badgeTextColor && !meta.bonuses && !meta.optionsText;
+        if (empty) delete state.exclusiveTitleMeta[base.id];
+        scheduleSave();
+        gamificationReplayAndRefresh();
+        paint();
+        refreshTitleBadgeViews();
+        flashChAdminSaved(saveBtn);
+      });
+      bindBadgeColorInputs(inp, hexInp, paint);
+      bindBadgeColorInputs(textInp, textHexInp, paint);
+      descTa.addEventListener('input', paint);
+      metaWrap.innerHTML = '<label>설명</label>';
+      metaWrap.appendChild(descTa);
+      const optLabel = document.createElement('label');
+      optLabel.textContent = '훈장 옵션';
+      metaWrap.appendChild(optLabel);
+      metaWrap.appendChild(bonusMount);
+      colorRow.appendChild(inp);
+      colorRow.appendChild(hexInp);
+      textRow.appendChild(textInp);
+      textRow.appendChild(textHexInp);
+      textRow.appendChild(preview);
+      const saveRow = document.createElement('div');
+      saveRow.className = 'ch-admin-save-row';
+      saveRow.appendChild(saveBtn);
+      card.appendChild(colorRow);
+      card.appendChild(textRow);
+      card.appendChild(metaWrap);
+      card.appendChild(saveRow);
+      wrap.appendChild(card);
+      paint();
     });
   }
 
@@ -8330,6 +8511,7 @@
   $('chAdminTabItems').addEventListener('click', () => switchChAdminTab('items'));
   $('chAdminTabLevel').addEventListener('click', () => switchChAdminTab('level'));
   $('chAdminTabList').addEventListener('click', () => switchChAdminTab('list'));
+  $('chAdminTabExclusive').addEventListener('click', () => switchChAdminTab('exclusive'));
   $('masterItemAddBtn').addEventListener('click', () => {
     if (!authSession || authSession.memberIdx !== 2) return;
     const ok = addMasterCatalogItem($('masterItemCanonical').value, $('masterItemAliases').value);
