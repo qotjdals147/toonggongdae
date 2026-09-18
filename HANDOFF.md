@@ -49,9 +49,9 @@ entryPriceBasis: 'listing' | (legacy net → 1회 마이그)
 entryPriceNetUpgraded: boolean
 partyRoster: { loginId, memberIdx }[]   // Auth ID ↔ 슬롯 0·1·2 (데이터는 idx로만 연결)
 members[3]   // 표시 닉네임 (계정 슬롯과 동기, idx 변경 없음)
-memberProfiles[3]  // totalXp, equippedTitleId|null, equippedTitleTier, unlockedTitleIds[], titleTiers{titleId→maxLv} — **클라우드+로그인**
-xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:{id}:L{n}:)
-challengeDefs[]    // 배퉁 · 다단계 칭호 — `levels[]` { level, target, xpReward, icon? }
+memberProfiles[3]  // totalXp, equippedTitleId|null, unlockedTitleIds[] — **클라우드+로그인**
+xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:{id}:)
+challengeDefs[]    // 배퉁 · 조건 1개=칭호 1개 — threshold | requiredCount, xpReward, icon?
 challengeItemCatalog[]  // 도전과제 아이템 자동완성 전용
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
 ```
@@ -149,10 +149,10 @@ legacySummaryOnly (옛 회차 요약만)
 - **레벨 칭호 4종** (`LEVEL_TITLE_DEFS`): 초보(1), 주니어(30), 베테랑(70), 마스터(120) — 아이콘 `image/훈장아이콘/*.png`.
 - **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
 - **집계:** `replayLedgerGamificationXp()` — 불러올 때·장부/핫이슈/마감/도전 변경 후 · **과거 회차 소급** · `login:` 키만 보존.
-- **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — `maxLevel`, `levels[]`(단계별 target·xpReward) · 유형 `sale_amount` | `item_acquire`.
-- **관리 UI(배퉁):** 칭호 이름 · **최대 레벨** · **단계별 조건**(쉼표, 레벨 수와 동일·오름차순) · **1단계 XP** → 상위 단계 XP는 `xpForChallengeTier` 자동.
-- **진행:** `memberProfiles[].titleTiers[titleId]` = 달성한 칭호 Lv · 장착 시 `equippedTitleTier`(기본 최고 Lv) · 뱃지 CSS `member-title-badge--tier-N`.
-- **아이콘/뱃지:** 관리 UI 없음. 소유자가 도전 추가 후 **에이전트에게 요청** → `maxLevel`·`levels` 확인 후 `image/훈장아이콘/` 또는 `levels[n].icon` 연결·조건 밸런스 조정.
+- **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
+- **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP 보상.
+- **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
+- **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `image/훈장아이콘/` 연결·조건 조정.
 - **칭호 아이콘 참고:** https://www.inven.co.kr/board/maple/2304/7662
 
 ---
@@ -195,7 +195,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-09-18** — 조건부 칭호 **다단계**(maxLevel·단계별 조건·tier 뱃지) · `titleTiers` · HANDOFF §6.3
+- **2026-09-18** — 도전과제 **단일 조건=단일 훈장**으로 복귀 (다단계·titleTiers 제거) · HANDOFF §6.3
 - **2026-09-18** — 도전 관리 **아이콘 경로 입력 제거** (기본 아이콘 · 커스텀은 요청 시)
 - **2026-09-18** — 공대원 제목·EXP 텍스트 **가운데 정렬**
 - **2026-09-18** — 헤더 **링크 공유·마이페이지** 제거 · 통계/도전/로그아웃 **컬러 버튼** (마이페이지는 공대원 카드)
@@ -276,4 +276,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (다단계 칭호)*
+*Last updated: 2026-09-18 (도전 단일 조건 복귀)*

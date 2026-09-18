@@ -411,38 +411,6 @@
     text-overflow: ellipsis;
     max-width: 120px;
   }
-  .member-title-badge .title-tier-tag {
-    flex-shrink: 0;
-    font-size: 9px;
-    font-weight: 800;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.22);
-    letter-spacing: 0.03em;
-  }
-  .member-title-badge--tier-2 {
-    border-color: #93c5fd;
-    box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.45), 0 2px 8px rgba(37, 99, 235, 0.45);
-  }
-  .member-title-badge--tier-3 {
-    border-color: #fcd34d;
-    background: linear-gradient(180deg, #6366f1 0%, #4f46e5 45%, #4338ca 100%);
-    box-shadow: 0 0 0 1px rgba(252, 211, 77, 0.5), 0 2px 10px rgba(79, 70, 229, 0.5);
-  }
-  .member-title-badge--tier-4,
-  .member-title-badge--tier-5 {
-    border-color: #fde68a;
-    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 50%, #6d28d9 100%);
-    box-shadow: 0 0 0 1px rgba(253, 230, 138, 0.55), 0 0 12px rgba(168, 85, 247, 0.45);
-  }
-  .challenge-tier-row {
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin: 4px 0;
-    padding-left: 8px;
-    border-left: 2px solid var(--line);
-  }
-  .challenge-tier-row.done { color: var(--forest); font-weight: 600; border-left-color: var(--forest); }
   .member-exp-wrap { margin-top: 2px; width: 100%; }
   .member-exp-label {
     font-size: 10.5px;
@@ -2141,6 +2109,8 @@
         </select>
       </div>
       <div class="field"><span>칭호 이름</span><input id="chAdminTitleName" type="text" autocomplete="off" placeholder="예: 대박 판매왕"></div>
+      <div class="field" id="chAdminThresholdField"><span>등록가 (메소)</span><input id="chAdminThreshold" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field" id="chAdminCountField" hidden><span>획득 횟수</span><input id="chAdminCount" type="number" min="1" value="1"></div>
       <div class="field" id="chAdminItemField" hidden style="grid-column:1/-1;">
         <span>아이템 (도전과제 전용)</span>
         <div class="item-ac-wrap">
@@ -2148,13 +2118,7 @@
           <div class="item-ac-dropdown" id="chAdminItemDropdown" hidden></div>
         </div>
       </div>
-      <div class="field"><span>칭호 최대 레벨</span><input id="chAdminMaxLevel" type="number" min="1" max="9" value="1"></div>
-      <div class="field" id="chAdminTierField" style="grid-column:1/-1;">
-        <span id="chAdminTierLabel">단계별 조건 (쉼표)</span>
-        <input id="chAdminTierValues" type="text" autocomplete="off" placeholder="예: 5,10,20">
-        <p id="chAdminTierHint" style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);">레벨 수만큼 적어요 · 아이템=획득 횟수, 판매=등록가(메소)</p>
-      </div>
-      <div class="field"><span>1단계 XP</span><input id="chAdminXp" type="number" min="0" value="120"></div>
+      <div class="field"><span>XP 보상</span><input id="chAdminXp" type="number" min="0" value="120"></div>
     </div>
     <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
     <div class="challenge-list" id="challengeAdminList" style="margin-top:16px;max-height:220px;"></div>
@@ -3911,7 +3875,7 @@
     }
     if (Array.isArray(parsed.xpGrantKeys)) next.xpGrantKeys = parsed.xpGrantKeys.slice();
     if (Array.isArray(parsed.challengeDefs)) {
-      next.challengeDefs = parsed.challengeDefs.map(normalizeChallengeDef);
+      next.challengeDefs = migrateChallengeDefs(parsed.challengeDefs);
     }
     if (Array.isArray(parsed.challengeItemCatalog)) next.challengeItemCatalog = parsed.challengeItemCatalog.slice();
     if (parsed.gamificationSchema != null) next.gamificationSchema = parsed.gamificationSchema;
@@ -4132,10 +4096,51 @@
     return {
       totalXp: 0,
       equippedTitleId: 'title-rookie',
-      equippedTitleTier: 1,
       unlockedTitleIds: ['title-rookie'],
-      titleTiers: {},
     };
+  }
+
+  function applyChallengeTierFields(ch, tier) {
+    if (ch.type === 'sale_amount') {
+      ch.threshold = Math.max(1, Math.round(Number(tier.target) || 0));
+    } else {
+      ch.requiredCount = Math.max(1, Math.round(Number(tier.target) || 1));
+    }
+    ch.xpReward = Math.max(0, Math.round(Number(tier.xpReward != null ? tier.xpReward : ch.xpReward) || 0));
+    if (tier.icon) ch.icon = tier.icon;
+    delete ch.levels;
+    delete ch.maxLevel;
+  }
+
+  function migrateChallengeDefs(defs) {
+    const out = [];
+    (defs || []).forEach((raw) => {
+      const ch = { ...raw };
+      if (ch.levels && Array.isArray(ch.levels) && ch.levels.length) {
+        const sorted = ch.levels.slice().sort((a, b) => (a.level || 0) - (b.level || 0));
+        sorted.forEach((tier, i) => {
+          const row = { ...ch };
+          if (i > 0) {
+            row.id = genId();
+            row.titleId = `title-ch-${genId()}`;
+          }
+          applyChallengeTierFields(row, tier);
+          out.push(row);
+        });
+        return;
+      }
+      delete ch.levels;
+      delete ch.maxLevel;
+      if (ch.type === 'sale_amount' && ch.threshold != null) {
+        ch.threshold = Math.max(1, Math.round(Number(ch.threshold) || 0));
+      }
+      if (ch.type === 'item_acquire' && ch.requiredCount != null) {
+        ch.requiredCount = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
+      }
+      if (ch.xpReward != null) ch.xpReward = Math.max(0, Math.round(Number(ch.xpReward) || 0));
+      out.push(ch);
+    });
+    return out;
   }
 
   function ensureGamificationState() {
@@ -4146,101 +4151,44 @@
       if (!p || typeof p !== 'object') state.memberProfiles[i] = defaultMemberProfile();
       if (!Array.isArray(p.unlockedTitleIds)) p.unlockedTitleIds = ['title-rookie'];
       if (p.equippedTitleId === undefined) p.equippedTitleId = 'title-rookie';
-      if (p.equippedTitleTier == null) p.equippedTitleTier = 1;
-      if (!p.titleTiers || typeof p.titleTiers !== 'object') p.titleTiers = {};
+      if (p.titleTiers && typeof p.titleTiers === 'object') {
+        Object.keys(p.titleTiers).forEach((tid) => {
+          if ((Number(p.titleTiers[tid]) || 0) >= 1 && !p.unlockedTitleIds.includes(tid)) {
+            p.unlockedTitleIds.push(tid);
+          }
+        });
+        delete p.titleTiers;
+      }
+      delete p.equippedTitleTier;
       p.totalXp = Math.max(0, Math.round(Number(p.totalXp) || 0));
     });
     if (!Array.isArray(state.xpGrantKeys)) state.xpGrantKeys = [];
     if (!Array.isArray(state.challengeDefs)) state.challengeDefs = [];
-    else state.challengeDefs = state.challengeDefs.map(normalizeChallengeDef);
+    else state.challengeDefs = migrateChallengeDefs(state.challengeDefs);
     if (!Array.isArray(state.challengeItemCatalog)) state.challengeItemCatalog = [];
-    if (state.gamificationSchema == null) state.gamificationSchema = 2;
-  }
-
-  function xpForChallengeTier(baseXp, tierLevel) {
-    const base = Math.max(0, Math.round(Number(baseXp) || 0));
-    const lv = Math.max(1, Math.round(Number(tierLevel) || 1));
-    return Math.round(base * (1 + 0.45 * (lv - 1)));
-  }
-
-  function normalizeChallengeDef(raw) {
-    const ch = { ...raw };
-    if (ch.levels && Array.isArray(ch.levels) && ch.levels.length) {
-      ch.levels = ch.levels.map((t, i) => ({
-        level: t.level != null ? Number(t.level) : i + 1,
-        target: Math.max(1, Math.round(Number(t.target) || 1)),
-        xpReward: Math.max(0, Math.round(Number(t.xpReward) || 0)),
-        icon: t.icon || null,
-      }));
-      ch.maxLevel = ch.levels.length;
-      return ch;
-    }
-    const target = ch.type === 'sale_amount'
-      ? Math.max(1, Math.round(Number(ch.threshold) || 0))
-      : Math.max(1, Math.round(Number(ch.requiredCount) || 1));
-    const xp = Math.max(0, Math.round(Number(ch.xpReward) || 120));
-    ch.maxLevel = 1;
-    ch.levels = [{ level: 1, target, xpReward: xp, icon: null }];
-    return ch;
-  }
-
-  function challengeLevels(ch) {
-    return (normalizeChallengeDef(ch).levels || []).slice().sort((a, b) => a.level - b.level);
-  }
-
-  function challengeCurrentMetric(ch, memberIdx) {
-    if (ch.type === 'sale_amount') return maxSaleEntryForMember(memberIdx);
-    if (ch.type === 'item_acquire') return countItemAcquireForMember(memberIdx, ch);
-    return 0;
-  }
-
-  function challengeTierUnlocked(memberIdx, titleId) {
-    ensureGamificationState();
-    return Math.max(0, Math.round(Number(state.memberProfiles[memberIdx].titleTiers[titleId]) || 0));
-  }
-
-  function setChallengeTierUnlocked(memberIdx, titleId, tier) {
-    ensureGamificationState();
-    const p = state.memberProfiles[memberIdx];
-    const t = Math.max(0, Math.round(Number(tier) || 0));
-    if (t <= 0) return;
-    const prev = challengeTierUnlocked(memberIdx, titleId);
-    if (t > prev) p.titleTiers[titleId] = t;
-    if (!p.unlockedTitleIds.includes(titleId)) p.unlockedTitleIds.push(titleId);
+    if (state.gamificationSchema == null) state.gamificationSchema = 1;
   }
 
   function getLevelTitleDef(id) {
     return LEVEL_TITLE_DEFS.find((t) => t.id === id) || null;
   }
 
-  function getChallengeTitleDef(ch, tierLevel) {
+  function getChallengeTitleDef(ch) {
     if (!ch) return null;
-    const tier = Math.max(1, Math.round(Number(tierLevel) || 1));
-    const row = challengeLevels(ch).find((t) => t.level === tier) || challengeLevels(ch)[0];
-    const icon = (row && row.icon) || ch.icon || DEFAULT_TITLE_ICON;
-    const maxLv = challengeLevels(ch).length;
-    const name = maxLv > 1 ? `${ch.titleName} · Lv.${tier}` : ch.titleName;
     return {
       id: ch.titleId,
-      name,
-      icon,
+      name: ch.titleName,
+      icon: ch.icon || DEFAULT_TITLE_ICON,
       challengeId: ch.id,
-      tier,
-      maxTier: maxLv,
-      isChallenge: true,
     };
   }
 
-  function getTitleDefById(titleId, tierLevel) {
+  function getTitleDefById(titleId) {
     const lv = getLevelTitleDef(titleId);
-    if (lv) return { ...lv, tier: 1, maxTier: 1, isChallenge: false };
+    if (lv) return lv;
     const ch = (state.challengeDefs || []).find((c) => c.titleId === titleId);
-    if (ch) return getChallengeTitleDef(ch, tierLevel);
+    if (ch) return getChallengeTitleDef(ch);
     return null;
-  }
-
-  function isChallengeTitleId(titleId) {
-    return !!(state.challengeDefs || []).some((c) => c.titleId === titleId);
   }
 
   function syncLevelTitlesForMember(memberIdx) {
@@ -4254,14 +4202,6 @@
     });
     if (p.equippedTitleId && !p.unlockedTitleIds.includes(p.equippedTitleId)) {
       p.equippedTitleId = null;
-      p.equippedTitleTier = 1;
-    }
-    if (p.equippedTitleId && isChallengeTitleId(p.equippedTitleId)) {
-      const maxT = challengeTierUnlocked(memberIdx, p.equippedTitleId);
-      if (maxT < 1) {
-        p.equippedTitleId = null;
-        p.equippedTitleTier = 1;
-      } else if ((p.equippedTitleTier || 1) > maxT) p.equippedTitleTier = maxT;
     }
   }
 
@@ -4321,17 +4261,23 @@
   }
 
   function challengeProgressForMember(ch, memberIdx) {
-    const current = challengeCurrentMetric(ch, memberIdx);
-    const tiers = challengeLevels(ch);
-    const unlocked = challengeTierUnlocked(memberIdx, ch.titleId);
-    let nextTier = tiers.find((t) => current < t.target) || null;
-    return {
-      current,
-      tiers,
-      unlockedTier: unlocked,
-      nextTier,
-      done: unlocked >= tiers.length,
-    };
+    if (ch.type === 'sale_amount') {
+      const max = maxSaleEntryForMember(memberIdx);
+      const need = Math.max(1, Math.round(Number(ch.threshold) || 0));
+      return { current: max, target: need, done: max >= need };
+    }
+    if (ch.type === 'item_acquire') {
+      const cur = countItemAcquireForMember(memberIdx, ch);
+      const need = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
+      return { current: cur, target: need, done: cur >= need };
+    }
+    return { current: 0, target: 1, done: false };
+  }
+
+  function unlockChallengeTitle(memberIdx, ch) {
+    ensureGamificationState();
+    const p = state.memberProfiles[memberIdx];
+    if (!p.unlockedTitleIds.includes(ch.titleId)) p.unlockedTitleIds.push(ch.titleId);
   }
 
   function replayLedgerGamificationXp() {
@@ -4370,12 +4316,10 @@
 
     (state.challengeDefs || []).forEach((ch) => {
       [0, 1, 2].forEach((idx) => {
-        const current = challengeCurrentMetric(ch, idx);
-        challengeLevels(ch).forEach((tier) => {
-          if (current < tier.target) return;
-          setChallengeTierUnlocked(idx, ch.titleId, tier.level);
-          grantXp(idx, tier.xpReward, `ach:${ch.id}:L${tier.level}:${idx}`);
-        });
+        const prog = challengeProgressForMember(ch, idx);
+        if (!prog.done) return;
+        unlockChallengeTitle(idx, ch);
+        grantXp(idx, Math.max(0, Math.round(Number(ch.xpReward) || 0)), `ach:${ch.id}:${idx}`);
       });
     });
 
@@ -4415,23 +4359,11 @@
   }
 
   function memberTitleBadgeHtml(memberIdx) {
-    const p = state.memberProfiles[memberIdx];
-    const eq = p.equippedTitleId;
+    const eq = state.memberProfiles[memberIdx].equippedTitleId;
     if (!eq) return '';
-    let tier = p.equippedTitleTier || 1;
-    if (isChallengeTitleId(eq)) {
-      tier = Math.min(tier, challengeTierUnlocked(memberIdx, eq) || 1);
-      if (tier < 1) return '';
-    }
-    const def = getTitleDefById(eq, tier);
+    const def = getTitleDefById(eq);
     if (!def) return '';
-    const tierCls = def.isChallenge && def.maxTier > 1 ? ` member-title-badge--tier-${Math.min(tier, 5)}` : '';
-    const tierTag = def.isChallenge && def.maxTier > 1
-      ? `<span class="title-tier-tag">Lv.${tier}</span>` : '';
-    const shortName = def.isChallenge && def.maxTier > 1
-      ? escapeHtml((state.challengeDefs.find((c) => c.titleId === eq) || {}).titleName || def.name)
-      : escapeHtml(def.name);
-    return `<div class="member-title-badge${tierCls}"><img src="${escapeHtml(def.icon)}" alt=""><span>${shortName}</span>${tierTag}</div>`;
+    return `<div class="member-title-badge"><img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
   }
 
   function populateHotIssueTargetSelect() {
@@ -4465,19 +4397,14 @@
     const p = state.memberProfiles[authSession.memberIdx];
     wrap.innerHTML = '';
     p.unlockedTitleIds.forEach((tid) => {
-      const ch = (state.challengeDefs || []).find((c) => c.titleId === tid);
-      const tier = isChallengeTitleId(tid) ? challengeTierUnlocked(authSession.memberIdx, tid) : 1;
-      const def = getTitleDefById(tid, tier || 1);
+      const def = getTitleDefById(tid);
       if (!def) return;
       const row = document.createElement('button');
       row.type = 'button';
-      const equipped = p.equippedTitleId === tid;
-      row.className = 'title-pick-row' + (equipped ? ' is-equipped' : '');
-      const sub = ch && def.maxTier > 1 ? ` · 칭호 Lv.${tier}/${def.maxTier}` : '';
-      row.innerHTML = `<img src="${escapeHtml(def.icon)}" alt=""><strong>${escapeHtml(ch ? ch.titleName : def.name)}${escapeHtml(sub)}</strong><span>${equipped ? '장착 중' : '장착'}</span>`;
+      row.className = 'title-pick-row' + (p.equippedTitleId === tid ? ' is-equipped' : '');
+      row.innerHTML = `<img src="${escapeHtml(def.icon)}" alt=""><strong>${escapeHtml(def.name)}</strong><span>${p.equippedTitleId === tid ? '장착 중' : '장착'}</span>`;
       row.addEventListener('click', () => {
         p.equippedTitleId = tid;
-        p.equippedTitleTier = isChallengeTitleId(tid) ? (challengeTierUnlocked(authSession.memberIdx, tid) || 1) : 1;
         scheduleSave();
         renderTitlePickList();
         renderMembers();
@@ -4515,21 +4442,18 @@
           inner.innerHTML += `<div class="challenge-meta${done ? ' done' : ''}">· ${escapeHtml(t.name)} — Lv.${t.minLevel} ${done ? '달성' : `(현재 Lv.${level})`}</div>`;
           return;
         }
-        const ch = normalizeChallengeDef(b.def);
+        const ch = b.def;
         const prog = challengeProgressForMember(ch, memberIdx);
         const icon = ch.icon || DEFAULT_TITLE_ICON;
-        const condLabel = ch.type === 'sale_amount' ? '1건 등록가' : `${escapeHtml(ch.itemCanonical || '')} 획득`;
-        let tierHtml = `<div style="margin-top:8px;"><div class="challenge-card-head"><img src="${escapeHtml(icon)}" alt=""><strong>${escapeHtml(ch.titleName)}</strong> <span class="challenge-meta">(최대 Lv.${ch.maxLevel})</span></div>`;
-        prog.tiers.forEach((tier) => {
-          const done = prog.unlockedTier >= tier.level;
-          const pct = Math.min(100, (prog.current / tier.target) * 100);
-          tierHtml += `<div class="challenge-tier-row${done ? ' done' : ''}">Lv.${tier.level} · ${condLabel} ${fmtNum(tier.target)}${ch.type === 'item_acquire' ? '회' : ''} · XP ${fmtNum(tier.xpReward)} ${done ? '달성' : `(${fmtNum(prog.current)}/${fmtNum(tier.target)})`}</div>`;
-          if (!done && prog.nextTier && prog.nextTier.level === tier.level) {
-            tierHtml += `<div class="challenge-progress"><div style="width:${pct}%"></div></div>`;
-          }
-        });
-        tierHtml += '</div>';
-        inner.innerHTML += tierHtml;
+        const pct = Math.min(100, (prog.current / prog.target) * 100);
+        const done = prog.done || state.memberProfiles[memberIdx].unlockedTitleIds.includes(ch.titleId);
+        inner.innerHTML += `
+          <div style="margin-top:8px;">
+            <div class="challenge-card-head"><img src="${escapeHtml(icon)}" alt=""><strong>${escapeHtml(ch.titleName)}</strong></div>
+            <div class="challenge-meta">${ch.type === 'sale_amount' ? `1건 등록가 ${fmtNum(ch.threshold)} 이상` : `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`} · 보상 XP ${fmtNum(ch.xpReward || 0)}</div>
+            <div class="challenge-progress"><div style="width:${pct}%"></div></div>
+            <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 칭호 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
+          </div>`;
       });
       head.appendChild(inner);
       wrap.appendChild(head);
@@ -4541,12 +4465,13 @@
     if (!wrap) return;
     wrap.innerHTML = '';
     (state.challengeDefs || []).forEach((ch) => {
-      const c = normalizeChallengeDef(ch);
       const row = document.createElement('div');
       row.className = 'challenge-card';
-      const tierTxt = c.levels.map((t) => `L${t.level}:${fmtNum(t.target)}`).join(' · ');
-      row.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(c.titleName)}</strong> <span class="challenge-meta">Lv.${c.maxLevel}</span></div>
-        <div class="challenge-meta">${escapeHtml(tierTxt)}</div>
+      const label = ch.type === 'sale_amount'
+        ? `등록가 ≥ ${fmtNum(ch.threshold)}`
+        : `${ch.itemCanonical} × ${ch.requiredCount}`;
+      row.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(ch.titleName)}</strong></div>
+        <div class="challenge-meta">${escapeHtml(label)} · XP ${fmtNum(ch.xpReward || 0)}</div>
         <button type="button" class="btn-light btn-sm" data-del="${escapeHtml(ch.id)}" style="margin-top:6px;">삭제</button>`;
       row.querySelector('button').addEventListener('click', () => {
         if (!confirm('이 도전과제를 삭제할까요?')) return;
@@ -4626,80 +4551,41 @@
     };
   }
 
-  function parseAdminTierTargets(type, raw, maxLevel) {
-    const parts = String(raw || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean);
-    const out = [];
-    parts.forEach((p) => {
-      const n = type === 'sale_amount' ? parseMoneyInput(p) : Math.round(Number(p.replace(/[^\d]/g, '')) || 0);
-      if (n > 0) out.push(n);
-    });
-    if (out.length !== maxLevel) return null;
-    for (let i = 1; i < out.length; i++) {
-      if (out[i] <= out[i - 1]) return null;
-    }
-    return out;
-  }
-
   function addChallengeFromAdminForm() {
     if (!authSession || authSession.memberIdx !== 2) return;
     const type = $('chAdminType').value;
     const titleName = $('chAdminTitleName').value.trim();
-    const baseXp = Math.max(0, Math.round(Number($('chAdminXp').value) || 0));
-    const maxLevel = Math.min(9, Math.max(1, Math.round(Number($('chAdminMaxLevel').value) || 1)));
+    const xpReward = Math.max(0, Math.round(Number($('chAdminXp').value) || 0));
     if (!titleName) { $('chAdminTitleName').focus(); return; }
-    const targets = parseAdminTierTargets(type, $('chAdminTierValues').value, maxLevel);
-    if (!targets) {
-      alert(`단계별 조건을 ${maxLevel}개 입력해 주세요. (쉼표 구분 · 단계마다 값이 커져야 해요)`);
-      $('chAdminTierValues').focus();
-      return;
-    }
     const titleId = `title-ch-${genId()}`;
-    const levels = targets.map((target, i) => ({
-      level: i + 1,
-      target,
-      xpReward: xpForChallengeTier(baseXp, i + 1),
-      icon: null,
-    }));
-    const def = {
-      id: genId(),
-      type,
-      titleId,
-      titleName,
-      maxLevel,
-      levels,
-      icon: DEFAULT_TITLE_ICON,
-    };
-    if (type === 'item_acquire') {
+    const def = { id: genId(), type, titleId, titleName, xpReward, icon: DEFAULT_TITLE_ICON };
+    if (type === 'sale_amount') {
+      def.threshold = parseMoneyInput($('chAdminThreshold').value);
+      if (!def.threshold) { $('chAdminThreshold').focus(); return; }
+    } else {
       const itemCanonical = $('chAdminItem').value.trim();
+      def.requiredCount = Math.max(1, Math.round(Number($('chAdminCount').value) || 1));
       if (!itemCanonical) { $('chAdminItem').focus(); return; }
       def.itemCanonical = itemCanonical;
       def.itemMatchTokens = [itemCanonical.replace(/\s+/g, '')];
       ensureCatalogItem(itemCanonical);
     }
     ensureGamificationState();
-    state.challengeDefs.push(normalizeChallengeDef(def));
+    state.challengeDefs.push(def);
     replayLedgerGamificationXp();
     scheduleSave();
     $('chAdminTitleName').value = '';
-    $('chAdminTierValues').value = '';
+    $('chAdminThreshold').value = '';
     $('chAdminItem').value = '';
-    $('chAdminMaxLevel').value = '1';
     renderChallengeAdminList();
     renderChallengeListView();
   }
 
   function syncChallengeAdminTypeFields() {
     const type = $('chAdminType').value;
+    $('chAdminThresholdField').hidden = type !== 'sale_amount';
+    $('chAdminCountField').hidden = type !== 'item_acquire';
     $('chAdminItemField').hidden = type !== 'item_acquire';
-    const hint = $('chAdminTierHint');
-    const label = $('chAdminTierLabel');
-    if (type === 'sale_amount') {
-      label.textContent = '단계별 등록가 (쉼표 · 메소)';
-      hint.textContent = '레벨 수만큼 · 예: 10000000,50000000,100000000';
-    } else {
-      label.textContent = '단계별 획득 횟수 (쉼표)';
-      hint.textContent = '레벨 수만큼 · 예: 5,10,20';
-    }
   }
 
   // ---------- members ----------
@@ -6614,6 +6500,7 @@
   $('eEditPrice').addEventListener('input', updateEntryPricePreview);
   $('eEditPrice').addEventListener('change', updateEntryPricePreview);
   bindMoneyInput('xEditAmount');
+  bindMoneyInput('chAdminThreshold');
 
   $('xEditCancelBtn').addEventListener('click', closeExpEdit);
   $('xEditSaveBtn').addEventListener('click', saveExpEdit);
@@ -6703,7 +6590,6 @@
     if (!authSession) return;
     ensureGamificationState();
     state.memberProfiles[authSession.memberIdx].equippedTitleId = null;
-    state.memberProfiles[authSession.memberIdx].equippedTitleTier = 1;
     scheduleSave();
     renderTitlePickList();
     renderMembers();
