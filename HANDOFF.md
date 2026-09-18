@@ -46,7 +46,9 @@ members[3], cycles[], activeCycleId, viewCycleId (비영속)
 warehouseChars[], memberParcelReceive[3]
 entryPriceBasis: 'listing' | (legacy net → 1회 마이그)
 entryPriceNetUpgraded: boolean
-hotIssues: { id, createdAt, updatedAt?, text, images[] }[]   // 핫이슈(수정 시 updatedAt)
+partyRoster: { loginId, memberIdx }[]   // Auth ID ↔ 슬롯 0·1·2 (데이터는 idx로만 연결)
+members[3]   // 표시 닉네임 (계정 슬롯과 동기, idx 변경 없음)
+hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, text, images[] }[]
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -105,7 +107,9 @@ legacySummaryOnly (옛 회차 요약만)
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
 | 상단 헤더 | `.app-header`, `.app-toolbar` — 참고/운영/링크 공유 그룹 |
-| 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` (정산 순수익과 동일) |
+| 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
+| 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
+| 내 계정 | `#accountModal` — 닉(`state.members[idx]`)·비밀번호(Supabase Auth) |
 
 ### 5.1 표 CSS 주의
 
@@ -118,7 +122,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 6.1 핫이슈
 
-- `state.hotIssues[]`: `{ id, createdAt (ISO), updatedAt?, text, images[] }`.
+- `state.hotIssues[]`: `{ id, createdAt, updatedAt?, authorMemberIdx?, text, images[] }`.
 - **수정:** 피드 **수정** → 상단 작성란에 불러오기 → **저장** / **수정 취소** (`startHotIssueEdit`, `postHotIssue` 분기).
 - `images`: JPEG **data URL** — `compressImageBlobToDataUrl` (최대 약 1280px, 품질 자동 하향).
 - **입력:** `#hotIssueCompose` — 파일 첨부, **Ctrl+V** 캡처 붙여넣기, **Ctrl+Enter** 등록.
@@ -133,11 +137,14 @@ legacySummaryOnly (옛 회차 요약만)
 
 ---
 
-## 7. Supabase
+## 7. Supabase · Auth
 
-- 테이블: `party_ledgers (room_id PK, data jsonb, updated_at)`.
-- `CLOUD_CONFIG` in `index.html` — anon key (공개 프론트).
-- Realtime on `party_ledgers`.
+- **`party_ledgers`**: room별 JSON (cycles·hotIssues 등) — **memberIdx 0·1·2** 로 연결, 로그인 후에도 JSON 구조 **이관 없음**.
+- **`party_room_access`**: `(room_id, member_idx, login_id, user_id)` — RLS: 이 방에 등록된 Auth 사용자만 read/write.
+- 로그인 이메일: `party+{slug}@{room}.toonggongdae.app` (화면 ID는 한글 `순퉁` 등).
+- **최초 설정:** [AUTH-SETUP.md](./AUTH-SETUP.md) + [supabase-auth-migration.sql](./supabase-auth-migration.sql) (순서 엄수).
+- `CLOUD_CONFIG` — anon key; 클라우드 모드는 **로그인 필수**. 로컬-only는 로그인 UI 없음.
+- Realtime on `party_ledgers` (로그인 후).
 
 ---
 
@@ -168,6 +175,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — Supabase **로그인**·`partyRoster`/슬롯 연동 · AUTH-SETUP (데이터 idx 유지)
 - **2026-09-18** — 회차 요약 **순수익**에 메이커 재련 메소 반영 (정산·송금과 일치)
 - **2026-09-18** — 장부 **점프 내비·회차 요약 스트립**(sticky, 구역별 뱃지, 접기 없음)
 - **2026-09-18** — 핫이슈 **글 수정**(작성란 재사용·사진 편집·`updatedAt`)
@@ -239,4 +247,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18*
+*Last updated: 2026-09-18 (Auth)*

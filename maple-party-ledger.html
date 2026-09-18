@@ -48,6 +48,40 @@
     padding: clamp(16px, 3vw, 36px) clamp(10px, 2.5vw, 24px) 72px;
   }
 
+  .auth-gate {
+    max-width: 400px;
+    margin: 12vh auto 0;
+    padding: 28px 26px 24px;
+    background: var(--paper-card);
+    border: 2px solid var(--line-strong);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1);
+  }
+  .auth-gate h2 {
+    margin: 0 0 8px;
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    text-align: center;
+  }
+  .auth-gate p { margin: 0 0 18px; font-size: 13px; color: var(--ink-soft); text-align: center; line-height: 1.5; }
+  .auth-gate label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+  .auth-gate input {
+    width: 100%;
+    padding: 11px 12px;
+    margin-bottom: 12px;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .auth-gate input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12); }
+  .auth-gate-error { min-height: 1.2em; font-size: 13px; color: var(--rust); margin: -4px 0 10px; text-align: center; }
+  .auth-gate .btn-settle { width: 100%; padding: 12px; font-size: 15px; }
+  .member-slot--readonly strong { font-size: 16px; color: var(--ink); }
+  .member-slot-login { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+  .member-slot-me { border: 1.5px solid var(--settle); border-radius: 10px; padding: 10px 12px; background: var(--settle-soft); }
+
   .wrap { max-width: 980px; width: 100%; margin: 0 auto; min-width: 0; }
 
   header.app-header {
@@ -1579,7 +1613,18 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div id="authGate" class="auth-gate" hidden>
+  <h2>퉁공대 로그인</h2>
+  <p>공대원 계정만 접속할 수 있어요.<br>방 <strong id="authGateRoom"></strong></p>
+  <label for="authLoginId">아이디</label>
+  <input id="authLoginId" type="text" autocomplete="username" autocapitalize="off">
+  <label for="authPassword">비밀번호</label>
+  <input id="authPassword" type="password" autocomplete="current-password">
+  <div class="auth-gate-error" id="authGateError" aria-live="polite"></div>
+  <button type="button" class="btn-settle" id="authSubmitBtn">로그인</button>
+</div>
+
+<div class="wrap" id="appRoot" hidden>
 
   <header class="app-header">
     <div class="app-header-main">
@@ -1603,6 +1648,8 @@
         </button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 공유</button>
+        <button type="button" class="btn-light btn-sm" id="accountBtn" style="display:none;" title="닉네임·비밀번호">내 계정</button>
+        <button type="button" class="btn-light btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
       </div>
     </nav>
   </header>
@@ -1763,6 +1810,21 @@
     </div>
   </div>
 
+</div>
+
+<div class="modal-backdrop" id="accountModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="accountModalTitle" style="max-width:420px;">
+    <h3 id="accountModalTitle">내 계정</h3>
+    <p id="accountModalSub" style="margin:-6px 0 14px;font-size:13px;color:var(--ink-soft);"></p>
+    <div class="field"><span>닉네임 (장부에 표시)</span><input id="accountNickInput" type="text" autocomplete="off"></div>
+    <div class="field" style="margin-top:12px;"><span>새 비밀번호</span><input id="accountPwNew" type="password" autocomplete="new-password"></div>
+    <div class="field"><span>새 비밀번호 확인</span><input id="accountPwConfirm" type="password" autocomplete="new-password"></div>
+    <p id="accountModalMsg" style="min-height:1.2em;font-size:13px;color:var(--rust);margin:8px 0 0;"></p>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="accountCancelBtn">닫기</button>
+      <button type="button" class="btn-settle" id="accountSaveBtn">저장</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-backdrop" id="cycleMoreModal" hidden>
@@ -2077,6 +2139,15 @@
   let realtimeReady = false;
   /** 새로고침·최초 진입 시에만 작성 중 회차로 보기 고정 */
   let hasInitialViewFocus = false;
+  /** @type {{ userId: string, loginId: string, memberIdx: number } | null} */
+  let authSession = null;
+
+  const LOGIN_ID_SLUG = { '순퉁': 'suntung', '지퉁': 'jitung', '배퉁': 'baetung' };
+  const DEFAULT_PARTY_ROSTER_TONGTONGI = [
+    { loginId: '순퉁', memberIdx: 0 },
+    { loginId: '지퉁', memberIdx: 1 },
+    { loginId: '배퉁', memberIdx: 2 },
+  ];
 
   const $ = (id) => document.getElementById(id);
   const MESO_ICON_HTML = '<img src="image/meso.png" alt="" class="meso-icon" decoding="async">';
@@ -2090,6 +2161,177 @@
   const formatMoneyInput = (n) => (n > 0 ? fmtNum(n) : '');
   const todayStr = () => new Date().toISOString().slice(0, 10);
   const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  function authEmailForLoginId(loginId) {
+    const slug = LOGIN_ID_SLUG[loginId] || String(loginId).replace(/[^\w.-]/g, '');
+    return `party+${slug}@${ROOM_ID}.toonggongdae.app`;
+  }
+
+  function getPartyRoster() {
+    if (state.partyRoster && state.partyRoster.length === 3) return state.partyRoster;
+    if (ROOM_ID === 'tongtongi') return DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
+    return null;
+  }
+
+  function normalizePartyRoster(raw) {
+    if (!raw || !Array.isArray(raw) || raw.length !== 3) return null;
+    return raw.map((r, i) => ({
+      loginId: String(r.loginId != null ? r.loginId : '').trim(),
+      memberIdx: r.memberIdx != null ? Number(r.memberIdx) : i,
+    })).filter((r) => r.loginId);
+  }
+
+  function ensurePartyRosterOnState() {
+    const roster = getPartyRoster();
+    if (roster && roster.length === 3) {
+      state.partyRoster = roster;
+      return roster;
+    }
+    return null;
+  }
+
+  function loginIdForMemberIdx(idx) {
+    const roster = getPartyRoster();
+    if (!roster) return '';
+    const row = roster.find((r) => r.memberIdx === idx);
+    return row ? row.loginId : '';
+  }
+
+  function showAuthGate(msg) {
+    $('appRoot').hidden = true;
+    $('authGate').hidden = false;
+    $('authGateRoom').textContent = ROOM_ID;
+    if (msg) $('authGateError').textContent = msg;
+    document.querySelectorAll('.modal-backdrop').forEach((el) => { el.hidden = true; });
+  }
+
+  function showAppShell() {
+    $('authGate').hidden = true;
+    $('appRoot').hidden = false;
+    const cloud = storageMode === 'cloud';
+    if ($('accountBtn')) $('accountBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
+    if ($('logoutBtn')) $('logoutBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
+  }
+
+  async function resolveAuthMember(user) {
+    if (!supabaseClient || !user) return null;
+    const { data } = await supabaseClient
+      .from('party_room_access')
+      .select('member_idx, login_id')
+      .eq('room_id', ROOM_ID)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (data) {
+      return { userId: user.id, loginId: data.login_id, memberIdx: Number(data.member_idx) };
+    }
+    const roster = getPartyRoster() || DEFAULT_PARTY_ROSTER_TONGTONGI;
+    const email = (user.email || '').toLowerCase();
+    for (const r of roster) {
+      if (authEmailForLoginId(r.loginId).toLowerCase() === email) {
+        return { userId: user.id, loginId: r.loginId, memberIdx: r.memberIdx };
+      }
+    }
+    return null;
+  }
+
+  async function refreshAuthSession() {
+    if (storageMode !== 'cloud' || !supabaseClient) {
+      authSession = null;
+      showAppShell();
+      return true;
+    }
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session || !session.user) {
+      authSession = null;
+      showAuthGate('');
+      return false;
+    }
+    const resolved = await resolveAuthMember(session.user);
+    if (!resolved) {
+      await supabaseClient.auth.signOut();
+      authSession = null;
+      showAuthGate('이 방에 연결된 공대원 계정이 아니에요. AUTH-SETUP.md를 확인해 주세요.');
+      return false;
+    }
+    authSession = resolved;
+    ensurePartyRosterOnState();
+    showAppShell();
+    return true;
+  }
+
+  async function signInWithPartyAccount(loginId, password) {
+    const id = String(loginId || '').trim();
+    const roster = getPartyRoster() || DEFAULT_PARTY_ROSTER_TONGTONGI;
+    if (!roster.some((r) => r.loginId === id)) {
+      $('authGateError').textContent = '등록되지 않은 아이디예요.';
+      return false;
+    }
+    const email = authEmailForLoginId(id);
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      $('authGateError').textContent = error.message.includes('Invalid')
+        ? '아이디 또는 비밀번호가 맞지 않아요.'
+        : '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+      return false;
+    }
+    $('authGateError').textContent = '';
+    return refreshAuthSession();
+  }
+
+  async function signOutPartyAccount() {
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    authSession = null;
+    showAuthGate('');
+  }
+
+  function openAccountModal() {
+    if (!authSession) return;
+    $('accountModalSub').textContent = `아이디 ${authSession.loginId} · 슬롯 ${authSession.memberIdx + 1}`;
+    $('accountNickInput').value = state.members[authSession.memberIdx] || '';
+    $('accountPwNew').value = '';
+    $('accountPwConfirm').value = '';
+    $('accountModalMsg').textContent = '';
+    $('accountModal').hidden = false;
+  }
+
+  function closeAccountModal() {
+    $('accountModal').hidden = true;
+  }
+
+  async function saveAccountModal() {
+    if (!authSession) return;
+    const idx = authSession.memberIdx;
+    const nick = $('accountNickInput').value.trim();
+    if (!nick) {
+      $('accountModalMsg').textContent = '닉네임을 입력해 주세요.';
+      return;
+    }
+    const pw1 = $('accountPwNew').value;
+    const pw2 = $('accountPwConfirm').value;
+    if (pw1 || pw2) {
+      if (pw1.length < 2) {
+        $('accountModalMsg').textContent = '비밀번호가 너무 짧아요.';
+        return;
+      }
+      if (pw1 !== pw2) {
+        $('accountModalMsg').textContent = '새 비밀번호 확인이 일치하지 않아요.';
+        return;
+      }
+      const { error } = await supabaseClient.auth.updateUser({ password: pw1 });
+      if (error) {
+        $('accountModalMsg').textContent = '비밀번호 변경에 실패했어요.';
+        return;
+      }
+    }
+    state.members[idx] = nick;
+    ensurePartyRosterOnState();
+    scheduleSave();
+    renderMembers();
+    renderMemberSelects();
+    renderLedger();
+    renderSettlement();
+    closeAccountModal();
+  }
 
   function mapStoredEntries(arr) {
     return (arr || []).map((e) => {
@@ -2796,6 +3038,7 @@
       || !$('expEditModal').hidden
       || !$('takeoverEditModal').hidden
       || !$('hotIssueModal').hidden
+      || !$('accountModal').hidden
       || !$('makerEditModal').hidden;
   }
 
@@ -2885,10 +3128,12 @@
         .slice(0, HOT_ISSUE_MAX_IMAGES);
       if (!text && !images.length) return;
       const updatedAt = raw && raw.updatedAt ? String(raw.updatedAt) : null;
+      const authorMemberIdx = raw && raw.authorMemberIdx != null ? Number(raw.authorMemberIdx) : null;
       out.push({
         id: (raw && raw.id) || genId(),
         createdAt: (raw && raw.createdAt) || new Date().toISOString(),
         updatedAt: updatedAt || null,
+        authorMemberIdx: authorMemberIdx >= 0 && authorMemberIdx <= 2 ? authorMemberIdx : null,
         text,
         images
       });
@@ -3103,7 +3348,9 @@
     posts.forEach((post) => {
       const card = document.createElement('article');
       card.className = 'hot-post' + (post.id === editingHotIssueId ? ' hot-post--editing' : '');
-      const whenLabel = escapeHtml(formatHotIssueWhen(post.createdAt))
+      const authorName = post.authorMemberIdx != null ? state.members[post.authorMemberIdx] : '';
+      const authorBit = authorName ? ` · ${escapeHtml(authorName)}` : '';
+      const whenLabel = escapeHtml(formatHotIssueWhen(post.createdAt)) + authorBit
         + (post.updatedAt ? ` <span class="hot-post-edited">· 수정 ${escapeHtml(formatHotIssueWhen(post.updatedAt))}</span>` : '');
       const head = document.createElement('div');
       head.className = 'hot-post-head';
@@ -3191,6 +3438,7 @@
         id: genId(),
         createdAt: new Date().toISOString(),
         updatedAt: null,
+        authorMemberIdx: authSession ? authSession.memberIdx : null,
         text,
         images
       });
@@ -3209,8 +3457,14 @@
     next.entryPriceBasis = parsed.entryPriceBasis;
     next.entryPriceNetUpgraded = parsed.entryPriceNetUpgraded;
     next.hotIssues = normalizeHotIssues(parsed.hotIssues);
+    const rosterNorm = normalizePartyRoster(parsed.partyRoster);
+    if (rosterNorm) next.partyRoster = rosterNorm;
+    else if (ROOM_ID === 'tongtongi') {
+      next.partyRoster = DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
+    }
     const priceMigrated = migrateEntryPriceBasisToListing(next, parsed);
-    const needsResave = (!!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length) || priceMigrated;
+    const needsRosterResave = ROOM_ID === 'tongtongi' && !parsed.partyRoster;
+    const needsResave = (!!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length) || priceMigrated || needsRosterResave;
     return { next, needsResave };
   }
 
@@ -3223,6 +3477,7 @@
     }
     if (!state.entryPriceBasis) state.entryPriceBasis = 'listing';
     state.hotIssues = normalizeHotIssues(state.hotIssues);
+    ensurePartyRosterOnState();
     if (!hasInitialViewFocus) {
       snapViewToActiveOpenCycle();
       hasInitialViewFocus = true;
@@ -3264,7 +3519,9 @@
 
   function initStorageBackend() {
     if (CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey && window.supabase) {
-      supabaseClient = window.supabase.createClient(CLOUD_CONFIG.supabaseUrl, CLOUD_CONFIG.supabaseAnonKey);
+      supabaseClient = window.supabase.createClient(CLOUD_CONFIG.supabaseUrl, CLOUD_CONFIG.supabaseAnonKey, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      });
       storageMode = 'cloud';
       return;
     }
@@ -3385,25 +3642,51 @@
   function renderMembers() {
     const grid = $('membersGrid');
     grid.innerHTML = '';
+    ensurePartyRosterOnState();
     state.members.forEach((name, i) => {
       const slot = document.createElement('div');
-      slot.className = 'member-slot';
-      slot.innerHTML = `<span>공대원 ${i + 1}</span>`;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = name;
-      input.addEventListener('focus', () => { editingField = true; });
-      input.addEventListener('blur', () => { editingField = false; });
-      input.addEventListener('input', () => {
-        state.members[i] = input.value.trim() || DEFAULT_MEMBERS[i];
-        scheduleSave();
-        renderMemberSelects();
-        renderLedger();
-        renderExpenditures();
-        renderExpSplitFields();
-        renderSettlement();
-      });
-      slot.appendChild(input);
+      const isSelf = authSession && authSession.memberIdx === i;
+      const loginId = loginIdForMemberIdx(i);
+      slot.className = 'member-slot' + (isSelf ? ' member-slot-me' : '');
+      if (storageMode === 'cloud' && authSession) {
+        slot.innerHTML = `<span>${isSelf ? '내 닉네임' : `공대원 ${i + 1}`}</span>`;
+        const strong = document.createElement('strong');
+        strong.className = 'member-display-name';
+        strong.textContent = name || loginId || `멤버 ${i + 1}`;
+        slot.appendChild(strong);
+        if (loginId) {
+          const sub = document.createElement('div');
+          sub.className = 'member-slot-login';
+          sub.textContent = isSelf ? `아이디 ${loginId} · 내 계정에서 닉 변경` : `아이디 ${loginId}`;
+          slot.appendChild(sub);
+        }
+        if (isSelf) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn-light btn-sm';
+          btn.style.marginTop = '8px';
+          btn.textContent = '닉·비밀번호 변경';
+          btn.addEventListener('click', () => openAccountModal());
+          slot.appendChild(btn);
+        }
+      } else {
+        slot.innerHTML = `<span>공대원 ${i + 1}</span>`;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = name;
+        input.addEventListener('focus', () => { editingField = true; });
+        input.addEventListener('blur', () => { editingField = false; });
+        input.addEventListener('input', () => {
+          state.members[i] = input.value.trim() || DEFAULT_MEMBERS[i];
+          scheduleSave();
+          renderMemberSelects();
+          renderLedger();
+          renderExpenditures();
+          renderExpSplitFields();
+          renderSettlement();
+        });
+        slot.appendChild(input);
+      }
       grid.appendChild(slot);
     });
   }
@@ -5306,20 +5589,51 @@
     render();
   });
 
-  initStorageBackend();
-  subscribeCloudRealtime();
-  if (storageMode !== 'cloud') {
+  async function bootApp() {
+    initStorageBackend();
+    if (storageMode !== 'cloud') {
+      showAppShell();
+      await loadState();
+    } else {
+      const ok = await refreshAuthSession();
+      if (ok) {
+        subscribeCloudRealtime();
+        await loadState();
+      }
+    }
+    if (storageMode !== 'cloud') {
+      setInterval(() => {
+        if (modalBlocksRemote()) return;
+        const tag = document.activeElement.tagName;
+        if (tag !== 'INPUT' && tag !== 'SELECT') loadState();
+      }, 12000);
+    }
     setInterval(() => {
-      if (modalBlocksRemote()) return;
-      const tag = document.activeElement.tagName;
-      if (tag !== 'INPUT' && tag !== 'SELECT') loadState();
-    }, 12000);
+      const today = localCalendarDateStr();
+      if (today !== hotIssueBadgeWatchDate) updateHotIssueTodayBadge();
+    }, 60000);
   }
-  loadState();
-  setInterval(() => {
-    const today = localCalendarDateStr();
-    if (today !== hotIssueBadgeWatchDate) updateHotIssueTodayBadge();
-  }, 60000);
+
+  $('authSubmitBtn').addEventListener('click', async () => {
+    if (storageMode !== 'cloud') return;
+    const ok = await signInWithPartyAccount($('authLoginId').value, $('authPassword').value);
+    if (ok) {
+      subscribeCloudRealtime();
+      await loadState();
+    }
+  });
+  $('authPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('authSubmitBtn').click();
+  });
+  $('accountBtn').addEventListener('click', () => openAccountModal());
+  $('logoutBtn').addEventListener('click', () => signOutPartyAccount());
+  $('accountCancelBtn').addEventListener('click', closeAccountModal);
+  $('accountSaveBtn').addEventListener('click', () => saveAccountModal());
+  $('accountModal').addEventListener('click', (e) => {
+    if (e.target.id === 'accountModal') closeAccountModal();
+  });
+
+  bootApp();
 })();
 </script>
 </body>
