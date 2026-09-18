@@ -448,6 +448,67 @@
     position: relative;
     z-index: 2;
   }
+  .member-title-badge--burn {
+    position: relative;
+    overflow: visible;
+    animation: title-badge-burn-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes title-badge-burn-pulse {
+    0%, 100% {
+      filter: drop-shadow(0 0 3px rgba(251, 146, 60, 0.35)) drop-shadow(0 0 6px rgba(234, 88, 12, 0.2));
+    }
+    45% {
+      filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.55)) drop-shadow(0 0 14px rgba(220, 38, 38, 0.28));
+    }
+  }
+  .member-title-badge .title-badge-burn {
+    position: absolute;
+    inset: -8px -10px -4px;
+    pointer-events: none;
+    overflow: visible;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  .member-title-badge .title-badge-burn i {
+    position: absolute;
+    width: var(--es, 3px);
+    height: var(--es, 3px);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fef3c7 0%, #fb923c 45%, #ea580c 100%);
+    box-shadow: 0 0 4px #f97316, 0 0 7px rgba(234, 88, 12, 0.55);
+    opacity: 0;
+    animation: title-badge-ember var(--ed, 1.6s) ease-out infinite;
+    animation-delay: var(--edelay, 0s);
+  }
+  @keyframes title-badge-ember {
+    0% { opacity: 0; transform: translateY(2px) scale(0.25); }
+    12% { opacity: 0.95; }
+    100% { opacity: 0; transform: translateY(-12px) scale(0.15); }
+  }
+  .member-title-badge--burn img,
+  .member-title-badge--burn > span:last-child {
+    position: relative;
+    z-index: 2;
+  }
+  .exclusive-medal-card {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+    margin-bottom: 10px;
+  }
+  .exclusive-medal-card .exclusive-medal-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 8px 0 6px;
+    line-height: 1.45;
+  }
+  .exclusive-medal-card .exclusive-medal-meta {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .exclusive-medal-card .exclusive-medal-meta.muted { color: var(--ink-soft); font-weight: 500; }
   .member-exp-wrap { margin-top: 2px; width: 100%; }
   .member-exp-label {
     font-size: 10.5px;
@@ -1959,7 +2020,7 @@
           <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
         </button>
         <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
-        <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="도전과제 진행도">도전과제</button>
+        <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
         <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="도전과제 추가·관리 (배퉁)">도전 관리</button>
         <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
       </div>
@@ -2152,9 +2213,14 @@
 
 <div class="modal-backdrop" id="challengeModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="challengeModalTitle" style="max-width:520px;">
-    <h3 id="challengeModalTitle">도전과제</h3>
-    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">레벨 칭호와 도전 보상 · 진행도는 공대원별로 표시돼요.</p>
+    <h3 id="challengeModalTitle">훈장</h3>
+    <div class="mypage-tabs medal-modal-tabs" role="tablist" style="margin-bottom:10px;">
+      <button type="button" class="mypage-tab is-active" id="medalTabChallenge" data-medal-tab="challenge">도전과제</button>
+      <button type="button" class="mypage-tab" id="medalTabExclusive" data-medal-tab="exclusive">고유 훈장</button>
+    </div>
+    <p id="medalTabChallengeHint" style="margin:-4px 0 12px;font-size:13px;color:var(--ink-soft);">레벨 칭호와 도전 보상 · 진행도는 공대원별로 표시돼요.</p>
     <div class="challenge-list" id="challengeListView"></div>
+    <div class="challenge-list" id="exclusiveMedalView" hidden></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="challengeCloseBtn">닫기</button>
     </div>
@@ -2510,6 +2576,18 @@
       badgeEffect: 'sparkle-subtle',
     },
   };
+  /** 도전과제와 무관 · memberIdx 전용 (코드 등록) */
+  const EXCLUSIVE_TITLE_DEFS = [
+    {
+      id: 'title-exclusive-reverse-blindness',
+      name: '리버스 블라인드니스',
+      icon: 'image/훈장아이콘/리버스블라인드니스.png',
+      memberIdx: 0,
+      description: '리버스 제작을 완벽히 성공한 자에게 주어진다.',
+      badgeColor: '#0a0a0a',
+      badgeEffect: 'burn',
+    },
+  ];
   const INVEN_TITLE_ICON_REF = 'https://www.inven.co.kr/board/maple/2304/7662';
 
   let state = {
@@ -4263,6 +4341,7 @@
       else delete ch.badgeColor;
     });
     if (state.gamificationSchema == null) state.gamificationSchema = 1;
+    syncExclusiveTitlesAll();
   }
 
   function normalizeBadgeColor(raw) {
@@ -4327,6 +4406,23 @@
     return LEVEL_TITLE_DEFS.find((t) => t.id === id) || null;
   }
 
+  function getExclusiveTitleDef(id) {
+    return EXCLUSIVE_TITLE_DEFS.find((t) => t.id === id) || null;
+  }
+
+  function syncExclusiveTitlesForMember(memberIdx) {
+    ensureGamificationState();
+    const p = state.memberProfiles[memberIdx];
+    EXCLUSIVE_TITLE_DEFS.forEach((ex) => {
+      if (ex.memberIdx !== memberIdx) return;
+      if (!p.unlockedTitleIds.includes(ex.id)) p.unlockedTitleIds.push(ex.id);
+    });
+  }
+
+  function syncExclusiveTitlesAll() {
+    [0, 1, 2].forEach((i) => syncExclusiveTitlesForMember(i));
+  }
+
   function resolveChallengeTitleAssets(ch) {
     if (!ch) return null;
     const key = String(ch.titleName || '').trim();
@@ -4359,6 +4455,31 @@
       h = Math.imul(h, 16777619);
     }
     return h >>> 0;
+  }
+
+  function titleBadgeBurnHtml(effect, seedKey) {
+    if (effect !== 'burn') return '';
+    const rnd = (() => {
+      let s = hashSeedStr(seedKey);
+      return () => {
+        s = (s + 0x6d2b79f5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    })();
+    const count = 7 + Math.floor(rnd() * 3);
+    let html = '<span class="title-badge-burn" aria-hidden="true">';
+    for (let i = 0; i < count; i++) {
+      const x = (0 + rnd() * 100).toFixed(1);
+      const y = (55 + rnd() * 40).toFixed(1);
+      const dur = (1.1 + rnd() * 1.3).toFixed(2);
+      const delay = (rnd() * 2.2).toFixed(2);
+      const size = (2.5 + rnd() * 2.5).toFixed(1);
+      html += `<i style="left:${x}%;top:${y}%;--ed:${dur}s;--edelay:${delay}s;--es:${size}px"></i>`;
+    }
+    html += '</span>';
+    return html;
   }
 
   function titleBadgeSparkleHtml(effect, seedKey) {
@@ -4402,6 +4523,8 @@
   function getTitleDefById(titleId) {
     const lv = getLevelTitleDef(titleId);
     if (lv) return lv;
+    const ex = getExclusiveTitleDef(titleId);
+    if (ex) return ex;
     const ch = (state.challengeDefs || []).find((c) => c.titleId === titleId);
     if (ch) return getChallengeTitleDef(ch);
     return null;
@@ -4416,6 +4539,7 @@
         p.unlockedTitleIds.push(t.id);
       }
     });
+    syncExclusiveTitlesForMember(memberIdx);
     if (p.equippedTitleId && !p.unlockedTitleIds.includes(p.equippedTitleId)) {
       p.equippedTitleId = null;
     }
@@ -4423,6 +4547,26 @@
 
   function syncAllLevelTitles() {
     [0, 1, 2].forEach((i) => syncLevelTitlesForMember(i));
+  }
+
+  function memberDisplayName(memberIdx) {
+    return state.members[memberIdx] || loginIdForMemberIdx(memberIdx) || `공대원 ${memberIdx + 1}`;
+  }
+
+  function exclusiveTitleOwnerIdx(ex) {
+    ensureGamificationState();
+    for (let i = 0; i < 3; i++) {
+      if (state.memberProfiles[i].unlockedTitleIds.includes(ex.id)) return i;
+    }
+    return null;
+  }
+
+  function exclusiveTitleEquippedIdx(ex) {
+    ensureGamificationState();
+    for (let i = 0; i < 3; i++) {
+      if (state.memberProfiles[i].equippedTitleId === ex.id) return i;
+    }
+    return null;
   }
 
   function grantXp(memberIdx, amount, key) {
@@ -4579,9 +4723,10 @@
     const effect = def.badgeEffect || '';
     const cls = effect ? ` member-title-badge--${effect}` : '';
     const spark = titleBadgeSparkleHtml(effect, seedKey);
+    const burn = titleBadgeBurnHtml(effect, seedKey);
     const styleRaw = memberTitleBadgeStyleAttr(resolveTitleBadgeColor(def) || def.badgeColor);
     const styleAttr = styleRaw ? ` style="${escapeHtml(styleRaw)}"` : '';
-    return `<div class="member-title-badge${cls}"${styleAttr}>${spark}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+    return `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
   }
 
   function memberTitleBadgeHtml(memberIdx) {
@@ -4636,6 +4781,51 @@
         renderMembers();
       });
       wrap.appendChild(row);
+    });
+  }
+
+  function switchMedalModalTab(tab) {
+    const challenge = tab === 'challenge';
+    $('medalTabChallenge').classList.toggle('is-active', challenge);
+    $('medalTabExclusive').classList.toggle('is-active', !challenge);
+    $('challengeListView').hidden = !challenge;
+    $('exclusiveMedalView').hidden = challenge;
+    $('medalTabChallengeHint').hidden = !challenge;
+    if (challenge) renderChallengeListView();
+    else renderExclusiveMedalView();
+  }
+
+  function renderExclusiveMedalView() {
+    const wrap = $('exclusiveMedalView');
+    if (!wrap) return;
+    ensureGamificationState();
+    wrap.innerHTML = '';
+    if (!EXCLUSIVE_TITLE_DEFS.length) {
+      wrap.innerHTML = '<p class="challenge-meta">등록된 고유 훈장이 없어요.</p>';
+      return;
+    }
+    EXCLUSIVE_TITLE_DEFS.forEach((ex) => {
+      const ownerIdx = exclusiveTitleOwnerIdx(ex);
+      const equipIdx = exclusiveTitleEquippedIdx(ex);
+      const targetName = memberDisplayName(ex.memberIdx);
+      const card = document.createElement('div');
+      card.className = 'exclusive-medal-card';
+      const badge = titleBadgePreviewHtml(ex, `ex-card:${ex.id}`);
+      let ownerLine = '';
+      if (ownerIdx != null) {
+        ownerLine = `소유: ${escapeHtml(memberDisplayName(ownerIdx))}`;
+        if (equipIdx != null) {
+          ownerLine += ` · 장착: ${escapeHtml(memberDisplayName(equipIdx))}`;
+        }
+      } else {
+        ownerLine = `지급 대상: ${escapeHtml(targetName)} (아직 미부여)`;
+      }
+      card.innerHTML = `
+        <div class="challenge-badge-preview">${badge}</div>
+        <p class="exclusive-medal-desc">${escapeHtml(ex.description || '')}</p>
+        <p class="exclusive-medal-meta">${ownerLine}</p>
+        <p class="exclusive-medal-meta muted">${escapeHtml(targetName)} 전용 · 도전과제로는 획득할 수 없어요.</p>`;
+      wrap.appendChild(card);
     });
   }
 
@@ -6899,9 +7089,11 @@
     renderMembers();
   });
   $('challengeBtn').addEventListener('click', () => {
-    renderChallengeListView();
+    switchMedalModalTab('challenge');
     $('challengeModal').hidden = false;
   });
+  $('medalTabChallenge').addEventListener('click', () => switchMedalModalTab('challenge'));
+  $('medalTabExclusive').addEventListener('click', () => switchMedalModalTab('exclusive'));
   $('challengeCloseBtn').addEventListener('click', () => { $('challengeModal').hidden = true; });
   $('challengeModal').addEventListener('click', (e) => {
     if (e.target.id === 'challengeModal') $('challengeModal').hidden = true;

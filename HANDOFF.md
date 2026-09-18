@@ -150,6 +150,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **레벨 칭호 4종** (`LEVEL_TITLE_DEFS`): 초보(1), 주니어(30), 베테랑(70), 마스터(120) — 아이콘 `image/훈장아이콘/*.png`.
 - **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
 - **집계:** `replayLedgerGamificationXp()` — 불러올 때·장부/핫이슈/마감/도전 변경 후 · **과거 회차 소급** · `login:` 키만 보존.
+- **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · 도전과제·관리 UI **미포함** · 예: **리버스 블라인드니스**(순퉁, `#0a0a0a`, `badgeEffect: burn`) · 헤더 **훈장** 모달 **고유 훈장** 탭.
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
 - **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP · **뱃지 배경색**(color) · 추가 시·목록에서 **레벨 칭호 4종** 색도 편집 (`levelTitleBadgeColors`). 장착·도전 미리보기 동일 템플릿(`memberTitleBadgeStyleAttr`).
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
@@ -196,6 +197,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — **고유 훈장**(순퉁·리버스 블라인드니스·burn) · **훈장** 모달 탭(도전/고유)
 - **2026-09-18** — 도전 관리 **뱃지 배경색**(조건부·레벨 4종) · `badgeColor` / `levelTitleBadgeColors`
 - **2026-09-18** — `sparkle-subtle` **별 6~8개**·밝기·위치 분산 강화
 - **2026-09-18** — 도전과제 모달 **장착 뱃지와 동일 미리보기** (`titleBadgePreviewHtml`)
@@ -281,4 +283,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (뱃지 배경색)*
+*Last updated: 2026-09-18 (고유 훈장)*
