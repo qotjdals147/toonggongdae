@@ -4403,7 +4403,6 @@
       else delete ch.badgeColor;
     });
     if (state.gamificationSchema == null) state.gamificationSchema = 1;
-    syncExclusiveTitlesAll();
   }
 
   function normalizeBadgeColor(raw) {
@@ -4473,8 +4472,8 @@
   }
 
   function syncExclusiveTitlesForMember(memberIdx) {
-    ensureGamificationState();
     const p = state.memberProfiles[memberIdx];
+    if (!p) return;
     EXCLUSIVE_TITLE_DEFS.forEach((ex) => {
       if (ex.memberIdx !== memberIdx) return;
       if (!p.unlockedTitleIds.includes(ex.id)) p.unlockedTitleIds.push(ex.id);

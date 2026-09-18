@@ -198,6 +198,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — fix: `ensureGamificationState`↔고유훈장 sync **무한 재귀**(불러오기 멈춤)
 - **2026-09-18** — 고유 훈장 **150 XP** · 마이페이지 **경험치 획득내역** 탭(200건·필터)
 - **2026-09-18** — **고유 훈장**(순퉁·리버스 블라인드니스·burn) · **훈장** 모달 탭(도전/고유)
 - **2026-09-18** — 도전 관리 **뱃지 배경색**(조건부·레벨 4종) · `badgeColor` / `levelTitleBadgeColors`
@@ -285,4 +286,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (XP 내역)*
+*Last updated: 2026-09-18 (load hang fix)*
