@@ -51,8 +51,9 @@ partyRoster: { loginId, memberIdx }[]   // Auth ID ↔ 슬롯 0·1·2 (데이터
 members[3]   // 표시 닉네임 (계정 슬롯과 동기, idx 변경 없음)
 memberProfiles[3]  // totalXp, equippedTitleId|null, unlockedTitleIds[], xpLog[](최근 200, UI용) — **클라우드+로그인**
 xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:/exclusive:)
-challengeDefs[]    // 배퉁 · 조건 1개=칭호 1개 — threshold | requiredCount, xpReward, icon?, badgeColor?(hex)
-levelTitleBadgeColors{}  // 레벨 칭호 4종 titleId → badgeColor (도전 관리에서 편집)
+challengeDefs[]    // 배퉁 · threshold | requiredCount, xpReward, icon?, badgeColor?, description?, optionsText?
+levelTitleBadgeColors{}  // 레벨 훈장 4종 · badgeColor
+levelTitleMeta{}       // 레벨 훈장 · description, optionsText (툴팁 · optionsText는 표시, 능력은 코드)
 challengeItemCatalog[]  // 도전과제 아이템 자동완성 전용
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
 ```
@@ -153,7 +154,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
-- **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP · **뱃지 배경색**(color) · 추가 시·목록에서 **레벨 칭호 4종** 색도 편집 (`levelTitleBadgeColors`). 장착·도전 미리보기 동일 템플릿(`memberTitleBadgeStyleAttr`).
+- **관리 UI(배퉁):** 훈장 이름·조건·XP·색 · **설명·훈장 옵션**(툴팁 즉시 반영) · 레벨 4종·조건부 목록 편집 · **옵션 실제 적용**은 `bonuses`/코드(에이전트).
+- **툴팁:** 훈장 모달 미리보기·장착 뱃지·관리 미리보기 hover · `optionsText` 또는 `bonuses` → [훈장 옵션].
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
 - **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `CHALLENGE_TITLE_ASSETS`(칭호 이름→icon·`badgeEffect`) · PNG `image/훈장아이콘/`. 예: **시간의 광부** → `시간의광부.png` · `sparkle-subtle`(흰 점 3개, 약함 — 10·20회는 더 강한 effect 추가 예정).
 - **칭호 아이콘 참고:** https://www.inven.co.kr/board/maple/2304/7662
@@ -198,6 +200,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 훈장 **설명·optionsText** 관리 UI · 모달/관리 **hover 툴팁**
 - **2026-09-18** — 훈장 툴팁 **fixed** 배치(공대원 카드 overflow 밖 표시)
 - **2026-09-18** — 훈장 **옵션**(리버스 EXP+5%·내역 분리·툴팁) · UI 칭호→훈장
 - **2026-09-18** — 훈장 모달 탭 **패널 hidden** fix · 제목 **훈장제목아이콘**
@@ -289,4 +292,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (훈장 툴팁 fixed)*
+*Last updated: 2026-09-18 (훈장 설명·옵션 UI)*

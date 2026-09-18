@@ -715,6 +715,26 @@
     font-weight: 700;
     color: var(--ink);
   }
+  .ch-medal-meta-fields { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .ch-medal-meta-fields label { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 4px; }
+  .ch-medal-meta-fields textarea {
+    width: 100%;
+    min-height: 52px;
+    font-size: 12px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    resize: vertical;
+    font-family: inherit;
+  }
+  .ch-level-admin-card {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .ch-level-admin-card > strong { font-size: 14px; display: block; margin-bottom: 8px; }
   .challenge-progress {
     height: 8px;
     border-radius: 4px;
@@ -2373,12 +2393,21 @@
           <span id="chAdminBadgePreview" class="ch-admin-badge-preview" aria-hidden="true"></span>
         </div>
       </div>
+      <div class="field" style="grid-column:1/-1;">
+        <span>설명 (마우스 올리면 표시)</span>
+        <textarea id="chAdminDescription" rows="2" autocomplete="off" placeholder="훈장에 대한 짧은 설명"></textarea>
+      </div>
+      <div class="field" style="grid-column:1/-1;">
+        <span>훈장 옵션 (한 줄에 하나 · 툴팁 표시)</span>
+        <textarea id="chAdminOptions" rows="2" autocomplete="off" placeholder="예:&#10;경험치 획득률 +5%"></textarea>
+        <p style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);">실제 수치 적용은 저장 후 에이전트에게 알려 주세요.</p>
+      </div>
     </div>
     <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
-    <p class="ch-admin-section-title">레벨 훈장 (4종) · 뱃지 색</p>
+    <p class="ch-admin-section-title">레벨 훈장 (4종) · 색·설명·옵션</p>
     <div id="levelTitleBadgeColorsAdmin"></div>
     <p class="ch-admin-section-title" style="margin-top:14px;">조건부 훈장 · 도전과제</p>
-    <div class="challenge-list" id="challengeAdminList" style="margin-top:6px;max-height:220px;"></div>
+    <div class="challenge-list" id="challengeAdminList" style="margin-top:6px;max-height:360px;"></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="challengeAdminCloseBtn">닫기</button>
     </div>
@@ -2692,6 +2721,7 @@
     '시간의 광부': {
       icon: 'image/훈장아이콘/시간의광부.png',
       badgeEffect: 'sparkle-subtle',
+      description: '시간의 조각을 꾸준히 모은 이에게 주어진다.',
     },
   };
   /** 도전과제와 무관 · memberIdx 전용 (코드 등록) */
@@ -4162,6 +4192,9 @@
     if (parsed.levelTitleBadgeColors && typeof parsed.levelTitleBadgeColors === 'object') {
       next.levelTitleBadgeColors = { ...parsed.levelTitleBadgeColors };
     }
+    if (parsed.levelTitleMeta && typeof parsed.levelTitleMeta === 'object') {
+      next.levelTitleMeta = { ...parsed.levelTitleMeta };
+    }
     const rosterNorm = normalizePartyRoster(parsed.partyRoster);
     if (rosterNorm) next.partyRoster = rosterNorm;
     else if (ROOM_ID === 'tongtongi') {
@@ -4457,10 +4490,14 @@
     if (!state.levelTitleBadgeColors || typeof state.levelTitleBadgeColors !== 'object') {
       state.levelTitleBadgeColors = {};
     }
+    if (!state.levelTitleMeta || typeof state.levelTitleMeta !== 'object') {
+      state.levelTitleMeta = {};
+    }
     state.challengeDefs.forEach((ch) => {
       const c = normalizeBadgeColor(ch.badgeColor);
       if (c) ch.badgeColor = c;
       else delete ch.badgeColor;
+      normalizeMedalCopyFields(ch);
     });
     if (state.gamificationSchema == null) state.gamificationSchema = 1;
   }
@@ -4528,8 +4565,27 @@
     renderTitlePickList();
   }
 
+  function levelTitleMetaFor(id) {
+    if (!state.levelTitleMeta || !state.levelTitleMeta[id]) return {};
+    return state.levelTitleMeta[id];
+  }
+
+  function resolveLevelTitleDef(base) {
+    if (!base) return null;
+    const meta = levelTitleMetaFor(base.id);
+    return {
+      ...base,
+      name: base.name,
+      icon: base.icon,
+      description: String(meta.description != null ? meta.description : (base.description || '')).trim(),
+      optionsText: String(meta.optionsText != null ? meta.optionsText : (base.optionsText || '')).trim(),
+      badgeColor: normalizeBadgeColor(state.levelTitleBadgeColors?.[base.id]) || '',
+    };
+  }
+
   function getLevelTitleDef(id) {
-    return LEVEL_TITLE_DEFS.find((t) => t.id === id) || null;
+    const base = LEVEL_TITLE_DEFS.find((t) => t.id === id);
+    return base ? resolveLevelTitleDef(base) : null;
   }
 
   function getExclusiveTitleDef(id) {
@@ -4575,6 +4631,20 @@
     const assets = resolveChallengeTitleAssets(ch);
     if (assets?.icon) ch.icon = assets.icon;
     if (assets?.badgeEffect) ch.badgeEffect = assets.badgeEffect;
+    if (assets?.description && !ch.description) ch.description = assets.description;
+  }
+
+  function normalizeMedalCopyFields(ch) {
+    if (ch.description != null) {
+      const d = String(ch.description).trim();
+      if (d) ch.description = d;
+      else delete ch.description;
+    }
+    if (ch.optionsText != null) {
+      const o = String(ch.optionsText).trim();
+      if (o) ch.optionsText = o;
+      else delete ch.optionsText;
+    }
   }
 
   function hashSeedStr(str) {
@@ -4640,12 +4710,16 @@
 
   function getChallengeTitleDef(ch) {
     if (!ch) return null;
+    const assets = resolveChallengeTitleAssets(ch);
     return {
       id: ch.titleId,
       name: ch.titleName,
       icon: challengeIconFor(ch),
       badgeEffect: challengeBadgeEffectFor(ch),
       badgeColor: normalizeBadgeColor(ch.badgeColor) || '',
+      description: String(ch.description || assets?.description || '').trim(),
+      optionsText: String(ch.optionsText || '').trim(),
+      bonuses: ch.bonuses,
       challengeId: ch.id,
     };
   }
@@ -4742,7 +4816,13 @@
   }
 
   function titleBonusOptionLines(def) {
-    if (!def || !def.bonuses) return [];
+    if (!def) return [];
+    const textLines = String(def.optionsText || '')
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (textLines.length) return textLines;
+    if (!def.bonuses) return [];
     const out = [];
     const rate = titleXpGainRate(def);
     if (rate > 0) out.push(`경험치 획득률 +${Math.round(rate * 100)}%`);
@@ -4750,7 +4830,10 @@
   }
 
   function titleBadgeHasTooltip(def) {
-    return !!(def && (def.description || titleBonusOptionLines(def).length));
+    if (!def) return false;
+    if (String(def.description || '').trim()) return true;
+    if (String(def.optionsText || '').trim()) return true;
+    return titleBonusOptionLines(def).length > 0;
   }
 
   function titleBadgeTooltipHtml(def) {
@@ -5167,7 +5250,7 @@
       const targetName = memberDisplayName(ex.memberIdx);
       const card = document.createElement('div');
       card.className = 'exclusive-medal-card';
-      const badge = titleBadgePreviewHtml(ex, `ex-card:${ex.id}`);
+      const badge = titleBadgePreviewHtml(ex, `ex-card:${ex.id}`, true);
       let ownerLine = '';
       if (ownerIdx != null) {
         ownerLine = `소유: ${escapeHtml(memberDisplayName(ownerIdx))}`;
@@ -5184,6 +5267,7 @@
         <p class="exclusive-medal-meta muted">${escapeHtml(targetName)} 전용 · 도전과제로는 획득할 수 없어요.</p>`;
       wrap.appendChild(card);
     });
+    bindMemberTitleBadgeTooltips(wrap);
   }
 
   function renderChallengeListView() {
@@ -5210,9 +5294,10 @@
       blocks.forEach((b) => {
         if (b.kind === 'level') {
           const t = b.def;
+          const tDef = getLevelTitleDef(t.id);
           const { level } = levelFromTotalXp(state.memberProfiles[memberIdx].totalXp);
           const done = level >= t.minLevel;
-          const badge = titleBadgePreviewHtml(t, `lv-preview:${t.id}:${memberIdx}`);
+          const badge = titleBadgePreviewHtml(tDef, `lv-preview:${t.id}:${memberIdx}`, true);
           inner.innerHTML += `
             <div class="challenge-quest-block">
               <div class="challenge-badge-preview">${badge}</div>
@@ -5224,7 +5309,7 @@
         const prog = challengeProgressForMember(ch, memberIdx);
         const pct = Math.min(100, (prog.current / prog.target) * 100);
         const done = prog.done || state.memberProfiles[memberIdx].unlockedTitleIds.includes(ch.titleId);
-        const badge = titleBadgePreviewHtml(getChallengeTitleDef(ch), `ch-preview:${ch.titleId}:${memberIdx}`);
+        const badge = titleBadgePreviewHtml(getChallengeTitleDef(ch), `ch-preview:${ch.titleId}:${memberIdx}`, true);
         inner.innerHTML += `
           <div class="challenge-quest-block">
             <div class="challenge-badge-preview">${badge}</div>
@@ -5236,6 +5321,7 @@
       head.appendChild(inner);
       wrap.appendChild(head);
     });
+    bindMemberTitleBadgeTooltips(wrap);
   }
 
   function updateChAdminAddBadgePreview() {
@@ -5245,7 +5331,15 @@
     const colorInp = $('chAdminBadgeColor');
     const color = normalizeBadgeColor(colorInp && colorInp.value) || DEFAULT_BADGE_COLOR;
     const icon = DEFAULT_TITLE_ICON;
-    wrap.innerHTML = titleBadgePreviewHtml({ name, icon, badgeColor: color }, 'ch-admin-add-preview');
+    const description = ($('chAdminDescription') && $('chAdminDescription').value.trim()) || '';
+    const optionsText = ($('chAdminOptions') && $('chAdminOptions').value.trim()) || '';
+    wrap.innerHTML = titleBadgePreviewHtml({ name, icon, badgeColor: color, description, optionsText }, 'ch-admin-add-preview', true);
+    bindMemberTitleBadgeTooltips(wrap);
+  }
+
+  function ensureLevelTitleMeta(id) {
+    if (!state.levelTitleMeta[id]) state.levelTitleMeta[id] = { description: '', optionsText: '' };
+    return state.levelTitleMeta[id];
   }
 
   function renderLevelTitleBadgeColorsAdmin() {
@@ -5254,18 +5348,46 @@
     ensureGamificationState();
     wrap.innerHTML = '';
     LEVEL_TITLE_DEFS.forEach((t) => {
+      const meta = ensureLevelTitleMeta(t.id);
       const val = normalizeBadgeColor(state.levelTitleBadgeColors[t.id]) || DEFAULT_BADGE_COLOR;
-      const row = document.createElement('div');
-      row.className = 'ch-level-color-row';
-      row.innerHTML = `<span>${escapeHtml(t.name)}</span>`;
+      const card = document.createElement('div');
+      card.className = 'ch-level-admin-card';
+      card.innerHTML = `<strong>${escapeHtml(t.name)}</strong>`;
+      const colorRow = document.createElement('div');
+      colorRow.className = 'ch-row-badge-color-wrap';
+      colorRow.innerHTML = '<span class="challenge-meta">뱃지 색</span>';
       const inp = document.createElement('input');
       inp.type = 'color';
       inp.value = val;
       const preview = document.createElement('span');
       preview.className = 'ch-admin-badge-preview';
+      const descTa = document.createElement('textarea');
+      descTa.placeholder = '설명 (툴팁)';
+      descTa.value = meta.description || '';
+      const optTa = document.createElement('textarea');
+      optTa.placeholder = '훈장 옵션 (한 줄에 하나)';
+      optTa.value = meta.optionsText || '';
+      const metaWrap = document.createElement('div');
+      metaWrap.className = 'ch-medal-meta-fields';
       const paint = () => {
         const c = normalizeBadgeColor(inp.value) || DEFAULT_BADGE_COLOR;
-        preview.innerHTML = titleBadgePreviewHtml({ ...t, badgeColor: c }, `lv-admin:${t.id}`);
+        preview.innerHTML = titleBadgePreviewHtml({
+          ...t,
+          badgeColor: c,
+          description: descTa.value.trim(),
+          optionsText: optTa.value.trim(),
+        }, `lv-admin:${t.id}`, true);
+        bindMemberTitleBadgeTooltips(preview);
+      };
+      const saveMeta = () => {
+        meta.description = descTa.value.trim();
+        meta.optionsText = optTa.value.trim();
+        if (!meta.description && !meta.optionsText) {
+          delete state.levelTitleMeta[t.id];
+        }
+        scheduleSave();
+        paint();
+        refreshTitleBadgeViews();
       };
       inp.addEventListener('input', () => {
         const c = normalizeBadgeColor(inp.value);
@@ -5275,10 +5397,20 @@
         paint();
         refreshTitleBadgeViews();
       });
+      descTa.addEventListener('input', saveMeta);
+      optTa.addEventListener('input', saveMeta);
+      metaWrap.innerHTML = '<label>설명</label>';
+      metaWrap.appendChild(descTa);
+      const optLabel = document.createElement('label');
+      optLabel.textContent = '훈장 옵션';
+      metaWrap.appendChild(optLabel);
+      metaWrap.appendChild(optTa);
+      colorRow.appendChild(inp);
+      colorRow.appendChild(preview);
+      card.appendChild(colorRow);
+      card.appendChild(metaWrap);
+      wrap.appendChild(card);
       paint();
-      row.appendChild(inp);
-      row.appendChild(preview);
-      wrap.appendChild(row);
     });
   }
 
@@ -5306,20 +5438,35 @@
           <input type="color" class="ch-row-badge-color" value="${colorVal}">
           <span class="ch-row-badge-preview ch-admin-badge-preview"></span>
         </div>
+        <div class="ch-medal-meta-fields">
+          <label>설명</label>
+          <textarea class="ch-row-desc" rows="2">${escapeHtml(ch.description || '')}</textarea>
+          <label>훈장 옵션</label>
+          <textarea class="ch-row-opts" rows="2">${escapeHtml(ch.optionsText || '')}</textarea>
+        </div>
         <button type="button" class="btn-light btn-sm" data-del="${escapeHtml(ch.id)}" style="margin-top:6px;">삭제</button>`;
       const colorInp = row.querySelector('.ch-row-badge-color');
       const preview = row.querySelector('.ch-row-badge-preview');
+      const descTa = row.querySelector('.ch-row-desc');
+      const optTa = row.querySelector('.ch-row-opts');
       const paintRowBadge = () => {
         const c = normalizeBadgeColor(colorInp.value) || DEFAULT_BADGE_COLOR;
         ch.badgeColor = c !== DEFAULT_BADGE_COLOR ? c : undefined;
         if (!ch.badgeColor) delete ch.badgeColor;
-        preview.innerHTML = titleBadgePreviewHtml(getChallengeTitleDef(ch), `ch-admin:${ch.id}`);
+        ch.description = descTa.value.trim();
+        ch.optionsText = optTa.value.trim();
+        normalizeMedalCopyFields(ch);
+        preview.innerHTML = titleBadgePreviewHtml(getChallengeTitleDef(ch), `ch-admin:${ch.id}`, true);
+        bindMemberTitleBadgeTooltips(preview);
       };
-      colorInp.addEventListener('input', () => {
+      const saveRowMeta = () => {
         paintRowBadge();
         scheduleSave();
         refreshTitleBadgeViews();
-      });
+      };
+      colorInp.addEventListener('input', saveRowMeta);
+      descTa.addEventListener('input', saveRowMeta);
+      optTa.addEventListener('input', saveRowMeta);
       paintRowBadge();
       row.querySelector('button').addEventListener('click', () => {
         if (!confirm('이 도전과제를 삭제할까요?')) return;
@@ -5420,6 +5567,9 @@
     }
     const badgeColor = normalizeBadgeColor($('chAdminBadgeColor').value);
     if (badgeColor && badgeColor !== DEFAULT_BADGE_COLOR) def.badgeColor = badgeColor;
+    def.description = ($('chAdminDescription').value || '').trim();
+    def.optionsText = ($('chAdminOptions').value || '').trim();
+    normalizeMedalCopyFields(def);
     applyKnownChallengeAssets(def);
     ensureGamificationState();
     state.challengeDefs.push(def);
@@ -5428,6 +5578,8 @@
     $('chAdminTitleName').value = '';
     $('chAdminThreshold').value = '';
     $('chAdminItem').value = '';
+    $('chAdminDescription').value = '';
+    $('chAdminOptions').value = '';
     renderChallengeAdminPanel();
     renderChallengeListView();
   }
@@ -7504,6 +7656,8 @@
   });
   $('chAdminBadgeColor').addEventListener('input', updateChAdminAddBadgePreview);
   $('chAdminTitleName').addEventListener('input', updateChAdminAddBadgePreview);
+  $('chAdminDescription').addEventListener('input', updateChAdminAddBadgePreview);
+  $('chAdminOptions').addEventListener('input', updateChAdminAddBadgePreview);
   $('challengeAdminCloseBtn').addEventListener('click', () => { $('challengeAdminModal').hidden = true; });
   $('challengeAdminModal').addEventListener('click', (e) => {
     if (e.target.id === 'challengeAdminModal') $('challengeAdminModal').hidden = true;
