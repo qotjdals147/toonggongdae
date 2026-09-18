@@ -39,6 +39,7 @@
 - **상태** `state` → Supabase `party_ledgers.data` (JSON) + localStorage 폴백.
 - **회차** `state.cycles[]`: `open` 1개 + `closed` N개. `viewCycleId`는 **저장 안 함** (`stateForPersistence`에서 삭제) → 새로고침 시 **작성 중 회차**로 스냅 (`snapViewToActiveOpenCycle`, `hasInitialViewFocus`).
 - **Realtime:** `subscribeCloudRealtime` — 편집 중 `modalBlocksRemote()`면 원격 덮어쓰기 방지.
+- **게임화:** `gamificationActive()` — 클라우드 + 로그인 + `memberProfiles` 있을 때만. 없으면 Lv/도전/XP UI 숨김.
 
 ### 3.1 `state` 주요 필드
 
@@ -50,7 +51,7 @@ entryPriceNetUpgraded: boolean
 partyRoster: { loginId, memberIdx }[]   // Auth ID ↔ 슬롯 0·1·2 (데이터는 idx로만 연결)
 members[3]   // 표시 닉네임 (계정 슬롯과 동기, idx 변경 없음)
 memberProfiles[3]  // totalXp, equippedTitleId|null, unlockedTitleIds[], xpLog[](최근 200, UI용) — **클라우드+로그인**
-xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:/exclusive:)
+xpGrantKeys[]      // XP 중복 방지 · acq:/sale:/cycle:/hot:/login:/ach:/exclusive: · 장착 훈장 보너스 `{baseKey}:medalXp`
 challengeDefs[]    // 배퉁 · badgeColor?, badgeTextColor?, description?, optionsText?, …
 levelTitleBadgeColors{}  // 레벨 훈장 4종 · badgeColor
 levelTitleMeta{}       // 레벨 · description, optionsText, badgeTextColor
@@ -113,12 +114,14 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `.app-toolbar` — 수수료·창고캐·핫이슈·통계·도전·로그아웃 (마이페이지는 공대원 카드) |
+| 상단 헤더 | `.app-toolbar` — 수수료·창고캐·핫이슈·통계·**훈장**(진행도) · **마스터 옵션**(배퉁만) · 로그아웃 |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — Lv·칭호·EXP 바 (**클라우드+로그인**) · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 |
-| 도전과제 | `#challengeModal`(진행도) · `#challengeAdminModal` **마스터 옵션**(memberIdx **2**) |
+| 훈장·도전(전원) | `#challengeModal` — 탭 도전과제/고유 · `renderChallengeListView` / `renderExclusiveMedalView` |
+| 마스터 옵션(배퉁) | `#challengeAdminModal` · `#challengeAdminBtn` · `switchChAdminTab` · memberIdx **=== 2** |
+| 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` · `bindItemNameAutocomplete` |
 | 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -141,24 +144,47 @@ legacySummaryOnly (옛 회차 요약만)
 - **한도:** `HOT_ISSUE_MAX_IMAGES = 4`, 장당 data URL 길이 상한 (`HOT_ISSUE_MAX_DATA_URL_LEN`).
 - **주의:** Supabase `jsonb` 전체 크기 — 사진 많이 쌓이면 저장 실패 가능. (추후 Storage 분리는 요청 시)
 
-### 6.2 아이템명
+### 6.2 아이템명 · 카탈로그
 
-- **MapleStory.io 외부 자동완성 없음**. **카탈로그만** 자동완성 (`challengeItemCatalog`) · **입력 1자 이상**일 때만 · 목록은 **풀네임만** · 별칭은 검색·집계 매칭 · 선택·저장 시 **canonical** (`resolveCatalogItemInput`).
+- **MapleStory.io 외부 자동완성 없음.**
+- **`challengeItemCatalog[]`:** `{ id, canonical, aliases[] }` — **마스터 옵션 → 아이템 추가**에서만 CRUD (`addMasterCatalogItem`, `renderMasterItemCatalogAdmin`).
+- **자동완성:** `filterItemNameSuggestions` → **카탈로그만** · query **공백 제거 후 1자 이상**일 때만 · 드롭다운에는 **canonical(풀네임)만** · 별칭은 **검색용** (`itemNameMatchesQuery`).
+- **저장:** 획득 `saveEntryEdit` · 도전 추가 — `resolveCatalogItemInput`으로 canonical 치환(별칭 exact norm 일치) · 도전 `item_acquire`는 **카탈로그에 있는 이름만** 추가 가능.
+- **도전 매칭:** `itemTextMatchesChallenge` — 카탈로그 canonical+별칭 · `ch.itemMatchTokens` · `syncChallengeItemMatchFromCatalog(ch)`가 `item_acquire` 토큰 갱신.
+- **마이그:** `migrateChallengeItemCatalog` — parse/load 시 aliases 배열 보장.
 
-### 6.3 계정 레벨·칭호·도전과제 (클라우드+로그인)
+### 6.3 계정 레벨·훈장·도전과제 (클라우드+로그인)
 
 - **Lv 1~200** · `xpToNextLevel` / `levelFromTotalXp` · EXP 바는 메이플랜드 스타일.
 - **레벨 칭호 4종** (`LEVEL_TITLE_DEFS`): 초보(1), 주니어(30), 베테랑(70), 마스터(120) — 아이콘 `image/훈장아이콘/*.png`.
 - **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
-- **집계:** `replayLedgerGamificationXp()` — 장부·도전·**카탈로그** 변경 후 **totalXp·ach 키 재계산** · 도전 훈장 unlock 리셋 후 조건 충족분만 재부여 · `login:`·`exclusive:`(replay 후 sync) · **카탈로그만 등록/삭제는 XP 없음** — 도전 매칭이 바뀔 때만 replay로 ach XP 변동.
+- **집계:** `replayLedgerGamificationXp()` — `xpGrantKeys`를 **`login:`만 남기고** 전부 재생성 · `totalXp` 0부터 재합산 · **`stripReplayChallengeTitleUnlocks`** 후 도전 충족분만 `unlockChallengeTitle` · 끝에 **`syncExclusiveTitlesAll`** + `syncAllLevelTitles` + `rebuildAllXpLogs`.
+- **UI 갱신 래퍼:** `gamificationReplayAndRefresh()` — replay + `renderMembers` + (훈장 모달 열려 있으면) 진행도 뷰.
+- **replay 호출 예:** 획득 저장/삭제 · 도전 추가/삭제 · 회차 마감 · 핫이슈 등록 · **카탈로그 추가/저장/삭제** · `runGamificationAfterStateLoad`.
+- **주의:** **카탈로그 항목 자체는 XP를 주지 않음.** 카탈로그 변경으로 **도전 완료 조건(매칭)이 바뀔 때만** ach XP가 replay로 변동. 획득 줄 삭제는 acq/sale XP 감소.
+- **금지(재귀):** `ensureGamificationState` 안에서 **`syncExclusiveTitlesAll()` 호출 금지** · `syncExclusiveTitlesForMember` 안에서 **`ensureGamificationState()` 호출 금지** (과거 불러오기 멈춤 버그).
 - **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
-- **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전** · **아이템 추가**=카탈로그 CRUD · 도전 `item_acquire`는 카탈로그 선택 필수 · **배경·글자색**·설명 → **저장**.
-- **툴팁:** 훈장 모달 미리보기·장착 뱃지·관리 미리보기 hover · `optionsText` 또는 `bonuses` → [훈장 옵션].
+- **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전** · **아이템 추가**=카탈로그 CRUD · 도전 `item_acquire`는 카탈로그 선택 필수 · **배경·글자색**(`badgeColor`/`badgeTextColor`)·설명·`optionsText` → 카드별 **저장** (색 드래그 중 자동 저장 없음 · HEX 입력).
+- **툴팁:** `titleBadgePreviewHtml` · `bindMemberTitleBadgeTooltips` · `positionTitleBadgeTooltip`(fixed) · `description` + `optionsText` 또는 `bonuses` → **[훈장 옵션]** · `optionsText`만 있으면 표시, **실제 스탯**은 코드 `bonuses`/에이전트.
+- **뱃지 스타일:** `memberTitleBadgeStyleAttr`(그라데이션) · `--badge-text` CSS 변수로 글자색.
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
 - **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `CHALLENGE_TITLE_ASSETS`(칭호 이름→icon·`badgeEffect`) · PNG `image/훈장아이콘/`. 예: **시간의 광부** → `시간의광부.png` · `sparkle-subtle`(흰 점 3개, 약함 — 10·20회는 더 강한 effect 추가 예정).
 - **칭호 아이콘 참고:** https://www.inven.co.kr/board/maple/2304/7662
+
+### 6.4 게임화 함수 빠른 참조
+
+| 목적 | 함수 |
+|------|------|
+| 상태 정규화 | `ensureGamificationState`, `migrateChallengeDefs`, `migrateChallengeItemCatalog` |
+| XP 1회 지급 | `grantXp(memberIdx, amount, key)` |
+| XP 전체 재계산 | `replayLedgerGamificationXp` |
+| 도전 진행 | `challengeProgressForMember`, `countItemAcquireForMember`, `itemTextMatchesChallenge` |
+| 카탈로그 | `findCatalogEntryByAnyLabel`, `resolveCatalogItemInput`, `addMasterCatalogItem` |
+| 훈장 정의 | `getTitleDefById`, `getLevelTitleDef`, `getChallengeTitleDef`, `EXCLUSIVE_TITLE_DEFS` |
+| 코드 전용 훈장 | `CHALLENGE_TITLE_ASSETS` (이름→icon·effect·description) |
+| 장착 UI | `memberTitleBadgeHtml`, `renderTitlePickList` |
 
 ---
 
@@ -200,6 +226,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — HANDOFF **§6.2~6.4** · replay/카탈로그/함수맵 · §13 인수인계 보강
 - **2026-09-18** — XP **replay** · 카탈로그 변경·도전 훈장 unlock 재계산 · exclusive XP replay 복원
 - **2026-09-18** — **마스터 옵션** · 카탈로그+별칭 · 획득/도전 자동완성
 - **2026-09-18** — 아이템 자동완성 **장부 획득명** 풀 연동 · 획득 수정란 (→ 카탈로그 전용으로 대체)
@@ -248,6 +275,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 - [ ] 핫이슈 이미지 Supabase Storage 분리 (JSON 용량)
 - [ ] closed cycle `entryTotal`에 메이커 반영 여부 정리
+- [ ] 마스터 옵션 **optionsText → bonuses** 자동 적용 (현재는 에이전트·코드)
+- [ ] 획득 저장 시 **카탈로그 미등록 이름** 경고/차단 (현재는 자유 입력 + AC만 카탈로그)
 - [ ] AGENTS.md 없음 — **이 HANDOFF가 AGENTS 역할**
 
 ---
@@ -297,4 +326,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (XP replay·카탈로그)*
+*Last updated: 2026-09-18 (HANDOFF 게임화·카탈로그 인수인계) · main @ `718a233`*
