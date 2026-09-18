@@ -740,6 +740,30 @@
     resize: vertical;
     font-family: inherit;
   }
+  .medal-bonus-editor { display: flex; flex-direction: column; gap: 6px; }
+  .medal-bonus-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .medal-bonus-row select {
+    flex: 1;
+    min-width: 140px;
+    font-size: 12px;
+    padding: 6px 8px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+  }
+  .medal-bonus-row input[type="number"] {
+    width: 72px;
+    font-size: 12px;
+    padding: 6px 8px;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+  }
+  .medal-bonus-row .medal-bonus-unit { font-size: 12px; color: var(--ink-soft); min-width: 1.2em; }
+  .medal-bonus-add { align-self: flex-start; }
   .ch-level-admin-card {
     border: 1.5px solid var(--line);
     border-radius: 10px;
@@ -2428,9 +2452,8 @@
           <textarea id="chAdminDescription" rows="2" autocomplete="off" placeholder="훈장에 대한 짧은 설명"></textarea>
         </div>
         <div class="field" style="grid-column:1/-1;">
-          <span>훈장 옵션 (한 줄에 하나 · 툴팁 표시)</span>
-          <textarea id="chAdminOptions" rows="2" autocomplete="off" placeholder="예:&#10;경험치 획득률 +5%"></textarea>
-          <p style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);">실제 수치 적용은 추가 후 에이전트에게 알려 주세요.</p>
+          <span>훈장 옵션 (템플릿 · 장착 시 적용)</span>
+          <div id="chAdminBonusEditor"></div>
         </div>
       </div>
       <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
@@ -2770,6 +2793,15 @@
   const DEFAULT_TITLE_ICON = 'image/훈장아이콘/초보퉁퉁이.png';
   const DEFAULT_BADGE_COLOR = '#2563eb';
   const DEFAULT_BADGE_TEXT_COLOR = '#ffffff';
+
+  /** 훈장 bonuses 필드 · UI는 % 입력 → 저장 시 rate는 0~1 */
+  const MEDAL_BONUS_TEMPLATES = [
+    { id: 'xpGainRate', label: '경험치 획득률', unit: '%', field: 'xpGainRate', kind: 'rate' },
+    { id: 'flatAcq', label: '획득 XP', unit: '', field: 'flatAcq', kind: 'flat' },
+    { id: 'achXpRate', label: '도전 보상 XP', unit: '%', field: 'achXpRate', kind: 'rate' },
+    { id: 'flatCycleClose', label: '회차 마감 XP', unit: '', field: 'flatCycleClose', kind: 'flat' },
+    { id: 'hotXpRate', label: '핫이슈 XP', unit: '%', field: 'hotXpRate', kind: 'rate' },
+  ];
   /** 도전 훈장 이름 → 아이콘·뱃지 이펙트 (10·20회 등 단계 추가 시 여기 확장) */
   const CHALLENGE_TITLE_ASSETS = {
     '시간의 광부': {
@@ -4633,6 +4665,17 @@
       else delete ch.badgeTextColor;
       normalizeMedalCopyFields(ch);
     });
+    if (state.levelTitleMeta && typeof state.levelTitleMeta === 'object') {
+      Object.keys(state.levelTitleMeta).forEach((id) => {
+        const meta = state.levelTitleMeta[id];
+        if (!meta || typeof meta !== 'object') return;
+        if (meta.bonuses) {
+          meta.bonuses = normalizeMedalBonuses(meta.bonuses);
+          if (!Object.keys(meta.bonuses).length) delete meta.bonuses;
+          syncMedalOptionsTextFromBonuses(meta);
+        }
+      });
+    }
     if (state.gamificationSchema == null) state.gamificationSchema = 1;
   }
 
@@ -4732,6 +4775,7 @@
       icon: base.icon,
       description: String(meta.description != null ? meta.description : (base.description || '')).trim(),
       optionsText: String(meta.optionsText != null ? meta.optionsText : (base.optionsText || '')).trim(),
+      bonuses: normalizeMedalBonuses(meta.bonuses || base.bonuses),
       badgeColor: normalizeBadgeColor(state.levelTitleBadgeColors?.[base.id]) || '',
       badgeTextColor: normalizeBadgeColor(meta.badgeTextColor) || '',
     };
@@ -4803,6 +4847,12 @@
       const t = normalizeBadgeColor(ch.badgeTextColor);
       if (t) ch.badgeTextColor = t;
       else delete ch.badgeTextColor;
+    }
+    if (ch.bonuses != null) {
+      const b = normalizeMedalBonuses(ch.bonuses);
+      if (Object.keys(b).length) ch.bonuses = b;
+      else delete ch.bonuses;
+      syncMedalOptionsTextFromBonuses(ch);
     }
   }
 
@@ -4879,7 +4929,7 @@
       badgeTextColor: normalizeBadgeColor(ch.badgeTextColor) || '',
       description: String(ch.description || assets?.description || '').trim(),
       optionsText: String(ch.optionsText || '').trim(),
-      bonuses: ch.bonuses,
+      bonuses: normalizeMedalBonuses(ch.bonuses),
       challengeId: ch.id,
     };
   }
@@ -4951,15 +5001,62 @@
   }
 
   function xpLogCategoryForKey(key) {
-    if (key.endsWith(':medalXp')) return 'title';
+    if (/:medal(Xp|FlatAcq|FlatCycle|AchPct|HotPct)$/.test(key)) return 'title';
     if (key.startsWith('acq:') || key.startsWith('sale:') || key.startsWith('cycle:')) return 'ledger';
     if (key.startsWith('ach:') || key.startsWith('exclusive:')) return 'title';
     return 'etc';
   }
 
-  function titleXpGainRate(def) {
-    if (!def || !def.bonuses) return 0;
-    return Math.max(0, Number(def.bonuses.xpGainRate) || 0);
+  function medalBonusTemplateByField(field) {
+    return MEDAL_BONUS_TEMPLATES.find((t) => t.field === field) || null;
+  }
+
+  function normalizeMedalBonuses(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const out = {};
+    MEDAL_BONUS_TEMPLATES.forEach((tpl) => {
+      let v = Number(raw[tpl.field]);
+      if (!Number.isFinite(v) || v <= 0) return;
+      if (tpl.kind === 'rate') {
+        v = v > 1 ? v / 100 : v;
+        if (v > 2) v = 2;
+        out[tpl.field] = v;
+      } else {
+        out[tpl.field] = Math.min(99999, Math.round(v));
+      }
+    });
+    return out;
+  }
+
+  function bonusesToDisplayPercent(field, stored) {
+    const tpl = medalBonusTemplateByField(field);
+    if (!tpl || tpl.kind !== 'rate') return stored;
+    const v = Number(stored) || 0;
+    return v <= 1 ? Math.round(v * 1000) / 10 : v;
+  }
+
+  function medalBonusLinesFromBonuses(bonuses) {
+    const b = normalizeMedalBonuses(bonuses);
+    const lines = [];
+    MEDAL_BONUS_TEMPLATES.forEach((tpl) => {
+      const v = b[tpl.field];
+      if (v == null || v <= 0) return;
+      if (tpl.kind === 'rate') {
+        const pct = Math.round(v * 1000) / 10;
+        const pctStr = Number.isInteger(pct) ? String(pct) : String(pct);
+        lines.push(`${tpl.label} +${pctStr}%`);
+      } else {
+        lines.push(`${tpl.label} +${fmtNum(v)}`);
+      }
+    });
+    return lines;
+  }
+
+  function syncMedalOptionsTextFromBonuses(target) {
+    if (!target) return;
+    const lines = medalBonusLinesFromBonuses(target.bonuses);
+    if (lines.length) target.optionsText = lines.join('\n');
+    else delete target.optionsText;
   }
 
   function equippedTitleDef(memberIdx) {
@@ -4967,26 +5064,41 @@
     return id ? getTitleDefById(id) : null;
   }
 
-  function medalXpBonusAmount(memberIdx, baseAmount) {
-    const base = Math.round(Number(baseAmount) || 0);
-    if (base <= 0) return 0;
-    const rate = titleXpGainRate(equippedTitleDef(memberIdx));
-    if (!rate) return 0;
-    return Math.max(0, Math.floor(base * rate));
+  function equippedMedalBonuses(memberIdx) {
+    return normalizeMedalBonuses(equippedTitleDef(memberIdx)?.bonuses);
+  }
+
+  function medalBonusSuffixAmount(memberIdx, parentKey, suffix, parentBaseAmount) {
+    const b = equippedMedalBonuses(memberIdx);
+    const base = Math.round(Number(parentBaseAmount) || 0);
+    if (suffix === 'medalFlatAcq') return b.flatAcq || 0;
+    if (suffix === 'medalFlatCycle') return b.flatCycleClose || 0;
+    if (suffix === 'medalAchPct' && parentKey.startsWith('ach:')) {
+      return base > 0 && b.achXpRate ? Math.floor(base * b.achXpRate) : 0;
+    }
+    if (suffix === 'medalHotPct' && parentKey.startsWith('hot:')) {
+      return base > 0 && b.hotXpRate ? Math.floor(base * b.hotXpRate) : 0;
+    }
+    if (suffix === 'medalXp') {
+      let sum = base;
+      if (parentKey.startsWith('acq:')) sum += b.flatAcq || 0;
+      if (parentKey.startsWith('cycle:')) sum += b.flatCycleClose || 0;
+      if (parentKey.startsWith('ach:') && b.achXpRate) sum += Math.floor(base * b.achXpRate);
+      if (parentKey.startsWith('hot:') && b.hotXpRate) sum += Math.floor(base * b.hotXpRate);
+      if (sum <= 0 || !b.xpGainRate) return 0;
+      return Math.floor(sum * b.xpGainRate);
+    }
+    return 0;
   }
 
   function titleBonusOptionLines(def) {
     if (!def) return [];
-    const textLines = String(def.optionsText || '')
+    const fromBonuses = medalBonusLinesFromBonuses(def.bonuses);
+    if (fromBonuses.length) return fromBonuses;
+    return String(def.optionsText || '')
       .split(/\r?\n/)
       .map((s) => s.trim())
       .filter(Boolean);
-    if (textLines.length) return textLines;
-    if (!def.bonuses) return [];
-    const out = [];
-    const rate = titleXpGainRate(def);
-    if (rate > 0) out.push(`경험치 획득률 +${Math.round(rate * 100)}%`);
-    return out;
   }
 
   function titleBadgeHasTooltip(def) {
@@ -5033,17 +5145,26 @@
   }
 
   function xpLogRowForKey(key, memberIdx) {
-    if (key.endsWith(':medalXp')) {
-      const parentKey = key.slice(0, -':medalXp'.length);
+    const medalSuffixMatch = key.match(/:(medalXp|medalFlatAcq|medalFlatCycle|medalAchPct|medalHotPct)$/);
+    if (medalSuffixMatch) {
+      const suffix = medalSuffixMatch[1];
+      const parentKey = key.slice(0, -(suffix.length + 1));
       const parentRow = xpLogRowForKey(parentKey, memberIdx);
       if (!parentRow) return null;
       const def = equippedTitleDef(memberIdx);
-      const amount = medalXpBonusAmount(memberIdx, parentRow.amount);
+      const amount = medalBonusSuffixAmount(memberIdx, parentKey, suffix, parentRow.amount);
       if (amount <= 0) return null;
+      const suffixLabel = {
+        medalXp: '획득률 보너스',
+        medalFlatAcq: '획득 XP 보너스',
+        medalFlatCycle: '마감 XP 보너스',
+        medalAchPct: '도전 XP 보너스',
+        medalHotPct: '핫이슈 XP 보너스',
+      }[suffix] || '훈장 보너스';
       return {
         key,
         amount,
-        label: `훈장 추가 EXP · ${def?.name || '장착 훈장'}`,
+        label: `훈장 · ${suffixLabel} · ${def?.name || '장착 훈장'}`,
         at: parentRow.at,
         cat: 'title',
       };
@@ -5110,6 +5231,27 @@
     });
   }
 
+  function grantMedalBonusKeys(memberIdx, parentKey, parentBaseAmount) {
+    const b = equippedMedalBonuses(memberIdx);
+    const p = state.memberProfiles[memberIdx];
+    let added = 0;
+    const tryGrant = (suffix) => {
+      const ek = `${parentKey}:${suffix}`;
+      if (state.xpGrantKeys.includes(ek)) return;
+      const extra = medalBonusSuffixAmount(memberIdx, parentKey, suffix, parentBaseAmount);
+      if (extra <= 0) return;
+      state.xpGrantKeys.push(ek);
+      p.totalXp += extra;
+      added += extra;
+    };
+    if (parentKey.startsWith('acq:') && b.flatAcq) tryGrant('medalFlatAcq');
+    if (parentKey.startsWith('cycle:') && b.flatCycleClose) tryGrant('medalFlatCycle');
+    if (parentKey.startsWith('ach:') && b.achXpRate) tryGrant('medalAchPct');
+    if (parentKey.startsWith('hot:') && b.hotXpRate) tryGrant('medalHotPct');
+    if (b.xpGainRate) tryGrant('medalXp');
+    return added;
+  }
+
   function grantXp(memberIdx, amount, key) {
     if (!gamificationActive() || memberIdx < 0 || memberIdx > 2) return 0;
     const amt = Math.round(Number(amount) || 0);
@@ -5120,15 +5262,7 @@
     const p = state.memberProfiles[memberIdx];
     p.totalXp += amt;
     let added = amt;
-    const bonus = medalXpBonusAmount(memberIdx, amt);
-    if (bonus > 0) {
-      const bKey = `${key}:medalXp`;
-      if (!state.xpGrantKeys.includes(bKey)) {
-        state.xpGrantKeys.push(bKey);
-        p.totalXp += bonus;
-        added += bonus;
-      }
-    }
+    added += grantMedalBonusKeys(memberIdx, key, amt);
     syncLevelTitlesForMember(memberIdx);
     return added;
   }
@@ -5406,8 +5540,8 @@
       row.addEventListener('click', () => {
         p.equippedTitleId = tid;
         scheduleSave();
+        gamificationReplayAndRefresh();
         renderTitlePickList();
-        renderMembers();
       });
       wrap.appendChild(row);
     });
@@ -5514,6 +5648,123 @@
   }
 
   let chAdminActiveTab = 'add';
+  let chAdminBonusEditorCtrl = null;
+
+  function mountMedalBonusEditor(container, initialBonuses, onChange) {
+    if (!container) return { getBonuses: () => ({}), setBonuses: () => {} };
+    container.innerHTML = '';
+    const root = document.createElement('div');
+    root.className = 'medal-bonus-editor';
+    const rowsWrap = document.createElement('div');
+    rowsWrap.className = 'medal-bonus-rows';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn-light btn-sm medal-bonus-add';
+    addBtn.textContent = '+ 옵션 추가';
+    root.appendChild(rowsWrap);
+    root.appendChild(addBtn);
+    container.appendChild(root);
+
+    const rowState = [];
+
+    const readBonuses = () => {
+      const bonuses = {};
+      rowState.forEach((row) => {
+        const tpl = medalBonusTemplateByField(row.field);
+        if (!tpl) return;
+        let v = Number(row.numInp.value);
+        if (!Number.isFinite(v) || v <= 0) return;
+        if (tpl.kind === 'rate') bonuses[tpl.field] = v / 100;
+        else bonuses[tpl.field] = Math.round(v);
+      });
+      return normalizeMedalBonuses(bonuses);
+    };
+
+    const emit = () => { if (onChange) onChange(readBonuses()); };
+
+    const rebuildRow = (row, field, value) => {
+      row.field = field;
+      const tpl = medalBonusTemplateByField(field) || MEDAL_BONUS_TEMPLATES[0];
+      row.sel.value = tpl.field;
+      row.unit.textContent = tpl.unit;
+      row.numInp.value = value != null && value !== '' ? String(value) : '';
+      row.numInp.step = tpl.kind === 'rate' ? '0.1' : '1';
+    };
+
+    const addRow = (field, value) => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'medal-bonus-row';
+      const sel = document.createElement('select');
+      MEDAL_BONUS_TEMPLATES.forEach((t) => {
+        const opt = document.createElement('option');
+        opt.value = t.field;
+        opt.textContent = t.label;
+        sel.appendChild(opt);
+      });
+      const numInp = document.createElement('input');
+      numInp.type = 'number';
+      numInp.min = '0';
+      const unit = document.createElement('span');
+      unit.className = 'medal-bonus-unit';
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn-light btn-sm';
+      del.textContent = '×';
+      del.title = '삭제';
+      rowEl.appendChild(sel);
+      rowEl.appendChild(numInp);
+      rowEl.appendChild(unit);
+      rowEl.appendChild(del);
+      rowsWrap.appendChild(rowEl);
+      const row = { el: rowEl, sel, numInp, unit, field: field || MEDAL_BONUS_TEMPLATES[0].field };
+      rowState.push(row);
+      rebuildRow(row, row.field, value);
+      sel.addEventListener('change', () => {
+        rebuildRow(row, sel.value, numInp.value);
+        emit();
+      });
+      numInp.addEventListener('input', emit);
+      del.addEventListener('click', () => {
+        rowsWrap.removeChild(rowEl);
+        const i = rowState.indexOf(row);
+        if (i >= 0) rowState.splice(i, 1);
+        emit();
+      });
+    };
+
+    addBtn.addEventListener('click', () => {
+      const used = new Set(rowState.map((r) => r.field));
+      const next = MEDAL_BONUS_TEMPLATES.find((t) => !used.has(t.field));
+      if (!next) return;
+      addRow(next.field, '');
+      emit();
+    });
+
+    const setBonuses = (bonuses) => {
+      while (rowState.length) {
+        rowsWrap.removeChild(rowState[0].el);
+        rowState.shift();
+      }
+      const b = normalizeMedalBonuses(bonuses);
+      MEDAL_BONUS_TEMPLATES.forEach((tpl) => {
+        const stored = b[tpl.field];
+        if (stored == null || stored <= 0) return;
+        const display = tpl.kind === 'rate' ? bonusesToDisplayPercent(tpl.field, stored) : stored;
+        addRow(tpl.field, display);
+      });
+    };
+
+    setBonuses(initialBonuses);
+    return { getBonuses: readBonuses, setBonuses };
+  }
+
+  function ensureChAdminBonusEditor() {
+    const wrap = $('chAdminBonusEditor');
+    if (!wrap) return;
+    if (!chAdminBonusEditorCtrl) {
+      chAdminBonusEditorCtrl = mountMedalBonusEditor(wrap, {}, () => updateChAdminAddBadgePreview());
+    }
+  }
 
   function flashChAdminSaved(btn) {
     if (!btn) return;
@@ -5570,7 +5821,10 @@
     if (tab === 'level') renderLevelTitleBadgeColorsAdmin();
     if (tab === 'list') renderChallengeAdminList();
     if (tab === 'items') renderMasterItemCatalogAdmin();
-    if (tab === 'add') updateChAdminAddBadgePreview();
+    if (tab === 'add') {
+      ensureChAdminBonusEditor();
+      updateChAdminAddBadgePreview();
+    }
   }
 
   function updateChAdminAddBadgePreview() {
@@ -5583,9 +5837,10 @@
     const textColor = normalizeBadgeColor(textInp && textInp.value) || DEFAULT_BADGE_TEXT_COLOR;
     const icon = DEFAULT_TITLE_ICON;
     const description = ($('chAdminDescription') && $('chAdminDescription').value.trim()) || '';
-    const optionsText = ($('chAdminOptions') && $('chAdminOptions').value.trim()) || '';
+    ensureChAdminBonusEditor();
+    const bonuses = chAdminBonusEditorCtrl ? chAdminBonusEditorCtrl.getBonuses() : {};
     wrap.innerHTML = titleBadgePreviewHtml({
-      name, icon, badgeColor: color, badgeTextColor: textColor, description, optionsText,
+      name, icon, badgeColor: color, badgeTextColor: textColor, description, bonuses,
     }, 'ch-admin-add-preview', true);
     bindMemberTitleBadgeTooltips(wrap);
   }
@@ -5636,11 +5891,10 @@
       const descTa = document.createElement('textarea');
       descTa.placeholder = '설명 (툴팁)';
       descTa.value = meta.description || '';
-      const optTa = document.createElement('textarea');
-      optTa.placeholder = '훈장 옵션 (한 줄에 하나)';
-      optTa.value = meta.optionsText || '';
+      const bonusMount = document.createElement('div');
       const metaWrap = document.createElement('div');
       metaWrap.className = 'ch-medal-meta-fields';
+      const bonusCtrl = mountMedalBonusEditor(bonusMount, meta.bonuses, () => paint());
       const paint = () => {
         const c = normalizeBadgeColor(inp.value) || DEFAULT_BADGE_COLOR;
         const tc = normalizeBadgeColor(textInp.value) || DEFAULT_BADGE_TEXT_COLOR;
@@ -5649,7 +5903,7 @@
           badgeColor: c,
           badgeTextColor: tc,
           description: descTa.value.trim(),
-          optionsText: optTa.value.trim(),
+          bonuses: bonusCtrl.getBonuses(),
         }, `lv-admin:${t.id}`, true);
         bindMemberTitleBadgeTooltips(preview);
       };
@@ -5662,12 +5916,18 @@
         if (c) state.levelTitleBadgeColors[t.id] = c;
         else delete state.levelTitleBadgeColors[t.id];
         meta.description = descTa.value.trim();
-        meta.optionsText = optTa.value.trim();
         const tc = normalizeBadgeColor(textInp.value);
         if (tc) meta.badgeTextColor = tc;
         else delete meta.badgeTextColor;
-        if (!meta.description && !meta.optionsText && !meta.badgeTextColor) delete state.levelTitleMeta[t.id];
+        const b = bonusCtrl.getBonuses();
+        if (Object.keys(b).length) meta.bonuses = b;
+        else delete meta.bonuses;
+        syncMedalOptionsTextFromBonuses(meta);
+        if (!meta.description && !meta.optionsText && !meta.badgeTextColor && !meta.bonuses) {
+          delete state.levelTitleMeta[t.id];
+        }
         scheduleSave();
+        gamificationReplayAndRefresh();
         paint();
         refreshTitleBadgeViews();
         flashChAdminSaved(saveBtn);
@@ -5675,14 +5935,13 @@
       bindBadgeColorInputs(inp, hexInp, paint);
       bindBadgeColorInputs(textInp, textHexInp, paint);
       descTa.addEventListener('input', paint);
-      optTa.addEventListener('input', paint);
       saveBtn.addEventListener('click', saveLevelCard);
       metaWrap.innerHTML = '<label>설명</label>';
       metaWrap.appendChild(descTa);
       const optLabel = document.createElement('label');
       optLabel.textContent = '훈장 옵션';
       metaWrap.appendChild(optLabel);
-      metaWrap.appendChild(optTa);
+      metaWrap.appendChild(bonusMount);
       colorRow.appendChild(inp);
       colorRow.appendChild(hexInp);
       textRow.appendChild(textInp);
@@ -5737,7 +5996,7 @@
           <label>설명</label>
           <textarea class="ch-row-desc" rows="2">${escapeHtml(ch.description || '')}</textarea>
           <label>훈장 옵션</label>
-          <textarea class="ch-row-opts" rows="2">${escapeHtml(ch.optionsText || '')}</textarea>
+          <div class="ch-row-bonus-mount"></div>
         </div>
         <div class="ch-admin-save-row">
           <button type="button" class="btn-settle btn-sm ch-row-save">저장</button>
@@ -5749,7 +6008,8 @@
       const textHexInp = row.querySelector('.ch-row-badge-text-hex');
       const preview = row.querySelector('.ch-row-badge-preview');
       const descTa = row.querySelector('.ch-row-desc');
-      const optTa = row.querySelector('.ch-row-opts');
+      const bonusMount = row.querySelector('.ch-row-bonus-mount');
+      const bonusCtrl = mountMedalBonusEditor(bonusMount, ch.bonuses, () => paintRowPreview());
       const paintRowPreview = () => {
         const c = normalizeBadgeColor(colorInp.value) || DEFAULT_BADGE_COLOR;
         const tc = normalizeBadgeColor(textColorInp.value) || DEFAULT_BADGE_TEXT_COLOR;
@@ -5758,7 +6018,7 @@
           badgeColor: c,
           badgeTextColor: tc,
           description: descTa.value.trim(),
-          optionsText: optTa.value.trim(),
+          bonuses: bonusCtrl.getBonuses(),
         };
         preview.innerHTML = titleBadgePreviewHtml(getChallengeTitleDef(draft), `ch-admin:${ch.id}`, true);
         bindMemberTitleBadgeTooltips(preview);
@@ -5771,9 +6031,12 @@
         if (tc) ch.badgeTextColor = tc;
         else delete ch.badgeTextColor;
         ch.description = descTa.value.trim();
-        ch.optionsText = optTa.value.trim();
+        const b = bonusCtrl.getBonuses();
+        if (Object.keys(b).length) ch.bonuses = b;
+        else delete ch.bonuses;
         normalizeMedalCopyFields(ch);
         scheduleSave();
+        gamificationReplayAndRefresh();
         paintRowPreview();
         refreshTitleBadgeViews();
         flashChAdminSaved(row.querySelector('.ch-row-save'));
@@ -5781,7 +6044,6 @@
       bindBadgeColorInputs(colorInp, hexInp, paintRowPreview);
       bindBadgeColorInputs(textColorInp, textHexInp, paintRowPreview);
       descTa.addEventListener('input', paintRowPreview);
-      optTa.addEventListener('input', paintRowPreview);
       paintRowPreview();
       row.querySelector('.ch-row-save').addEventListener('click', saveRow);
       row.querySelector('[data-del]').addEventListener('click', () => {
@@ -5969,7 +6231,9 @@
     const badgeTextColor = normalizeBadgeColor($('chAdminBadgeTextColor').value);
     if (badgeTextColor) def.badgeTextColor = badgeTextColor;
     def.description = ($('chAdminDescription').value || '').trim();
-    def.optionsText = ($('chAdminOptions').value || '').trim();
+    ensureChAdminBonusEditor();
+    const b = chAdminBonusEditorCtrl ? chAdminBonusEditorCtrl.getBonuses() : {};
+    if (Object.keys(b).length) def.bonuses = b;
     normalizeMedalCopyFields(def);
     applyKnownChallengeAssets(def);
     ensureGamificationState();
@@ -5980,7 +6244,7 @@
     $('chAdminThreshold').value = '';
     $('chAdminItem').value = '';
     $('chAdminDescription').value = '';
-    $('chAdminOptions').value = '';
+    if (chAdminBonusEditorCtrl) chAdminBonusEditorCtrl.setBonuses({});
     renderChallengeAdminPanel();
     renderChallengeListView();
   }
@@ -8039,8 +8303,8 @@
     ensureGamificationState();
     state.memberProfiles[authSession.memberIdx].equippedTitleId = null;
     scheduleSave();
+    gamificationReplayAndRefresh();
     renderTitlePickList();
-    renderMembers();
   });
   $('challengeBtn').addEventListener('click', () => {
     switchMedalModalTab('challenge');
@@ -8061,7 +8325,7 @@
   bindBadgeColorInputs($('chAdminBadgeTextColor'), $('chAdminBadgeTextColorHex'), updateChAdminAddBadgePreview);
   $('chAdminTitleName').addEventListener('input', updateChAdminAddBadgePreview);
   $('chAdminDescription').addEventListener('input', updateChAdminAddBadgePreview);
-  $('chAdminOptions').addEventListener('input', updateChAdminAddBadgePreview);
+  ensureChAdminBonusEditor();
   $('chAdminTabAdd').addEventListener('click', () => switchChAdminTab('add'));
   $('chAdminTabItems').addEventListener('click', () => switchChAdminTab('items'));
   $('chAdminTabLevel').addEventListener('click', () => switchChAdminTab('level'));
