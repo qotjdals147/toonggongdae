@@ -120,7 +120,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — Lv·칭호·EXP 바 (**클라우드+로그인**) · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 |
-| 훈장·도전(전원) | `#challengeModal` — 탭 도전과제/고유 · `renderChallengeListView` / `renderExclusiveMedalView` |
+| 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
 | 마스터 옵션(배퉁) | `#challengeAdminModal` · `#challengeAdminBtn` · `switchChAdminTab` · memberIdx **=== 2** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` · `bindItemNameAutocomplete` |
 | 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
@@ -230,6 +230,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 훈장 모달 **공대원별 접이 UI** (기본 접힘)
 - **2026-09-18** — 마스터 옵션 **고유 훈장** 탭 · `exclusiveTitleMeta`
 - **2026-09-18** — 훈장 **옵션 템플릿 5종** · `bonuses` 자동 적용 · 장착 시 replay
 - **2026-09-18** — HANDOFF **§6.2~6.4** · replay/카탈로그/함수맵 · §13 인수인계 보강
@@ -331,4 +332,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (훈장 옵션 템플릿)*
+*Last updated: 2026-09-18 (훈장 모달 접이 UI)*
