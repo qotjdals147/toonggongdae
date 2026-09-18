@@ -298,7 +298,7 @@
     min-width: 0;
     overflow: hidden;
   }
-  .card-zone-members { border-top: 4px solid #64748B; }
+  .card-zone-members { border-top: 4px solid #64748B; overflow: visible; }
   .card-zone-ledger { border-top: 4px solid var(--forest); }
   .card-zone-expense { border-top: 4px solid var(--rust); }
   .card-zone-settle { border-top: 4px solid var(--settle); }
@@ -331,7 +331,7 @@
     gap: 0;
     border: 1.5px solid var(--line-strong);
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     background: var(--paper-card);
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   }
@@ -343,6 +343,12 @@
     padding: 14px 12px 12px;
     border-right: 1px solid var(--line);
     min-width: 0;
+    overflow: visible;
+    position: relative;
+    z-index: 0;
+  }
+  .member-slot:has(.member-title-badge-wrap:hover) {
+    z-index: 30;
   }
   .member-slot:last-child { border-right: none; }
   .member-slot-label {
@@ -497,13 +503,13 @@
     max-width: 100%;
   }
   .title-badge-tooltip {
-    position: absolute;
-    z-index: 20;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    z-index: 5000;
+    left: 0;
+    top: 0;
     min-width: 200px;
     max-width: min(280px, 92vw);
+    width: max-content;
     padding: 10px 12px;
     border-radius: 10px;
     background: rgba(0, 0, 0, 0.82);
@@ -527,8 +533,7 @@
     letter-spacing: 0.02em;
     color: #fde68a;
   }
-  .member-title-badge-wrap:hover .title-badge-tooltip,
-  .member-title-badge-wrap:focus-within .title-badge-tooltip {
+  .member-title-badge-wrap.is-tooltip-open .title-badge-tooltip {
     opacity: 1;
     visibility: visible;
   }
@@ -5434,6 +5439,37 @@
     $('chAdminItemField').hidden = type !== 'item_acquire';
   }
 
+  function positionTitleBadgeTooltip(wrap) {
+    const tip = wrap.querySelector('.title-badge-tooltip');
+    const badge = wrap.querySelector('.member-title-badge');
+    if (!tip || !badge) return;
+    tip.style.left = '-9999px';
+    tip.style.top = '0';
+    const br = badge.getBoundingClientRect();
+    const tr = tip.getBoundingClientRect();
+    let top = br.top - tr.height - 8;
+    if (top < 8) top = br.bottom + 8;
+    let left = br.left + (br.width - tr.width) / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+    tip.style.left = `${Math.round(left)}px`;
+    tip.style.top = `${Math.round(top)}px`;
+  }
+
+  function bindMemberTitleBadgeTooltips(root) {
+    const scope = root || document;
+    scope.querySelectorAll('.member-title-badge-wrap').forEach((wrap) => {
+      if (wrap.dataset.tooltipBound === '1') return;
+      wrap.dataset.tooltipBound = '1';
+      const show = () => {
+        wrap.classList.add('is-tooltip-open');
+        positionTitleBadgeTooltip(wrap);
+      };
+      const hide = () => wrap.classList.remove('is-tooltip-open');
+      wrap.addEventListener('mouseenter', show);
+      wrap.addEventListener('mouseleave', hide);
+    });
+  }
+
   // ---------- members ----------
   function renderMembers() {
     const grid = $('membersGrid');
@@ -5493,6 +5529,7 @@
       }
       grid.appendChild(slot);
     });
+    bindMemberTitleBadgeTooltips(grid);
   }
 
   function populateMemberSelect(sel) {

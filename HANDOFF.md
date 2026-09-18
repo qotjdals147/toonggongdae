@@ -198,6 +198,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 훈장 툴팁 **fixed** 배치(공대원 카드 overflow 밖 표시)
 - **2026-09-18** — 훈장 **옵션**(리버스 EXP+5%·내역 분리·툴팁) · UI 칭호→훈장
 - **2026-09-18** — 훈장 모달 탭 **패널 hidden** fix · 제목 **훈장제목아이콘**
 - **2026-09-18** — fix: `ensureGamificationState`↔고유훈장 sync **무한 재귀**(불러오기 멈춤)
@@ -288,4 +289,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (훈장 옵션 EXP)*
+*Last updated: 2026-09-18 (훈장 툴팁 fixed)*
