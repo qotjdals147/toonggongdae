@@ -239,6 +239,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — `burn`(리버스) **뱃지 하단 SVG 불꽃** + flicker · 글로우 펄스 완화 · 뱃지 내부 클립
 - **2026-09-18** — `sharp-zap` 번개 주기 **1.65s** (조금 빠르게)
 - **2026-09-18** — `sharp-zap` **뱃지 내부 클립** · `stroke-dashoffset` 가로 번개 그리기(슬라이드 제거)
 - **2026-09-18** — `sharp-zap` **가로 지그재그 SVG** · 뱃지 전폭 스weep · z-index 최상
@@ -354,4 +355,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (sharp-zap 1.65s)*
+*Last updated: 2026-09-18 (burn SVG 불꽃)*
