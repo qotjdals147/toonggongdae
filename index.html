@@ -620,6 +620,18 @@
     line-height: 1.4;
   }
   .challenge-list { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+  .medal-tab-panel[hidden] { display: none !important; }
+  .modal h3.modal-title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal h3.modal-title-with-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
   .challenge-card {
     border: 1.5px solid var(--line);
     border-radius: 10px;
@@ -2271,14 +2283,14 @@
 
 <div class="modal-backdrop" id="challengeModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="challengeModalTitle" style="max-width:520px;">
-    <h3 id="challengeModalTitle">훈장</h3>
+    <h3 id="challengeModalTitle" class="modal-title-with-icon"><img src="image/훈장아이콘/훈장제목아이콘.png" alt="" width="28" height="28" decoding="async">훈장</h3>
     <div class="mypage-tabs medal-modal-tabs" role="tablist" style="margin-bottom:10px;">
       <button type="button" class="mypage-tab is-active" id="medalTabChallenge" data-medal-tab="challenge">도전과제</button>
       <button type="button" class="mypage-tab" id="medalTabExclusive" data-medal-tab="exclusive">고유 훈장</button>
     </div>
     <p id="medalTabChallengeHint" style="margin:-4px 0 12px;font-size:13px;color:var(--ink-soft);">레벨 칭호와 도전 보상 · 진행도는 공대원별로 표시돼요.</p>
-    <div class="challenge-list" id="challengeListView"></div>
-    <div class="challenge-list" id="exclusiveMedalView" hidden></div>
+    <div class="challenge-list medal-tab-panel" id="challengeListView"></div>
+    <div class="challenge-list medal-tab-panel" id="exclusiveMedalView" hidden></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="challengeCloseBtn">닫기</button>
     </div>
@@ -4458,7 +4470,12 @@
   }
 
   function refreshTitleBadgeViews() {
-    renderChallengeListView();
+    if ($('challengeModal') && !$('challengeModal').hidden) {
+      if ($('exclusiveMedalView') && !$('exclusiveMedalView').hidden) renderExclusiveMedalView();
+      else renderChallengeListView();
+    } else {
+      renderChallengeListView();
+    }
     renderMembers();
     renderTitlePickList();
   }
