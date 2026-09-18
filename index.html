@@ -712,6 +712,12 @@
     border-top: 2px solid #e2e8f0;
     background: #fff;
   }
+  .medal-member-body .challenge-quest-block {
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fafbfc;
+  }
   .medal-tab-panel[hidden] { display: none !important; }
   .ch-admin-tab-panel[hidden] { display: none !important; }
   .ch-admin-tab-panel.ch-admin-scroll { max-height: 420px; overflow-y: auto; padding-right: 4px; }
@@ -5659,6 +5665,30 @@
     medalMemberPanelOpen = [false, false, false];
   }
 
+  function memberQuestDoneCount(memberIdx, blocks) {
+    let done = 0;
+    blocks.forEach((b) => {
+      if (b.kind === 'level') {
+        const t = b.def;
+        const { level } = levelFromTotalXp(state.memberProfiles[memberIdx].totalXp);
+        if (level >= t.minLevel) done += 1;
+        return;
+      }
+      const ch = b.def;
+      const prog = challengeProgressForMember(ch, memberIdx);
+      const isDone = prog.done || state.memberProfiles[memberIdx].unlockedTitleIds.includes(ch.titleId);
+      if (isDone) done += 1;
+    });
+    return done;
+  }
+
+  function syncMedalMemberToggleUi(toggleBtn, isOpen) {
+    if (!toggleBtn) return;
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    const hint = toggleBtn.querySelector('.medal-member-toggle-hint');
+    if (hint) hint.textContent = isOpen ? '접기' : '펼쳐보기';
+  }
+
   function switchMedalModalTab(tab) {
     const challenge = tab === 'challenge';
     $('medalTabChallenge').classList.toggle('is-active', challenge);
@@ -5722,11 +5752,33 @@
       wrap.innerHTML = '<p class="challenge-meta">등록된 도전과제가 없어요.</p>';
       return;
     }
+    const totalQuests = blocks.length;
     [0, 1, 2].forEach((memberIdx) => {
-      const head = document.createElement('div');
-      head.className = 'challenge-card';
-      head.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(state.members[memberIdx] || loginIdForMemberIdx(memberIdx))}</strong></div>`;
+      const isOpen = !!medalMemberPanelOpen[memberIdx];
+      const doneCount = memberQuestDoneCount(memberIdx, blocks);
+      const panel = document.createElement('div');
+      panel.className = 'medal-member-panel' + (isOpen ? '' : ' is-collapsed');
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'medal-member-toggle';
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const bodyId = `medal-member-body-${memberIdx}`;
+      toggle.setAttribute('aria-controls', bodyId);
+      toggle.innerHTML = `
+        <span class="medal-member-toggle-name">${escapeHtml(state.members[memberIdx] || loginIdForMemberIdx(memberIdx))}</span>
+        <span class="medal-member-toggle-meta">달성 ${doneCount}/${totalQuests}</span>
+        <span class="medal-member-toggle-hint">${isOpen ? '접기' : '펼쳐보기'}</span>
+        <span class="medal-member-chevron" aria-hidden="true">▼</span>`;
+      toggle.addEventListener('click', () => {
+        medalMemberPanelOpen[memberIdx] = !medalMemberPanelOpen[memberIdx];
+        panel.classList.toggle('is-collapsed', !medalMemberPanelOpen[memberIdx]);
+        syncMedalMemberToggleUi(toggle, medalMemberPanelOpen[memberIdx]);
+      });
+
       const inner = document.createElement('div');
+      inner.className = 'medal-member-body';
+      inner.id = bodyId;
       blocks.forEach((b) => {
         if (b.kind === 'level') {
           const t = b.def;
@@ -5754,8 +5806,10 @@
             <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 훈장 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
           </div>`;
       });
-      head.appendChild(inner);
-      wrap.appendChild(head);
+
+      panel.appendChild(toggle);
+      panel.appendChild(inner);
+      wrap.appendChild(panel);
     });
     bindMemberTitleBadgeTooltips(wrap);
   }
