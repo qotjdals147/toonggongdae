@@ -51,7 +51,8 @@ partyRoster: { loginId, memberIdx }[]   // Auth ID ↔ 슬롯 0·1·2 (데이터
 members[3]   // 표시 닉네임 (계정 슬롯과 동기, idx 변경 없음)
 memberProfiles[3]  // totalXp, equippedTitleId|null, unlockedTitleIds[] — **클라우드+로그인**
 xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:{id}:)
-challengeDefs[]    // 배퉁 · 조건 1개=칭호 1개 — threshold | requiredCount, xpReward, icon?
+challengeDefs[]    // 배퉁 · 조건 1개=칭호 1개 — threshold | requiredCount, xpReward, icon?, badgeColor?(hex)
+levelTitleBadgeColors{}  // 레벨 칭호 4종 titleId → badgeColor (도전 관리에서 편집)
 challengeItemCatalog[]  // 도전과제 아이템 자동완성 전용
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
 ```
@@ -150,7 +151,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
 - **집계:** `replayLedgerGamificationXp()` — 불러올 때·장부/핫이슈/마감/도전 변경 후 · **과거 회차 소급** · `login:` 키만 보존.
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
-- **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP 보상.
+- **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP · **뱃지 배경색**(color) · 추가 시·목록에서 **레벨 칭호 4종** 색도 편집 (`levelTitleBadgeColors`). 장착·도전 미리보기 동일 템플릿(`memberTitleBadgeStyleAttr`).
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
 - **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `CHALLENGE_TITLE_ASSETS`(칭호 이름→icon·`badgeEffect`) · PNG `image/훈장아이콘/`. 예: **시간의 광부** → `시간의광부.png` · `sparkle-subtle`(흰 점 3개, 약함 — 10·20회는 더 강한 effect 추가 예정).
 - **칭호 아이콘 참고:** https://www.inven.co.kr/board/maple/2304/7662
@@ -195,6 +196,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 도전 관리 **뱃지 배경색**(조건부·레벨 4종) · `badgeColor` / `levelTitleBadgeColors`
 - **2026-09-18** — `sparkle-subtle` **별 6~8개**·밝기·위치 분산 강화
 - **2026-09-18** — 도전과제 모달 **장착 뱃지와 동일 미리보기** (`titleBadgePreviewHtml`)
 - **2026-09-18** — **시간의 광부** 훈장·`sparkle-subtle` 뱃지 이펙트 · `CHALLENGE_TITLE_ASSETS`
@@ -279,4 +281,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (sparkle 6~8)*
+*Last updated: 2026-09-18 (뱃지 배경색)*
