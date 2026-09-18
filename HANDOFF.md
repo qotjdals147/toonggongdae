@@ -192,6 +192,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 로그인 슬롯: **`party_room_access.login_id`→슬롯** · 로그인 전 signOut · 세션 갱신 시 공대원 UI
 - **2026-09-18** — 로그인 슬롯: **`party_room_access` 우선** · `LOGIN_ID_TO_MEMBER_IDX` · partyRoster 0·1·2 고정
 - **2026-09-18** — 로그인 슬롯: **입력 ID·Auth 이메일** 우선 (`resolveAuthMember`) · access UUID 필수
 - **2026-09-18** — 공대원 카드 **닉 가독성**(nameplate) · 상단 **순퉁/지퉁/배퉁** 라벨 · 아이디 안내 문구 제거

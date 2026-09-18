@@ -2526,37 +2526,43 @@
   /** @type {string | null} 로그인 폼에 입력한 ID — 세션 갱신 직후 슬롯 보정용 */
   let pendingSignInLoginId = null;
 
+  async function fetchPartyAccessForUser(userId) {
+    return supabaseClient
+      .from('party_room_access')
+      .select('member_idx, login_id')
+      .eq('room_id', ROOM_ID)
+      .eq('user_id', userId)
+      .maybeSingle();
+  }
+
+  /** DB login_id 기준 슬롯 (tongtongi는 표 고정, member_idx 컬럼과 불일치해도 login_id 우선) */
+  function authSessionFromAccessRow(user, row) {
+    const loginId = String(row.login_id || '').trim();
+    if (!loginId) return null;
+    const memberIdx = memberIdxForLoginId(loginId);
+    return { userId: user.id, loginId, memberIdx };
+  }
+
   async function resolveAuthMember(user) {
     if (!supabaseClient || !user) return null;
     const signInId = pendingSignInLoginId;
     pendingSignInLoginId = null;
 
-    const { data, error } = await supabaseClient
-      .from('party_room_access')
-      .select('member_idx, login_id')
-      .eq('room_id', ROOM_ID)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data, error } = await fetchPartyAccessForUser(user.id);
     if (error) console.warn('party_room_access lookup', error.message);
 
     if (data) {
-      const loginId = String(data.login_id || '').trim()
-        || signInId
-        || (rosterEntryForAuthEmail(user.email) || {}).loginId
-        || '';
-      const idx = Number(data.member_idx);
-      const memberIdx = idx >= 0 && idx <= 2 ? idx : memberIdxForLoginId(loginId);
-      return { userId: user.id, loginId, memberIdx };
+      const session = authSessionFromAccessRow(user, data);
+      if (!session) return null;
+      if (signInId && signInId !== session.loginId) {
+        console.warn('sign-in ID vs access login_id mismatch', signInId, session.loginId);
+      }
+      return session;
     }
 
-    const loginId = signInId
-      || (rosterEntryForAuthEmail(user.email) || {}).loginId;
+    const loginId = signInId || (rosterEntryForAuthEmail(user.email) || {}).loginId;
     if (!loginId) return null;
-    return {
-      userId: user.id,
-      loginId,
-      memberIdx: memberIdxForLoginId(loginId),
-    };
+    return { userId: user.id, loginId, memberIdx: memberIdxForLoginId(loginId) };
   }
 
   async function refreshAuthSession() {
@@ -2571,23 +2577,19 @@
       showAuthGate('');
       return false;
     }
-    const resolved = await resolveAuthMember(session.user);
-    if (!resolved) {
-      await supabaseClient.auth.signOut();
-      authSession = null;
-      showAuthGate('이 방에 연결된 공대원 계정이 아니에요. AUTH-SETUP.md를 확인해 주세요.');
-      return false;
-    }
-    const { data: accessRow } = await supabaseClient
-      .from('party_room_access')
-      .select('member_idx')
-      .eq('room_id', ROOM_ID)
-      .eq('user_id', session.user.id)
-      .maybeSingle();
+    const { data: accessRow, error: accessErr } = await fetchPartyAccessForUser(session.user.id);
+    if (accessErr) console.warn('party_room_access lookup', accessErr.message);
     if (!accessRow) {
       await supabaseClient.auth.signOut();
       authSession = null;
       showAuthGate('이 방에 연결된 공대원 계정이 아니에요. party_room_access를 확인해 주세요.');
+      return false;
+    }
+    const resolved = authSessionFromAccessRow(session.user, accessRow);
+    if (!resolved) {
+      await supabaseClient.auth.signOut();
+      authSession = null;
+      showAuthGate('party_room_access에 login_id가 없어요.');
       return false;
     }
     authSession = resolved;
@@ -2596,6 +2598,8 @@
       state.partyRoster = DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
     }
     showAppShell();
+    if (!$('authGate').hidden) return true;
+    renderMembers();
     return true;
   }
 
@@ -2606,6 +2610,8 @@
       $('authGateError').textContent = '등록되지 않은 아이디예요.';
       return false;
     }
+    await supabaseClient.auth.signOut();
+    authSession = null;
     const email = authEmailForLoginId(id);
     pendingSignInLoginId = id;
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
