@@ -3774,6 +3774,13 @@
     return div.innerHTML;
   }
 
+  /** 상대 경로(공백·%·한글) — img src용 */
+  function catalogAssetUrl(relativePath) {
+    const raw = String(relativePath || '').trim().replace(/\\/g, '/');
+    if (!raw) return '';
+    return raw.split('/').filter(Boolean).map((seg) => encodeURIComponent(seg)).join('/');
+  }
+
   function entryStatus(entry) {
     if (entry.status === 'unsold') return 'unsold';
     if (entry.status === 'sold') return 'sold';
@@ -4861,7 +4868,7 @@
     const entry = findCatalogEntryByAnyLabel(itemName);
     const icon = (entry && entry.icon) || inferCatalogIconForCanonical(itemName);
     if (!icon) return label;
-    return `<span class="catalog-item-cell"><img class="catalog-item-icon" src="${escapeHtml(icon)}" alt="" loading="lazy"><span>${label}</span></span>`;
+    return `<span class="catalog-item-cell"><img class="catalog-item-icon" src="${escapeHtml(catalogAssetUrl(icon))}" alt="" loading="lazy"><span>${label}</span></span>`;
   }
 
   function findCatalogEntryByCanonicalName(name) {
@@ -6665,6 +6672,29 @@
     return qi >= q.length;
   }
 
+  function scrollSuccessRateFromCanonical(name) {
+    const m = String(name).match(/\s(10|60|100)%\s*$/);
+    return m ? Number(m[1]) : null;
+  }
+
+  function scrollBaseKeyFromCanonical(name) {
+    return String(name).replace(/\s(10|60|100)%\s*$/, '');
+  }
+
+  /** 주문서: 같은 종류 안에서는 100 → 60 → 10 · 그 외는 가나다 */
+  function compareCatalogItemSuggestions(a, b) {
+    const ca = a.canonical;
+    const cb = b.canonical;
+    const ra = scrollSuccessRateFromCanonical(ca);
+    const rb = scrollSuccessRateFromCanonical(cb);
+    if (ra != null && rb != null) {
+      const baseCmp = scrollBaseKeyFromCanonical(ca).localeCompare(scrollBaseKeyFromCanonical(cb), 'ko');
+      if (baseCmp !== 0) return baseCmp;
+      return rb - ra;
+    }
+    return ca.localeCompare(cb, 'ko');
+  }
+
   function filterItemNameSuggestions(query) {
     const q = normalizeGamificationText(String(query || '').trim());
     if (!q) return [];
@@ -6685,7 +6715,7 @@
         icon: entry.icon || inferCatalogIconForCanonical(canonical),
       });
     });
-    return out.sort((a, b) => a.canonical.localeCompare(b.canonical, 'ko')).slice(0, 12);
+    return out.sort(compareCatalogItemSuggestions).slice(0, 12);
   }
 
   function addMasterCatalogItem(canonical, aliasesRaw) {
@@ -6752,7 +6782,7 @@
         : '';
       const icon = entry.icon || inferCatalogIconForCanonical(entry.canonical);
       const iconHtml = icon
-        ? `<img class="catalog-item-icon" src="${escapeHtml(icon)}" alt="">`
+        ? `<img class="catalog-item-icon" src="${escapeHtml(catalogAssetUrl(icon))}" alt="">`
         : '';
       const card = document.createElement('div');
       card.className = 'challenge-card';
@@ -6804,7 +6834,7 @@
         btn.className = 'item-ac-option' + (i === focusIdx ? ' is-focus' : '');
         btn.dataset.canonical = label;
         if (icon) {
-          btn.innerHTML = `<img class="catalog-item-icon" src="${escapeHtml(icon)}" alt=""><span class="item-ac-option-label">${escapeHtml(label)}</span>`;
+          btn.innerHTML = `<img class="catalog-item-icon" src="${escapeHtml(catalogAssetUrl(icon))}" alt=""><span class="item-ac-option-label">${escapeHtml(label)}</span>`;
         } else {
           btn.innerHTML = `<span class="item-ac-option-label">${escapeHtml(label)}</span>`;
         }
