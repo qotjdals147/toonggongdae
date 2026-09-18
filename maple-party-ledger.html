@@ -572,6 +572,53 @@
   .title-pick-row.is-equipped { border-color: var(--settle); background: var(--settle-soft); }
   .title-pick-row img { width: 28px; height: 28px; object-fit: contain; }
   .title-pick-row strong { font-size: 14px; flex: 1; }
+  .xp-log-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .xp-log-filters button {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .xp-log-filters button.is-active {
+    border-color: var(--settle);
+    background: var(--settle-soft);
+    color: var(--ink);
+  }
+  .xp-log-list {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: #fafafa;
+  }
+  .xp-log-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .xp-log-row:last-child { border-bottom: none; }
+  .xp-log-row strong { color: var(--forest); font-size: 13px; white-space: nowrap; }
+  .xp-log-row .xp-log-label { flex: 1; color: var(--ink); line-height: 1.35; }
+  .xp-log-row .xp-log-when { font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .xp-log-footnote {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
   .challenge-list { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
   .challenge-card {
     border: 1.5px solid var(--line);
@@ -2192,6 +2239,7 @@
     <div class="mypage-tabs" role="tablist">
       <button type="button" class="mypage-tab is-active" id="mypageTabNick" data-mypage="nick">닉·비밀번호</button>
       <button type="button" class="mypage-tab" id="mypageTabTitle" data-mypage="title">칭호</button>
+      <button type="button" class="mypage-tab" id="mypageTabXp" data-mypage="xp">경험치 획득내역</button>
     </div>
     <div class="mypage-panel" id="mypagePanelNick">
       <div class="field"><span>닉네임 (장부에 표시)</span><input id="accountNickInput" type="text" autocomplete="off"></div>
@@ -2202,6 +2250,16 @@
       <p style="font-size:13px;color:var(--ink-soft);margin:0 0 10px;">획득한 칭호를 장착하거나 해제할 수 있어요.</p>
       <div class="title-pick-list" id="titlePickList"></div>
       <button type="button" class="btn-light btn-sm" id="titleUnequipBtn" style="margin-top:10px;">칭호 해제</button>
+    </div>
+    <div class="mypage-panel" id="mypagePanelXp" hidden>
+      <div class="xp-log-filters" id="xpLogFilters" role="tablist" aria-label="경험치 필터">
+        <button type="button" class="is-active" data-xp-filter="all">전체</button>
+        <button type="button" data-xp-filter="ledger">장부</button>
+        <button type="button" data-xp-filter="title">훈장·도전</button>
+        <button type="button" data-xp-filter="etc">기타</button>
+      </div>
+      <div class="xp-log-list" id="xpLogList"></div>
+      <p class="xp-log-footnote" id="xpLogFootnote"></p>
     </div>
     <p id="accountModalMsg" style="min-height:1.2em;font-size:13px;color:var(--rust);margin:8px 0 0;"></p>
     <div class="modal-foot">
@@ -2561,6 +2619,7 @@
   const XP_CYCLE_CLOSE = 200;
   const XP_HOT_ISSUE = 95;
   const XP_DAILY_LOGIN = 40;
+  const XP_LOG_MAX = 200;
   const LEVEL_TITLE_DEFS = [
     { id: 'title-rookie', name: '초보 퉁퉁이', icon: 'image/훈장아이콘/초보퉁퉁이.png', minLevel: 1 },
     { id: 'title-junior', name: '주니어 퉁퉁이', icon: 'image/훈장아이콘/주니어퉁퉁이.png', minLevel: 30 },
@@ -2586,6 +2645,7 @@
       description: '리버스 제작을 완벽히 성공한 자에게 주어진다.',
       badgeColor: '#0a0a0a',
       badgeEffect: 'burn',
+      xpReward: 150,
     },
   ];
   const INVEN_TITLE_ICON_REF = 'https://www.inven.co.kr/board/maple/2304/7662';
@@ -4260,6 +4320,7 @@
       totalXp: 0,
       equippedTitleId: 'title-rookie',
       unlockedTitleIds: ['title-rookie'],
+      xpLog: [],
     };
   }
 
@@ -4323,6 +4384,7 @@
         delete p.titleTiers;
       }
       delete p.equippedTitleTier;
+      if (!Array.isArray(p.xpLog)) p.xpLog = [];
       p.totalXp = Math.max(0, Math.round(Number(p.totalXp) || 0));
     });
     if (!Array.isArray(state.xpGrantKeys)) state.xpGrantKeys = [];
@@ -4416,6 +4478,10 @@
     EXCLUSIVE_TITLE_DEFS.forEach((ex) => {
       if (ex.memberIdx !== memberIdx) return;
       if (!p.unlockedTitleIds.includes(ex.id)) p.unlockedTitleIds.push(ex.id);
+      const xp = Math.max(0, Math.round(Number(ex.xpReward) || 0));
+      if (xp > 0) {
+        grantXp(memberIdx, xp, `exclusive:${ex.id}:${memberIdx}`);
+      }
     });
   }
 
@@ -4569,6 +4635,117 @@
     return null;
   }
 
+  function findLedgerEntryById(entryId) {
+    let found = null;
+    (state.cycles || []).some((cycle) => {
+      const entry = (cycle.entries || []).find((e) => e.id === entryId);
+      if (entry) {
+        found = { entry, cycle };
+        return true;
+      }
+      return false;
+    });
+    return found;
+  }
+
+  function findCycleById(cycleId) {
+    return (state.cycles || []).find((c) => c.id === cycleId) || null;
+  }
+
+  function xpLogCategoryForKey(key) {
+    if (key.startsWith('acq:') || key.startsWith('sale:') || key.startsWith('cycle:')) return 'ledger';
+    if (key.startsWith('ach:') || key.startsWith('exclusive:')) return 'title';
+    return 'etc';
+  }
+
+  function xpLogAtIsoForKey(key) {
+    const now = new Date().toISOString();
+    if (key.startsWith('login:')) {
+      const parts = key.split(':');
+      const d = parts[2];
+      if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d}T09:00:00.000Z`;
+    }
+    if (key.startsWith('acq:') || key.startsWith('sale:')) {
+      const entryId = key.split(':')[1];
+      const hit = findLedgerEntryById(entryId);
+      if (hit && hit.entry.date) return `${hit.entry.date}T12:00:00.000Z`;
+    }
+    if (key.startsWith('cycle:')) {
+      const cycleId = key.split(':')[1];
+      const cycle = findCycleById(cycleId);
+      if (cycle && cycle.updatedAt) return cycle.updatedAt;
+    }
+    if (key.startsWith('hot:')) {
+      const postId = key.split(':')[1];
+      const post = (state.hotIssues || []).find((p) => p.id === postId);
+      if (post && post.createdAt) return post.createdAt;
+    }
+    return now;
+  }
+
+  function xpLogRowForKey(key, memberIdx) {
+    const parts = key.split(':');
+    const kind = parts[0];
+    let targetIdx = null;
+    if (kind === 'login') targetIdx = Number(parts[1]);
+    else if (kind === 'hot') targetIdx = Number(parts[2]);
+    else targetIdx = Number(parts[parts.length - 1]);
+    if (targetIdx !== memberIdx) return null;
+
+    let amount = 0;
+    let label = '경험치';
+    if (kind === 'login') {
+      amount = XP_DAILY_LOGIN;
+      label = '일일 로그인';
+    } else if (kind === 'acq') {
+      amount = XP_ACQUIRE;
+      const hit = findLedgerEntryById(parts[1]);
+      const item = hit && hit.entry.item ? hit.entry.item : '';
+      label = item ? `아이템 획득 · ${item}` : '아이템 획득';
+    } else if (kind === 'sale') {
+      const hit = findLedgerEntryById(parts[1]);
+      amount = hit ? saleXpFromListingPrice(hit.entry.price) : 0;
+      label = '판매 XP (등록가 비례)';
+    } else if (kind === 'cycle') {
+      amount = XP_CYCLE_CLOSE;
+      label = '회차 마감';
+    } else if (kind === 'hot') {
+      amount = XP_HOT_ISSUE;
+      label = '핫이슈 대상';
+    } else if (kind === 'ach') {
+      const ch = (state.challengeDefs || []).find((c) => c.id === parts[1]);
+      amount = ch ? Math.max(0, Math.round(Number(ch.xpReward) || 0)) : 0;
+      label = ch ? `도전과제 · ${ch.titleName}` : '도전과제 달성';
+    } else if (kind === 'exclusive') {
+      const ex = getExclusiveTitleDef(parts[1]);
+      amount = ex ? Math.max(0, Math.round(Number(ex.xpReward) || 0)) : 0;
+      label = ex ? `고유 훈장 · ${ex.name}` : '고유 훈장';
+    } else return null;
+
+    if (amount <= 0) return null;
+    return {
+      key,
+      amount,
+      label,
+      at: xpLogAtIsoForKey(key),
+      cat: xpLogCategoryForKey(key),
+    };
+  }
+
+  function rebuildAllXpLogs() {
+    if (!gamificationActive()) return;
+    ensureGamificationState();
+    [0, 1, 2].forEach((memberIdx) => {
+      const rows = [];
+      (state.xpGrantKeys || []).forEach((key) => {
+        const row = xpLogRowForKey(key, memberIdx);
+        if (row) rows.push(row);
+      });
+      rows.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+      state.memberProfiles[memberIdx].xpLog = rows.slice(0, XP_LOG_MAX);
+    });
+  }
+
   function grantXp(memberIdx, amount, key) {
     if (!gamificationActive() || memberIdx < 0 || memberIdx > 2) return 0;
     const amt = Math.round(Number(amount) || 0);
@@ -4684,6 +4861,7 @@
     });
 
     syncAllLevelTitles();
+    rebuildAllXpLogs();
   }
 
   function tryDailyLoginXp() {
@@ -4752,13 +4930,58 @@
     else if (prev !== '') sel.value = prev;
   }
 
+  let xpLogFilter = 'all';
+
+  function formatXpLogWhen(at) {
+    if (!at) return '';
+    try {
+      const d = new Date(at);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function renderXpLogList() {
+    const wrap = $('xpLogList');
+    const foot = $('xpLogFootnote');
+    if (!wrap || !authSession) return;
+    ensureGamificationState();
+    rebuildAllXpLogs();
+    const p = state.memberProfiles[authSession.memberIdx];
+    const all = (p.xpLog || []).slice();
+    const filtered = xpLogFilter === 'all' ? all : all.filter((r) => r.cat === xpLogFilter);
+    wrap.innerHTML = '';
+    if (!filtered.length) {
+      wrap.innerHTML = '<p class="challenge-meta" style="padding:12px;">표시할 내역이 없어요.</p>';
+    } else {
+      filtered.forEach((row) => {
+        const el = document.createElement('div');
+        el.className = 'xp-log-row';
+        el.innerHTML = `<span class="xp-log-label">${escapeHtml(row.label)}</span><strong>+${fmtNum(row.amount)}</strong><span class="xp-log-when">${escapeHtml(formatXpLogWhen(row.at))}</span>`;
+        wrap.appendChild(el);
+      });
+    }
+    if (foot) {
+      const hidden = all.length - filtered.length;
+      const trimmed = (state.xpGrantKeys || []).length > XP_LOG_MAX;
+      foot.textContent = `최근 ${Math.min(all.length, XP_LOG_MAX)}건까지 표시 · 최신순${hidden > 0 && xpLogFilter !== 'all' ? ` · 필터로 ${hidden}건 숨김` : ''}${all.length >= XP_LOG_MAX ? ' · 오래된 항목은 자동으로 정리돼요' : ''}`;
+    }
+  }
+
   function switchMyPageTab(tab) {
     const nick = tab === 'nick';
+    const title = tab === 'title';
+    const xp = tab === 'xp';
     $('mypageTabNick').classList.toggle('is-active', nick);
-    $('mypageTabTitle').classList.toggle('is-active', !nick);
+    $('mypageTabTitle').classList.toggle('is-active', title);
+    $('mypageTabXp').classList.toggle('is-active', xp);
     $('mypagePanelNick').hidden = !nick;
-    $('mypagePanelTitle').hidden = nick;
-    if (!nick) renderTitlePickList();
+    $('mypagePanelTitle').hidden = !title;
+    $('mypagePanelXp').hidden = !xp;
+    if (title) renderTitlePickList();
+    if (xp) renderXpLogList();
   }
 
   function renderTitlePickList() {
@@ -7080,6 +7303,16 @@
   });
   $('mypageTabNick').addEventListener('click', () => switchMyPageTab('nick'));
   $('mypageTabTitle').addEventListener('click', () => switchMyPageTab('title'));
+  $('mypageTabXp').addEventListener('click', () => switchMyPageTab('xp'));
+  $('xpLogFilters').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-xp-filter]');
+    if (!btn) return;
+    xpLogFilter = btn.getAttribute('data-xp-filter') || 'all';
+    $('xpLogFilters').querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('is-active', b === btn);
+    });
+    renderXpLogList();
+  });
   $('titleUnequipBtn').addEventListener('click', () => {
     if (!authSession) return;
     ensureGamificationState();
