@@ -2491,25 +2491,51 @@
     }
   }
 
+  function rosterEntryForAuthEmail(email) {
+    const norm = (email || '').toLowerCase();
+    if (!norm) return null;
+    const roster = getPartyRoster() || DEFAULT_PARTY_ROSTER_TONGTONGI;
+    for (const r of roster) {
+      if (authEmailForLoginId(r.loginId).toLowerCase() === norm) return r;
+    }
+    return null;
+  }
+
+  /** @type {string | null} 로그인 폼에 입력한 ID — 세션 갱신 직후 슬롯 보정용 */
+  let pendingSignInLoginId = null;
+
   async function resolveAuthMember(user) {
     if (!supabaseClient || !user) return null;
-    const { data } = await supabaseClient
+    const roster = getPartyRoster() || DEFAULT_PARTY_ROSTER_TONGTONGI;
+    let rosterEntry = pendingSignInLoginId
+      ? roster.find((r) => r.loginId === pendingSignInLoginId)
+      : null;
+    if (!rosterEntry) rosterEntry = rosterEntryForAuthEmail(user.email);
+    pendingSignInLoginId = null;
+
+    const { data, error } = await supabaseClient
       .from('party_room_access')
       .select('member_idx, login_id')
       .eq('room_id', ROOM_ID)
       .eq('user_id', user.id)
       .maybeSingle();
-    if (data) {
-      return { userId: user.id, loginId: data.login_id, memberIdx: Number(data.member_idx) };
+    if (error) {
+      console.warn('party_room_access lookup', error.message);
     }
-    const roster = getPartyRoster() || DEFAULT_PARTY_ROSTER_TONGTONGI;
-    const email = (user.email || '').toLowerCase();
-    for (const r of roster) {
-      if (authEmailForLoginId(r.loginId).toLowerCase() === email) {
-        return { userId: user.id, loginId: r.loginId, memberIdx: r.memberIdx };
-      }
+    if (!data && !rosterEntry) return null;
+
+    if (rosterEntry) {
+      return {
+        userId: user.id,
+        loginId: rosterEntry.loginId,
+        memberIdx: Number(rosterEntry.memberIdx),
+      };
     }
-    return null;
+    return {
+      userId: user.id,
+      loginId: data.login_id,
+      memberIdx: Number(data.member_idx),
+    };
   }
 
   async function refreshAuthSession() {
@@ -2531,6 +2557,18 @@
       showAuthGate('이 방에 연결된 공대원 계정이 아니에요. AUTH-SETUP.md를 확인해 주세요.');
       return false;
     }
+    const { data: accessRow } = await supabaseClient
+      .from('party_room_access')
+      .select('member_idx')
+      .eq('room_id', ROOM_ID)
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (!accessRow) {
+      await supabaseClient.auth.signOut();
+      authSession = null;
+      showAuthGate('이 방에 연결된 공대원 계정이 아니에요. party_room_access를 확인해 주세요.');
+      return false;
+    }
     authSession = resolved;
     ensurePartyRosterOnState();
     showAppShell();
@@ -2545,8 +2583,10 @@
       return false;
     }
     const email = authEmailForLoginId(id);
+    pendingSignInLoginId = id;
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
+      pendingSignInLoginId = null;
       $('authGateError').textContent = error.message.includes('Invalid')
         ? '아이디 또는 비밀번호가 맞지 않아요.'
         : '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
