@@ -239,6 +239,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — `burn` **전폭 단일 파도 실루엣** · 바깥 glow 제거 · screen blend · SVG 통째 flicker
 - **2026-09-18** — `burn` **전폭 heat·92% 높이 불꽃** · 8혀+베이스 · 잿불 전구간
 - **2026-09-18** — `burn`(리버스) **뱃지 하단 SVG 불꽃** + flicker · 글로우 펄스 완화 · 뱃지 내부 클립
 - **2026-09-18** — `sharp-zap` 번개 주기 **1.65s** (조금 빠르게)
@@ -356,4 +357,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (burn 전폭·크기)*
+*Last updated: 2026-09-18 (burn 파도 실루엣)*
