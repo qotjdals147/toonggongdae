@@ -358,6 +358,39 @@
     letter-spacing: 0.01em;
     text-align: center;
   }
+  .member-slot-label--self {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin-bottom: -4px;
+  }
+  .member-char-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    width: 100%;
+    min-height: 64px;
+    max-height: 100px;
+    margin: 0 0 2px;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .member-char-sprite {
+    display: block;
+    max-width: 100%;
+    max-height: 96px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: bottom center;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.12));
+  }
+  .member-slot-medal {
+    align-self: center;
+    max-width: 100%;
+  }
   .member-nameplate {
     display: inline-flex;
     align-items: center;
@@ -2966,6 +2999,8 @@
 
   const STORAGE_KEY = 'tongtongi-party-ledger-v2';
   const DEFAULT_MEMBERS = ['나', '친구', '아는형'];
+  /** 공대원 캐릭터 PNG · `image/공대원캐릭터/{이름}.png` · 슬롯 0·1·2 기본 순퉁·지퉁·배퉁 */
+  const MEMBER_CHAR_ROSTER = ['순퉁', '지퉁', '배퉁'];
   /** 획득자 1명만 34% (드롭다운 바꿀 때). 균등 분배 버튼과는 별개 */
   const DEFAULT_SPLIT = [34, 33, 33];
   const CYCLE_BAR_MAX = 7;
@@ -5985,6 +6020,27 @@
     `;
   }
 
+  function memberCharSpritePath(memberIdx) {
+    const candidates = [
+      (state.members[memberIdx] || '').trim(),
+      loginIdForMemberIdx(memberIdx) || '',
+      MEMBER_CHAR_ROSTER[memberIdx] || '',
+    ];
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      if (MEMBER_CHAR_ROSTER.includes(c)) return `image/공대원캐릭터/${c}.png`;
+    }
+    return '';
+  }
+
+  function memberCharSpriteHtml(memberIdx) {
+    const rel = memberCharSpritePath(memberIdx);
+    if (!rel) return '';
+    const src = catalogAssetUrl(rel);
+    const alt = escapeHtml(memberDisplayName(memberIdx));
+    return `<div class="member-char-wrap"><img class="member-char-sprite" src="${src}" alt="${alt}" decoding="async" loading="lazy"></div>`;
+  }
+
   function memberNameplateHtml(name, memberIdx) {
     const { level } = levelFromTotalXp(state.memberProfiles[memberIdx].totalXp);
     return `<div class="member-nameplate"><span class="member-lv">Lv.${level}</span><span class="member-nick">${escapeHtml(name)}</span></div>`;
@@ -7123,20 +7179,28 @@
       const loginId = loginIdForMemberIdx(i);
       slot.className = 'member-slot' + (isSelf ? ' member-slot-me' : '');
       if (gamificationActive()) {
-        const label = document.createElement('div');
-        label.className = 'member-slot-label';
-        const headerName = loginId || name || `공대원 ${i + 1}`;
-        label.textContent = isSelf ? '내 캐릭터' : headerName;
-        slot.appendChild(label);
+        if (isSelf) {
+          const label = document.createElement('div');
+          label.className = 'member-slot-label member-slot-label--self';
+          label.textContent = '내 캐릭터';
+          slot.appendChild(label);
+        }
+        const charHtml = memberCharSpriteHtml(i);
+        if (charHtml) {
+          const charWrap = document.createElement('div');
+          charWrap.innerHTML = charHtml;
+          slot.appendChild(charWrap.firstElementChild);
+        }
         const displayName = name || loginId || `멤버 ${i + 1}`;
         const plate = document.createElement('div');
         plate.innerHTML = memberNameplateHtml(displayName, i);
         slot.appendChild(plate.firstElementChild);
         const badgeHtml = memberTitleBadgeHtml(i);
         if (badgeHtml) {
-          const badgeWrap = document.createElement('div');
-          badgeWrap.innerHTML = badgeHtml;
-          slot.appendChild(badgeWrap.firstElementChild);
+          const medalSlot = document.createElement('div');
+          medalSlot.className = 'member-slot-medal';
+          medalSlot.innerHTML = badgeHtml;
+          slot.appendChild(medalSlot);
         }
         const expWrap = document.createElement('div');
         expWrap.innerHTML = memberExpBarHtml(i);
