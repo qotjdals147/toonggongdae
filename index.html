@@ -853,7 +853,9 @@
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
   }
   .item-ac-option {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     width: 100%;
     text-align: left;
     padding: 8px 10px;
@@ -864,6 +866,39 @@
     font-family: inherit;
   }
   .item-ac-option:hover, .item-ac-option.is-focus { background: var(--settle-soft); }
+  .item-ac-option-label { flex: 1; min-width: 0; }
+  .catalog-item-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .catalog-item-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+  }
+  .catalog-release-flags {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: 10px;
+    background: #f8fafc;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .catalog-release-flags label { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; cursor: pointer; }
+  .catalog-release-flags .catalog-flag-hint { color: var(--ink-soft); font-size: 11px; margin: 0 0 8px; }
+  .catalog-admin-hidden-tag {
+    font-size: 10px;
+    font-weight: 700;
+    color: #b45309;
+    background: #fef3c7;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+  }
   .hot-compose-target { margin-bottom: 8px; }
   .hot-compose-target label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-right: 8px; }
   .hot-compose-target select { font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line-strong); }
@@ -2519,6 +2554,11 @@
           <textarea id="masterItemAliases" rows="2" autocomplete="off" placeholder="예: 시조"></textarea>
         </div>
       </div>
+      <div class="catalog-release-flags" id="catalogReleaseFlagsWrap">
+        <p class="catalog-flag-hint">메이플랜드 미출시 항목은 자동완성에서 숨김(배퉁만 검색 가능). 출시 후 아래를 켜면 전원에게 노출돼요.</p>
+        <label><input type="checkbox" id="catalogFlagAccuracyScrolls"> 명중률 주문서 · 자동완성 공개</label>
+        <label><input type="checkbox" id="catalogFlagShieldScrollsExtra"> 방패 주문서(방어력 제외) · 자동완성 공개</label>
+      </div>
       <button type="button" class="btn-settle btn-sm" id="masterItemAddBtn" style="margin-bottom:12px;">카탈로그에 추가</button>
       <div class="challenge-list" id="masterItemCatalogList"></div>
     </div>
@@ -2866,6 +2906,43 @@
       description: '시간의 조각을 꾸준히 모은 이에게 주어진다.',
     },
   };
+  /** 주문서·특수 아이템 카탈로그 시드 · load 시 중복 없이 merge (`mergeBuiltinCatalogSeeds`) */
+  const SCROLL_CATALOG_RATES = [10, 60, 100];
+  const SCROLL_CATALOG_RATE_ICONS = {
+    10: 'image/주문서 아이콘/10%주문서아이콘.jpg',
+    60: 'image/주문서 아이콘/60%주문서아이콘.png',
+    100: 'image/주문서 아이콘/100%주문서아이콘.png',
+  };
+  const CATALOG_ITEM_ICON_BY_CANONICAL = {
+    '시간의 조각': 'image/아이템아이콘/시간의조각아이콘.png',
+  };
+  const SCROLL_CATALOG_BASES = [
+    '장갑 공격력 주문서', '장갑 민첩성 주문서', '장갑 체력 주문서',
+    '투구 민첩성 주문서', '투구 방어력 주문서', '투구 지력 주문서', '투구 체력 주문서',
+    '전신 갑옷 민첩성 주문서', '전신 갑옷 방어력 주문서', '전신 갑옷 지력 주문서', '전신 갑옷 행운 주문서', '전신 갑옷 힘 주문서',
+    '상의 방어력 주문서', '상의 체력 주문서', '상의 행운 주문서', '상의 힘 주문서',
+    '하의 민첩성 주문서', '하의 방어력 주문서', '하의 점프 주문서', '하의 체력 주문서',
+    '신발 민첩성 주문서', '신발 이동속도 주문서', '신발 점프력 주문서',
+    '귀 장식 민첩 주문서', '귀 장식 지력 주문서', '귀 장식 행운 주문서', '귀 장식 체력 주문서',
+    '망토 마나 주문서', '망토 마법방어력 주문서', '망토 물리방어력 주문서', '망토 민첩 주문서', '망토 지력 주문서', '망토 체력 주문서', '망토 행운 주문서', '망토 힘 주문서',
+    '방패 방어력 주문서', '방패 체력 주문서', '방패 행운 주문서', '방패 힘 주문서',
+    '한손검 공격력 주문서', '한손검 명중률 주문서',
+    '한손도끼 공격력 주문서', '한손도끼 명중률 주문서',
+    '한손둔기 공격력 주문서', '한손둔기 명중률 주문서',
+    '두손검 공격력 주문서', '두손검 명중률 주문서',
+    '두손도끼 공격력 주문서', '두손도끼 명중률 주문서',
+    '두손둔기 공격력 주문서', '두손둔기 명중률 주문서',
+    '창 공격력 주문서', '창 명중률 주문서',
+    '폴암 공격력 주문서', '폴암 명중률 주문서',
+    '아대 공격력 주문서',
+    '단검 공격력 주문서',
+    '활 공격력 주문서',
+    '석궁 공격력 주문서',
+    '완드 마력 주문서',
+    '스태프 마력 주문서',
+    '건 공격력 주문서',
+    '너클 공격력 주문서', '너클 명중률 주문서',
+  ];
   /** 도전과제와 무관 · memberIdx 전용 (코드 등록) */
   const EXCLUSIVE_TITLE_DEFS = [
     {
@@ -4333,6 +4410,12 @@
     if (Array.isArray(parsed.challengeItemCatalog)) {
       next.challengeItemCatalog = migrateChallengeItemCatalog(parsed.challengeItemCatalog);
     }
+    if (parsed.catalogSearchFlags && typeof parsed.catalogSearchFlags === 'object') {
+      next.catalogSearchFlags = {
+        accuracyScrolls: !!parsed.catalogSearchFlags.accuracyScrolls,
+        shieldScrollsExtra: !!parsed.catalogSearchFlags.shieldScrollsExtra,
+      };
+    }
     if (parsed.gamificationSchema != null) next.gamificationSchema = parsed.gamificationSchema;
     if (parsed.levelTitleBadgeColors && typeof parsed.levelTitleBadgeColors === 'object') {
       next.levelTitleBadgeColors = { ...parsed.levelTitleBadgeColors };
@@ -4557,19 +4640,134 @@
       .filter(Boolean);
   }
 
+  function ensureCatalogSearchFlags() {
+    if (!state.catalogSearchFlags || typeof state.catalogSearchFlags !== 'object') {
+      state.catalogSearchFlags = { accuracyScrolls: false, shieldScrollsExtra: false };
+      return;
+    }
+    if (state.catalogSearchFlags.accuracyScrolls == null) state.catalogSearchFlags.accuracyScrolls = false;
+    if (state.catalogSearchFlags.shieldScrollsExtra == null) state.catalogSearchFlags.shieldScrollsExtra = false;
+  }
+
+  function inferCatalogIconForCanonical(canonical) {
+    const name = String(canonical || '').trim();
+    if (!name) return '';
+    if (CATALOG_ITEM_ICON_BY_CANONICAL[name]) return CATALOG_ITEM_ICON_BY_CANONICAL[name];
+    const m = name.match(/\s(10|60|100)%$/);
+    if (m) return SCROLL_CATALOG_RATE_ICONS[Number(m[1])] || '';
+    return '';
+  }
+
+  function enrichCatalogEntryMeta(entry) {
+    if (!entry || typeof entry !== 'object') return;
+    const icon = inferCatalogIconForCanonical(entry.canonical);
+    if (icon) entry.icon = icon;
+  }
+
+  function catalogEntryHiddenByReleasePolicy(canonical) {
+    ensureCatalogSearchFlags();
+    const name = String(canonical || '');
+    if (/명중률 주문서/.test(name) && !state.catalogSearchFlags.accuracyScrolls) return true;
+    if (/^방패 .+ 주문서 /.test(name) && !/^방패 방어력 주문서 /.test(name) && !state.catalogSearchFlags.shieldScrollsExtra) {
+      return true;
+    }
+    return false;
+  }
+
+  function catalogEntryVisibleInItemSearch(entry) {
+    if (!entry) return false;
+    if (!catalogEntryHiddenByReleasePolicy(entry.canonical)) return true;
+    return !!(authSession && authSession.memberIdx === 2);
+  }
+
+  function isMasterCatalogViewer() {
+    return !!(authSession && authSession.memberIdx === 2);
+  }
+
+  function builtinCatalogSeedRows() {
+    const rows = [];
+    SCROLL_CATALOG_BASES.forEach((base) => {
+      SCROLL_CATALOG_RATES.forEach((rate) => {
+        rows.push({
+          canonical: `${base} ${rate}%`,
+          icon: SCROLL_CATALOG_RATE_ICONS[rate],
+        });
+      });
+    });
+    rows.push({
+      canonical: '시간의 조각',
+      aliases: ['시조'],
+      icon: CATALOG_ITEM_ICON_BY_CANONICAL['시간의 조각'],
+    });
+    return rows;
+  }
+
+  function mergeBuiltinCatalogSeeds() {
+    if (!Array.isArray(state.challengeItemCatalog)) state.challengeItemCatalog = [];
+    let added = 0;
+    builtinCatalogSeedRows().forEach((seed) => {
+      const canonical = String(seed.canonical || '').trim();
+      if (!canonical) return;
+      const norm = normalizeGamificationText(canonical);
+      let entry = state.challengeItemCatalog.find(
+        (x) => normalizeGamificationText(x.canonical) === norm
+      );
+      if (!entry) {
+        entry = {
+          id: genId(),
+          canonical,
+          aliases: (seed.aliases || []).slice(),
+        };
+        state.challengeItemCatalog.push(entry);
+        added += 1;
+      } else if (seed.aliases && seed.aliases.length) {
+        const aliasSet = new Set((entry.aliases || []).map((a) => normalizeGamificationText(a)));
+        seed.aliases.forEach((a) => {
+          const an = normalizeGamificationText(a);
+          if (!an || an === norm || aliasSet.has(an)) return;
+          aliasSet.add(an);
+          if (!entry.aliases) entry.aliases = [];
+          entry.aliases.push(a);
+        });
+      }
+      if (seed.icon) entry.icon = seed.icon;
+      else enrichCatalogEntryMeta(entry);
+    });
+    state.challengeItemCatalog.forEach(enrichCatalogEntryMeta);
+    return added;
+  }
+
   function migrateChallengeItemCatalog(list) {
     return (list || []).map((raw) => {
       if (typeof raw === 'string') {
         const canonical = raw.trim();
-        return canonical ? { id: genId(), canonical, aliases: [] } : null;
+        if (!canonical) return null;
+        const row = { id: genId(), canonical, aliases: [] };
+        enrichCatalogEntryMeta(row);
+        return row;
       }
       const canonical = String(raw.canonical || '').trim();
       if (!canonical) return null;
       const aliases = Array.isArray(raw.aliases)
         ? raw.aliases.map((a) => String(a).trim()).filter(Boolean)
         : parseCatalogAliasText(raw.aliases);
-      return { id: raw.id || genId(), canonical, aliases };
+      const row = {
+        id: raw.id || genId(),
+        canonical,
+        aliases,
+        icon: raw.icon ? String(raw.icon) : '',
+      };
+      enrichCatalogEntryMeta(row);
+      return row;
     }).filter(Boolean);
+  }
+
+  function catalogItemDisplayHtml(itemName) {
+    const label = escapeHtml(String(itemName || ''));
+    const entry = findCatalogEntryByAnyLabel(itemName);
+    const icon = (entry && entry.icon) || inferCatalogIconForCanonical(itemName);
+    if (!icon) return label;
+    return `<span class="catalog-item-cell"><img class="catalog-item-icon" src="${escapeHtml(icon)}" alt="" loading="lazy"><span>${label}</span></span>`;
   }
 
   function findCatalogEntryByCanonicalName(name) {
@@ -4704,8 +4902,11 @@
       state.challengeDefs = migrateChallengeDefs(state.challengeDefs);
       state.challengeDefs.forEach((ch) => applyKnownChallengeAssets(ch));
     }
+    ensureCatalogSearchFlags();
     if (!Array.isArray(state.challengeItemCatalog)) state.challengeItemCatalog = [];
     else state.challengeItemCatalog = migrateChallengeItemCatalog(state.challengeItemCatalog);
+    const catalogAdded = mergeBuiltinCatalogSeeds();
+    if (catalogAdded > 0) scheduleSave();
     state.challengeDefs.forEach((ch) => {
       if (ch.type === 'item_acquire') syncChallengeItemMatchFromCatalog(ch);
     });
@@ -6360,6 +6561,7 @@
     const seen = new Set();
     const out = [];
     (state.challengeItemCatalog || []).forEach((entry) => {
+      if (!catalogEntryVisibleInItemSearch(entry)) return;
       const canonical = String(entry.canonical || '').trim();
       if (!canonical) return;
       const labels = [canonical, ...(entry.aliases || [])];
@@ -6368,9 +6570,12 @@
       const norm = normalizeGamificationText(canonical);
       if (seen.has(norm)) return;
       seen.add(norm);
-      out.push(canonical);
+      out.push({
+        canonical,
+        icon: entry.icon || inferCatalogIconForCanonical(canonical),
+      });
     });
-    return out.sort((a, b) => a.localeCompare(b, 'ko')).slice(0, 12);
+    return out.sort((a, b) => a.canonical.localeCompare(b.canonical, 'ko')).slice(0, 12);
   }
 
   function addMasterCatalogItem(canonical, aliasesRaw) {
@@ -6384,17 +6589,45 @@
     const aliases = parseCatalogAliasText(aliasesRaw).filter(
       (a) => normalizeGamificationText(a) !== norm
     );
-    state.challengeItemCatalog.push({ id: genId(), canonical: name, aliases });
+    const row = { id: genId(), canonical: name, aliases };
+    enrichCatalogEntryMeta(row);
+    state.challengeItemCatalog.push(row);
     state.challengeDefs.forEach((ch) => syncChallengeItemMatchFromCatalog(ch));
     scheduleSave();
     gamificationReplayAndRefresh();
     return true;
   }
 
+  function syncCatalogReleaseFlagsUi() {
+    ensureCatalogSearchFlags();
+    const acc = $('catalogFlagAccuracyScrolls');
+    const sh = $('catalogFlagShieldScrollsExtra');
+    if (acc) acc.checked = !!state.catalogSearchFlags.accuracyScrolls;
+    if (sh) sh.checked = !!state.catalogSearchFlags.shieldScrollsExtra;
+  }
+
+  function bindCatalogReleaseFlagInputs() {
+    const acc = $('catalogFlagAccuracyScrolls');
+    const sh = $('catalogFlagShieldScrollsExtra');
+    if (!acc || acc.dataset.bound) return;
+    acc.dataset.bound = '1';
+    if (sh) sh.dataset.bound = '1';
+    const onChange = () => {
+      ensureCatalogSearchFlags();
+      state.catalogSearchFlags.accuracyScrolls = !!acc.checked;
+      state.catalogSearchFlags.shieldScrollsExtra = !!sh.checked;
+      scheduleSave();
+    };
+    acc.addEventListener('change', onChange);
+    sh.addEventListener('change', onChange);
+  }
+
   function renderMasterItemCatalogAdmin() {
     const wrap = $('masterItemCatalogList');
     if (!wrap) return;
     ensureGamificationState();
+    bindCatalogReleaseFlagInputs();
+    syncCatalogReleaseFlagsUi();
     wrap.innerHTML = '';
     const list = (state.challengeItemCatalog || []).slice().sort(
       (a, b) => String(a.canonical).localeCompare(String(b.canonical), 'ko')
@@ -6404,9 +6637,16 @@
       return;
     }
     list.forEach((entry) => {
+      const hiddenTag = catalogEntryHiddenByReleasePolicy(entry.canonical)
+        ? '<span class="catalog-admin-hidden-tag">자동완성 숨김</span>'
+        : '';
+      const icon = entry.icon || inferCatalogIconForCanonical(entry.canonical);
+      const iconHtml = icon
+        ? `<img class="catalog-item-icon" src="${escapeHtml(icon)}" alt="">`
+        : '';
       const card = document.createElement('div');
       card.className = 'challenge-card';
-      card.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(entry.canonical)}</strong></div>
+      card.innerHTML = `<div class="challenge-card-head">${iconHtml}<strong>${escapeHtml(entry.canonical)}</strong>${hiddenTag}</div>
         <div class="ch-medal-meta-fields">
           <label>별칭 (쉼표·줄바꿈)</label>
           <textarea class="master-item-aliases" rows="2">${escapeHtml((entry.aliases || []).join(', '))}</textarea>
@@ -6446,11 +6686,18 @@
       if (!list.length) { drop.hidden = true; return; }
       drop.hidden = false;
       drop.innerHTML = '';
-      list.forEach((label, i) => {
+      list.forEach((row, i) => {
+        const label = typeof row === 'string' ? row : row.canonical;
+        const icon = typeof row === 'string' ? inferCatalogIconForCanonical(label) : row.icon;
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'item-ac-option' + (i === focusIdx ? ' is-focus' : '');
-        btn.textContent = label;
+        btn.dataset.canonical = label;
+        if (icon) {
+          btn.innerHTML = `<img class="catalog-item-icon" src="${escapeHtml(icon)}" alt=""><span class="item-ac-option-label">${escapeHtml(label)}</span>`;
+        } else {
+          btn.innerHTML = `<span class="item-ac-option-label">${escapeHtml(label)}</span>`;
+        }
         btn.addEventListener('mousedown', (e) => {
           e.preventDefault();
           input.value = label;
@@ -6477,7 +6724,7 @@
         renderDrop();
       } else if (e.key === 'Enter' && focusIdx >= 0 && opts[focusIdx]) {
         e.preventDefault();
-        input.value = opts[focusIdx].textContent;
+        input.value = opts[focusIdx].dataset.canonical || opts[focusIdx].querySelector('.item-ac-option-label')?.textContent || '';
         drop.hidden = true;
       }
     };
@@ -6803,7 +7050,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-date">${entry.date}</td>
-        <td class="item-name">${escapeHtml(entry.item)}</td>
+        <td class="item-name">${catalogItemDisplayHtml(entry.item)}</td>
         <td class="price-cell">${priceCell}</td>
         <td class="owner-tags-cell">${acquirerCellHtml(entry)}</td>
         <td class="col-status">${statusBadge}</td>
