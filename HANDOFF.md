@@ -30,7 +30,7 @@
 | `image/주문서 아이콘/` | 10·60·100% 주문서 아이콘 (카탈로그·자동완성) |
 | `image/아이템아이콘/` | 기타 아이템 (예: 시간의 조각) |
 | `image/메이커보석아이콘/` | 메이커 보석 48종 · 파일명=카탈로그 공식명 |
-| `image/공대원캐릭터/` | 공대원 칸 **스프라이트** · `{순퉁|지퉁|배퉁}.png` · 닉/로그인/슬롯 매칭 |
+| `image/공대원캐릭터/` | 공대원 칸 **전신 PNG**(투명) · `{순퉁|지퉁|배퉁}.png` · **실제 알파 필수**(흰 사각만 RGBA면 네모 박스로 보임) |
 | `README.md`, `HOSTING.md` | 배포 안내 |
 
 **하지 말 것:** `_patch_*.py` 같은 일회성 패치 스크립트를 repo에 남기지 않기 (과거 실수 있음).
@@ -44,6 +44,8 @@
 - **회차** `state.cycles[]`: `open` 1개 + `closed` N개. `viewCycleId`는 **저장 안 함** (`stateForPersistence`에서 삭제) → 새로고침 시 **작성 중 회차**로 스냅 (`snapViewToActiveOpenCycle`, `hasInitialViewFocus`).
 - **Realtime:** `subscribeCloudRealtime` — 편집 중 `modalBlocksRemote()`면 원격 덮어쓰기 방지.
 - **게임화:** `gamificationActive()` — 클라우드 + 로그인 + `memberProfiles` 있을 때만. 없으면 Lv/도전/XP UI 숨김.
+- **부트(클라우드):** `bootApp` → `refreshAuthSession` → `loadState` → `applyStateFromRemote` → `render()`. **`refreshAuthSession`에서 `renderMembers` 호출하지 않음** (장부 로드 전 UI 깜빡임 방지).
+- **모듈 플래그:** `partyStateHydrated` — Supabase/로컬 JSON **1회 반영 후** `true` (`applyStateFromRemote`·`loadState` 실패 시에도). 클라우드 공대원 칸은 `false`일 때 **「불러오는 중…」** (`DEFAULT_MEMBERS` `나·친구·아는형` 노출 금지).
 
 ### 3.1 `state` 주요 필드
 
@@ -123,8 +125,8 @@ legacySummaryOnly (옛 회차 요약만)
 | 상단 헤더 | `.app-toolbar` — 수수료·창고캐·핫이슈·통계·**훈장**(진행도) · **마스터 옵션**(배퉁만) · 로그아웃 |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
-| 공대원·레벨 | `renderMembers` — Lv·칭호·EXP 바 (**클라우드+로그인**) · `replayLedgerGamificationXp` |
-| 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 |
+| 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
+| 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
 | 마스터 옵션(배퉁) | `#challengeAdminModal` · `#challengeAdminBtn` · `switchChAdminTab` · memberIdx **=== 2** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` · `bindItemNameAutocomplete` |
@@ -134,6 +136,19 @@ legacySummaryOnly (옛 회차 요약만)
 
 - `<td>`에 **`display:flex` 금지** (격자선 깨짐). flex는 **내부 wrapper** (`owner-tags-wrap`, `row-actions` div).
 - `.data-table` — `border-collapse: separate`, 일반 `tbody td` 규칙은 `table:not(.data-table)`로 분리.
+
+### 5.2 공대원 카드 (`#membersGrid` · `gamificationActive()`)
+
+**인게임 순서(길드 생략):** 캐릭터 → 닉(Lv 네임플레이트) → 훈장 → EXP(맨 아래).
+
+| DOM | 클래스 | 비고 |
+|-----|--------|------|
+| 머리 | `member-slot-head` | 본인만 `내 캐릭터` + **마이페이지** · 타 슬롯은 `member-slot-head--empty`(높이 맞춤) |
+| 몸 | `member-slot-body` | `flex-end` — 스프라이트·`member-nameplate`·`member-slot-medal` |
+| 발 | `member-slot-foot` | `member-exp-wrap` — **칸 바닥**에 붙음 (`member-slot` `min-height` + `margin-top: auto`) |
+
+- **스프라이트:** `MEMBER_CHAR_ROSTER` · `memberCharSpritePath` — `members[i]` → `loginIdForMemberIdx` → 슬롯 기본명 순 매칭 · `catalogAssetUrl`.
+- **비게임화:** 슬롯당 텍스트 input (`DEFAULT_MEMBERS` 편집).
 
 ---
 
@@ -184,6 +199,10 @@ legacySummaryOnly (옛 회차 요약만)
 - **뱃지 스타일:** `memberTitleBadgeStyleAttr`(그라데이션) · `--badge-text` CSS 변수로 글자색.
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
 - **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `CHALLENGE_TITLE_ASSETS`(칭호 이름→icon·`badgeEffect`) · PNG `image/훈장아이콘/`. 예: **시간의 광부** → `시간의광부.png` · `sparkle-subtle`(흰 점 3개, 약함 — 10·20회는 더 강한 effect 추가 예정).
+- **`badgeEffect` (코드/CSS):**
+  - `sparkle-subtle` — 흰 별 깜빡임 (`titleBadgeSparkleHtml`).
+  - `burn` — **리버스 블라인드니스** (`EXCLUSIVE_TITLE_DEFS`) · 뱃지 **drop-shadow 펄스** + 잿불 점 (`titleBadgeBurnHtml`). (SVG/스프라이트 불 연출 **사용 안 함** — 커스텀 불 에셋은 요청 시 §11.)
+  - `sharp-zap` — **중급 샤프아이즈** · 뱃지 **내부 클립** · 가로 SVG **`stroke-dashoffset`** 번개 (`titleBadgeSharpZapHtml`, ~1.65s).
 - **칭호 아이콘 참고:** https://www.inven.co.kr/board/maple/2304/7662
 
 ### 6.4 게임화 함수 빠른 참조
@@ -199,6 +218,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 훈장 정의 | `getTitleDefById`, `getLevelTitleDef`, `getChallengeTitleDef`, `EXCLUSIVE_TITLE_DEFS` |
 | 코드 전용 훈장 | `CHALLENGE_TITLE_ASSETS` (이름→icon·effect·description) |
 | 장착 UI | `memberTitleBadgeHtml`, `renderTitlePickList` |
+| 공대원 스프라이트 | `memberCharSpritePath`, `memberCharSpriteHtml`, `MEMBER_CHAR_ROSTER` |
 
 ---
 
@@ -240,6 +260,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-19** — HANDOFF **§3 부트/hydrate · §5.2 공대원 카드 · §6.3 badgeEffect** 인수인계 보강
 - **2026-09-19** — 공대원 칸 **하단 정렬**(EXP 바닥) · 마이페이지 상단 · 로드 전 닉 깜빡임 방지
 - **2026-09-19** — 공대원 캐릭터 PNG **흰 배경→진짜 알파**(모서리 flood) · 스프라이트 CSS 박스/그림자 제거
 - **2026-09-19** — 공대원 칸 **캐릭터→네임플레이트→훈장** (인게임 순) · `image/공대원캐릭터/`
@@ -315,6 +336,7 @@ legacySummaryOnly (옛 회차 요약만)
 - [ ] 획득 저장 시 **카탈로그 미등록 이름** 경고/차단 (현재는 자유 입력 + AC만 카탈로그)
 - [ ] 획득 줄 **아이템명 수정 이력** 없음 — 과거 이름 복구는 Supabase 백업/스냅샷 없으면 불가
 - [ ] AGENTS.md 없음 — **이 HANDOFF가 AGENTS 역할**
+- [ ] (선택) `burn` **커스텀 불 스프라이트/GIF** — 소유자 에셋 제공 시 `titleBadgeBurnHtml` 연동 (Kenney 실험은 롤백됨)
 
 ---
 
@@ -363,4 +385,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-19 (공대원 칸 하단정렬·hydrate)*
+*Last updated: 2026-09-19 (HANDOFF §3·§5·§6 정리)*

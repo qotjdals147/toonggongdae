@@ -14,7 +14,8 @@ alwaysApply: false
 
 ## 정적 에셋
 
-- `image/` — meso·섹션 아이콘 등
+- `image/` — meso·섹션 아이콘 · 훈장/주문서/보석/아이템 (HANDOFF §2)
+- `image/공대원캐릭터/` — `{순퉁|지퉁|배퉁}.png` 전신 **진짜 투명 PNG** (흰 바탕 RGBA-only면 UI에서 네모로 보임)
 
 ## (과거) itemCatalog / MapleStory.io
 
