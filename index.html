@@ -475,15 +475,37 @@
     border-radius: inherit;
     z-index: 1;
   }
+  .member-title-badge .title-badge-burn-heat {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(127, 29, 29, 0) 0%,
+      rgba(194, 65, 12, 0.12) 38%,
+      rgba(234, 88, 12, 0.38) 68%,
+      rgba(249, 115, 22, 0.62) 100%
+    );
+    animation: title-badge-burn-heat 0.48s ease-in-out infinite alternate;
+  }
+  @keyframes title-badge-burn-heat {
+    0% { opacity: 0.78; }
+    100% { opacity: 1; }
+  }
   .member-title-badge .title-badge-flame-svg {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    width: 100%;
-    height: 52%;
-    min-height: 12px;
+    left: -2%;
+    right: -2%;
+    bottom: -2px;
+    width: 104%;
+    height: 92%;
+    min-height: 22px;
     pointer-events: none;
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.45));
+  }
+  .member-title-badge .title-badge-flame-base {
+    opacity: 0.95;
   }
   .member-title-badge .title-badge-flame-tongue {
     transform-box: fill-box;
@@ -491,23 +513,26 @@
     animation: title-badge-flame-flicker 0.38s ease-in-out infinite alternate;
   }
   .member-title-badge .title-badge-flame-tongue--1 { animation-delay: 0s; animation-duration: 0.34s; }
-  .member-title-badge .title-badge-flame-tongue--2 { animation-delay: 0.06s; animation-duration: 0.42s; }
-  .member-title-badge .title-badge-flame-tongue--3 { animation-delay: 0.11s; animation-duration: 0.36s; }
-  .member-title-badge .title-badge-flame-tongue--4 { animation-delay: 0.04s; animation-duration: 0.44s; }
-  .member-title-badge .title-badge-flame-tongue--5 { animation-delay: 0.09s; animation-duration: 0.4s; }
+  .member-title-badge .title-badge-flame-tongue--2 { animation-delay: 0.05s; animation-duration: 0.4s; }
+  .member-title-badge .title-badge-flame-tongue--3 { animation-delay: 0.1s; animation-duration: 0.36s; }
+  .member-title-badge .title-badge-flame-tongue--4 { animation-delay: 0.03s; animation-duration: 0.42s; }
+  .member-title-badge .title-badge-flame-tongue--5 { animation-delay: 0.08s; animation-duration: 0.38s; }
+  .member-title-badge .title-badge-flame-tongue--6 { animation-delay: 0.12s; animation-duration: 0.44s; }
+  .member-title-badge .title-badge-flame-tongue--7 { animation-delay: 0.02s; animation-duration: 0.37s; }
+  .member-title-badge .title-badge-flame-tongue--8 { animation-delay: 0.07s; animation-duration: 0.41s; }
   .member-title-badge .title-badge-flame-core {
     transform-box: fill-box;
     transform-origin: 50% 100%;
-    opacity: 0.55;
+    opacity: 0.6;
     animation: title-badge-flame-core 0.28s ease-in-out infinite alternate;
   }
   @keyframes title-badge-flame-flicker {
-    0% { opacity: 0.72; transform: scale(1, 0.86); }
-    100% { opacity: 0.98; transform: scale(1, 1.08); }
+    0% { opacity: 0.78; transform: scale(1.02, 0.88); }
+    100% { opacity: 1; transform: scale(1.04, 1.1); }
   }
   @keyframes title-badge-flame-core {
-    0% { opacity: 0.35; transform: scale(1, 0.9); }
-    100% { opacity: 0.7; transform: scale(1, 1.05); }
+    0% { opacity: 0.4; transform: scale(1.02, 0.88); }
+    100% { opacity: 0.78; transform: scale(1.04, 1.08); }
   }
   .member-title-badge .title-badge-burn i {
     position: absolute;
@@ -522,9 +547,9 @@
     animation-delay: var(--edelay, 0s);
   }
   @keyframes title-badge-ember {
-    0% { opacity: 0; transform: translateY(0) scale(0.35); }
+    0% { opacity: 0; transform: translateY(0) scale(0.4); }
     10% { opacity: 0.95; }
-    100% { opacity: 0; transform: translateY(-11px) scale(0.12); }
+    100% { opacity: 0; transform: translateY(-15px) scale(0.14); }
   }
   .member-title-badge--burn img,
   .member-title-badge--burn > span:last-child {
@@ -5451,24 +5476,30 @@
     })();
     const gradId = 'badgeFlameGrad-' + (hashSeedStr(seedKey) % 900000 + 100000);
     const flameSvg =
-      `<svg class="title-badge-flame-svg" viewBox="0 0 100 26" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
-      `<defs><linearGradient id="${gradId}" x1="0" y1="26" x2="0" y2="0" gradientUnits="userSpaceOnUse">` +
-      `<stop offset="0%" stop-color="#991b1b"/><stop offset="28%" stop-color="#c2410c"/><stop offset="58%" stop-color="#f97316"/><stop offset="82%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#fef9c3"/></linearGradient></defs>` +
-      `<path class="title-badge-flame-tongue title-badge-flame-tongue--1" fill="url(#${gradId})" d="M0 26 L0 26 L8 26 Q10 18 14 26 Q16 12 20 22 Q22 14 26 26 L0 26 Z"/>` +
-      `<path class="title-badge-flame-tongue title-badge-flame-tongue--2" fill="url(#${gradId})" d="M18 26 Q20 14 24 24 Q26 8 30 18 Q32 10 36 26 Z"/>` +
-      `<path class="title-badge-flame-tongue title-badge-flame-tongue--3" fill="url(#${gradId})" d="M34 26 Q36 10 40 20 Q42 4 48 16 Q50 6 54 26 Z"/>` +
-      `<path class="title-badge-flame-tongue title-badge-flame-tongue--4" fill="url(#${gradId})" d="M52 26 Q54 12 58 22 Q60 9 64 18 Q66 13 70 26 Z"/>` +
-      `<path class="title-badge-flame-tongue title-badge-flame-tongue--5" fill="url(#${gradId})" d="M68 26 Q70 15 74 24 Q76 11 80 20 Q82 14 86 26 L100 26 L100 26 Q94 17 90 26 Q86 12 82 22 Q78 10 74 26 Z"/>` +
-      `<path class="title-badge-flame-core" fill="#fef08a" d="M38 26 Q40 18 44 24 Q46 14 48 20 Q50 16 52 26 Z"/>` +
+      `<svg class="title-badge-flame-svg" viewBox="0 0 100 36" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
+      `<defs><linearGradient id="${gradId}" x1="0" y1="36" x2="0" y2="0" gradientUnits="userSpaceOnUse">` +
+      `<stop offset="0%" stop-color="#7f1d1d"/><stop offset="22%" stop-color="#b91c1c"/><stop offset="48%" stop-color="#ea580c"/><stop offset="72%" stop-color="#fb923c"/><stop offset="90%" stop-color="#fde047"/><stop offset="100%" stop-color="#fef9c3"/></linearGradient></defs>` +
+      `<path class="title-badge-flame-base" fill="url(#${gradId})" d="M0 36 L100 36 L100 26 C75 24 62 28 50 26 C38 24 25 28 0 26 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--1" fill="url(#${gradId})" d="M0 36 L0 36 L12 36 Q14 22 18 36 Q20 10 24 24 Q26 14 30 36 L0 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--2" fill="url(#${gradId})" d="M10 36 Q12 20 16 32 Q18 8 22 22 Q24 12 28 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--3" fill="url(#${gradId})" d="M22 36 Q24 18 28 30 Q30 6 34 20 Q36 10 40 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--4" fill="url(#${gradId})" d="M34 36 Q36 16 40 28 Q42 4 46 18 Q48 8 52 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--5" fill="url(#${gradId})" d="M46 36 Q48 14 52 26 Q54 2 58 16 Q60 6 64 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--6" fill="url(#${gradId})" d="M58 36 Q60 18 64 30 Q66 8 70 22 Q72 12 76 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--7" fill="url(#${gradId})" d="M70 36 Q72 20 76 32 Q78 10 82 24 Q84 14 88 36 Z"/>` +
+      `<path class="title-badge-flame-tongue title-badge-flame-tongue--8" fill="url(#${gradId})" d="M82 36 Q84 16 88 28 Q90 6 94 20 Q96 12 100 36 L100 36 Z"/>` +
+      `<path class="title-badge-flame-core" fill="#fef08a" d="M42 36 Q44 24 48 32 Q50 18 54 28 Q56 22 58 36 Z"/>` +
+      `<path class="title-badge-flame-core" fill="#fef08a" opacity="0.45" d="M18 36 Q20 26 24 34 Q26 24 28 36 Z"/>` +
+      `<path class="title-badge-flame-core" fill="#fef08a" opacity="0.45" d="M72 36 Q74 26 78 34 Q80 24 82 36 Z"/>` +
       `</svg>`;
-    const count = 6 + Math.floor(rnd() * 3);
-    let html = `<span class="title-badge-burn" aria-hidden="true">${flameSvg}`;
+    const count = 9 + Math.floor(rnd() * 4);
+    let html = `<span class="title-badge-burn" aria-hidden="true"><span class="title-badge-burn-heat"></span>${flameSvg}`;
     for (let i = 0; i < count; i++) {
-      const x = (8 + rnd() * 84).toFixed(1);
-      const y = (58 + rnd() * 28).toFixed(1);
-      const dur = (0.95 + rnd() * 1.1).toFixed(2);
-      const delay = (rnd() * 1.8).toFixed(2);
-      const size = (2 + rnd() * 2.2).toFixed(1);
+      const x = (2 + rnd() * 96).toFixed(1);
+      const y = (38 + rnd() * 48).toFixed(1);
+      const dur = (0.9 + rnd() * 1.05).toFixed(2);
+      const delay = (rnd() * 1.6).toFixed(2);
+      const size = (2.2 + rnd() * 2.8).toFixed(1);
       html += `<i style="left:${x}%;top:${y}%;--ed:${dur}s;--edelay:${delay}s;--es:${size}px"></i>`;
     }
     html += '</span>';
