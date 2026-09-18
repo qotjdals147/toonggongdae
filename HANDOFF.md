@@ -195,6 +195,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 도전과제 모달 **장착 뱃지와 동일 미리보기** (`titleBadgePreviewHtml`)
 - **2026-09-18** — **시간의 광부** 훈장·`sparkle-subtle` 뱃지 이펙트 · `CHALLENGE_TITLE_ASSETS`
 - **2026-09-18** — 도전과제 **단일 조건=단일 훈장**으로 복귀 (다단계·titleTiers 제거) · HANDOFF §6.3
 - **2026-09-18** — 도전 관리 **아이콘 경로 입력 제거** (기본 아이콘 · 커스텀은 요청 시)
@@ -277,4 +278,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (시간의 광부 sparkle)*
+*Last updated: 2026-09-18 (도전 뱃지 미리보기)*

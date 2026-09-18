@@ -518,6 +518,12 @@
   .challenge-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .challenge-card-head img { width: 26px; height: 26px; object-fit: contain; }
   .challenge-card-head strong { font-size: 14px; flex: 1; }
+  .challenge-badge-preview {
+    display: flex;
+    justify-content: flex-start;
+    margin: 4px 0 6px;
+  }
+  .challenge-quest-block + .challenge-quest-block { margin-top: 10px; }
   .challenge-progress {
     height: 8px;
     border-radius: 4px;
@@ -4461,15 +4467,20 @@
     return `<div class="member-nameplate"><span class="member-lv">Lv.${level}</span><span class="member-nick">${escapeHtml(name)}</span></div>`;
   }
 
+  function titleBadgePreviewHtml(def, seedKey) {
+    if (!def) return '';
+    const effect = def.badgeEffect || '';
+    const cls = effect ? ` member-title-badge--${effect}` : '';
+    const spark = titleBadgeSparkleHtml(effect, seedKey);
+    return `<div class="member-title-badge${cls}">${spark}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+  }
+
   function memberTitleBadgeHtml(memberIdx) {
     const eq = state.memberProfiles[memberIdx].equippedTitleId;
     if (!eq) return '';
     const def = getTitleDefById(eq);
     if (!def) return '';
-    const effect = def.badgeEffect || '';
-    const cls = effect ? ` member-title-badge--${effect}` : '';
-    const spark = titleBadgeSparkleHtml(effect, `${eq}:${memberIdx}`);
-    return `<div class="member-title-badge${cls}">${spark}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+    return titleBadgePreviewHtml(def, `${eq}:${memberIdx}`);
   }
 
   function populateHotIssueTargetSelect() {
@@ -4545,17 +4556,22 @@
           const t = b.def;
           const { level } = levelFromTotalXp(state.memberProfiles[memberIdx].totalXp);
           const done = level >= t.minLevel;
-          inner.innerHTML += `<div class="challenge-meta${done ? ' done' : ''}">· ${escapeHtml(t.name)} — Lv.${t.minLevel} ${done ? '달성' : `(현재 Lv.${level})`}</div>`;
+          const badge = titleBadgePreviewHtml(t, `lv-preview:${t.id}:${memberIdx}`);
+          inner.innerHTML += `
+            <div class="challenge-quest-block">
+              <div class="challenge-badge-preview">${badge}</div>
+              <div class="challenge-meta${done ? ' done' : ''}">Lv.${t.minLevel} ${done ? '달성' : `(현재 Lv.${level})`}</div>
+            </div>`;
           return;
         }
         const ch = b.def;
         const prog = challengeProgressForMember(ch, memberIdx);
-        const icon = challengeIconFor(ch);
         const pct = Math.min(100, (prog.current / prog.target) * 100);
         const done = prog.done || state.memberProfiles[memberIdx].unlockedTitleIds.includes(ch.titleId);
+        const badge = titleBadgePreviewHtml(getChallengeTitleDef(ch), `ch-preview:${ch.titleId}:${memberIdx}`);
         inner.innerHTML += `
-          <div style="margin-top:8px;">
-            <div class="challenge-card-head"><img src="${escapeHtml(icon)}" alt=""><strong>${escapeHtml(ch.titleName)}</strong></div>
+          <div class="challenge-quest-block">
+            <div class="challenge-badge-preview">${badge}</div>
             <div class="challenge-meta">${ch.type === 'sale_amount' ? `1건 등록가 ${fmtNum(ch.threshold)} 이상` : `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`} · 보상 XP ${fmtNum(ch.xpReward || 0)}</div>
             <div class="challenge-progress"><div style="width:${pct}%"></div></div>
             <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 칭호 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
