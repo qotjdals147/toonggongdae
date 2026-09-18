@@ -2341,7 +2341,12 @@
     <h2>메이커 재련 <span style="font-family:Inter,sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);">· 재련 메소만 정산</span></h2>
     <p class="takeover-hint">원석·재료는 <strong>파티 보유 재고</strong>라 정산 비용에 넣지 않아요. <strong>재련자가 낸 11/33/55만</strong>만 반영 · <strong>판매 수익</strong>은 획득 장부.</p>
     <div class="maker-form">
-      <div class="field"><span>보석명</span><input id="fMakerGem" type="text" autocomplete="off"></div>
+      <div class="field"><span>보석명</span>
+        <div class="item-ac-wrap">
+          <input id="fMakerGem" type="text" autocomplete="off" placeholder="글자 입력 → 카탈로그에서 선택">
+          <div class="item-ac-dropdown" id="fMakerGemDropdown" hidden></div>
+        </div>
+      </div>
       <div class="field"><span>재련자</span><select id="fMakerOwner"></select></div>
       <div class="maker-form-block maker-form-block--cost">
         <div class="maker-form-block-head">
@@ -2677,7 +2682,12 @@
   <div class="modal" role="dialog">
     <h3>메이커 재련 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>보석명</span><input id="mEditGem" type="text" autocomplete="off"></div>
+      <div class="field"><span>보석명</span>
+        <div class="item-ac-wrap">
+          <input id="mEditGem" type="text" autocomplete="off" placeholder="글자 입력 → 카탈로그에서 선택">
+          <div class="item-ac-dropdown" id="mEditGemDropdown" hidden></div>
+        </div>
+      </div>
       <div class="field"><span>재련자</span><select id="mEditOwner"></select></div>
       <div class="field"><span>하급 재련 횟수</span><input id="mEditRefineLow" type="number" min="0" step="1"></div>
       <div class="field"><span>중급 재련 횟수</span><input id="mEditRefineMid" type="number" min="0" step="1"></div>
@@ -2923,6 +2933,18 @@
   const CATALOG_ITEM_ICON_BY_CANONICAL = {
     '시간의 조각': 'image/아이템아이콘/시간의조각아이콘.png',
   };
+  const MAKER_GEM_ICON_DIR = 'image/메이커보석아이콘';
+  /** 파일명(확장자 제외) = 카탈로그 공식명 · `image/메이커보석아이콘/{name}.png` */
+  const MAKER_GEM_CATALOG_NAMES = [
+    '가넷', '다이아몬드', '민첩성의 크리스탈', '사파이어',
+    '상급 가넷', '상급 다이아몬드', '상급 민첩성의 크리스탈', '상급 사파이어', '상급 아쿠아마린', '상급 오팔', '상급 자수정', '상급 지혜의 크리스탈', '상급 토파즈', '상급 행운의 크리스탈', '상급 흑수정', '상급 힘의 크리스탈',
+    '아쿠아마린', '오팔', '자수정',
+    '중급 가넷', '중급 다이아몬드', '중급 민첩성의 크리스탈', '중급 사파이어', '중급 아쿠아마린', '중급 오팔', '중급 자수정', '중급 지혜의 크리스탈', '중급 토파즈', '중급 행운의 크리스탈', '중급 흑수정', '중급 힘의 크리스탈',
+    '지혜의 크리스탈', '토파즈',
+    '하급 가넷', '하급 다이아몬드', '하급 민첩성의 크리스탈', '하급 사파이어', '하급 아쿠아마린', '하급 오팔', '하급 자수정', '하급 지혜의 크리스탈', '하급 토파즈', '하급 행운의 크리스탈', '하급 흑수정', '하급 힘의 크리스탈',
+    '행운의 크리스탈', '흑수정', '힘의 크리스탈',
+  ];
+  const MAKER_GEM_CATALOG_NAME_SET = new Set(MAKER_GEM_CATALOG_NAMES);
   const SCROLL_CATALOG_BASES = [
     '장갑 공격력 주문서', '장갑 민첩성 주문서', '장갑 체력 주문서',
     '투구 민첩성 주문서', '투구 방어력 주문서', '투구 지력 주문서', '투구 체력 주문서',
@@ -3472,8 +3494,11 @@
   function readMakerDraftFromForm(formPrefix) {
     const gemId = formPrefix === 'fMaker' ? 'fMakerGem' : 'mEditGem';
     const ownerId = formPrefix === 'fMaker' ? 'fMakerOwner' : 'mEditOwner';
+    const rawGem = String($(gemId).value || '').trim();
+    ensureGamificationState();
+    const gemName = resolveCatalogItemInput(rawGem) || rawGem;
     return normalizeMakerRefine({
-      gemName: $(gemId).value,
+      gemName,
       makerIdx: Number($(ownerId).value),
       ...readMakerCountsFromForm(formPrefix)
     });
@@ -4656,10 +4681,18 @@
     if (state.catalogSearchFlags.shieldScrollsExtra == null) state.catalogSearchFlags.shieldScrollsExtra = false;
   }
 
+  function makerGemIconPath(canonical) {
+    const name = String(canonical || '').trim();
+    if (!name || !MAKER_GEM_CATALOG_NAME_SET.has(name)) return '';
+    return `${MAKER_GEM_ICON_DIR}/${name}.png`;
+  }
+
   function inferCatalogIconForCanonical(canonical) {
     const name = String(canonical || '').trim();
     if (!name) return '';
     if (CATALOG_ITEM_ICON_BY_CANONICAL[name]) return CATALOG_ITEM_ICON_BY_CANONICAL[name];
+    const gem = makerGemIconPath(name);
+    if (gem) return gem;
     const m = name.match(/\s(10|60|100)%$/);
     if (m) return SCROLL_CATALOG_RATE_ICONS[Number(m[1])] || '';
     return '';
@@ -4705,6 +4738,9 @@
       canonical: '시간의 조각',
       aliases: ['시조'],
       icon: CATALOG_ITEM_ICON_BY_CANONICAL['시간의 조각'],
+    });
+    MAKER_GEM_CATALOG_NAMES.forEach((name) => {
+      rows.push({ canonical: name, icon: makerGemIconPath(name) });
     });
     return rows;
   }
@@ -7825,7 +7861,7 @@
       const maker = state.members[row.makerIdx] || '?';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="item-name">${escapeHtml(row.gemName)}</td>
+        <td class="item-name">${catalogItemDisplayHtml(row.gemName)}</td>
         <td>${escapeHtml(maker)}</td>
         <td class="price-cell">${makerTierCountsHtml(row.refineLow, row.refineMid, row.refineHigh, 'refine')}</td>
         <td class="price-cell">${makerTierCountsHtml(row.yieldLow, row.yieldMid, row.yieldHigh, 'yield')}</td>
@@ -8909,6 +8945,8 @@
   $('chAdminAddBtn').addEventListener('click', addChallengeFromAdminForm);
   bindChallengeAdminItemAutocomplete();
   bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'));
+  bindItemNameAutocomplete($('fMakerGem'), $('fMakerGemDropdown'));
+  bindItemNameAutocomplete($('mEditGem'), $('mEditGemDropdown'));
   bootApp();
 })();
 </script>

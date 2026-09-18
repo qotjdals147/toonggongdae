@@ -29,6 +29,7 @@
 | `image/훈장아이콘/` | 레벨·도전 칭호 PNG |
 | `image/주문서 아이콘/` | 10·60·100% 주문서 아이콘 (카탈로그·자동완성) |
 | `image/아이템아이콘/` | 기타 아이템 (예: 시간의 조각) |
+| `image/메이커보석아이콘/` | 메이커 보석 48종 · 파일명=카탈로그 공식명 |
 | `README.md`, `HOSTING.md` | 배포 안내 |
 
 **하지 말 것:** `_patch_*.py` 같은 일회성 패치 스크립트를 repo에 남기지 않기 (과거 실수 있음).
@@ -152,8 +153,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 - **MapleStory.io 외부 자동완성 없음.**
 - **`challengeItemCatalog[]`:** `{ id, canonical, aliases[], icon? }` — **마스터 옵션 → 아이템 추가** CRUD + 코드 **시드 merge** (`mergeBuiltinCatalogSeeds`, `SCROLL_CATALOG_BASES` × 10/60/100%).
-- **시드:** load/`ensureGamificationState`마다 **canonical norm 중복 없이** 주문서·`시간의 조각`(별칭 `시조`) 보충 · 신규 추가 시 `scheduleSave`.
-- **아이콘:** `inferCatalogIconForCanonical` — 주문서 `%` → `image/주문서 아이콘/` · `시간의 조각` → `image/아이템아이콘/시간의조각아이콘.png`. **앞으로 아이콘 추가 시** `icon` 필드 또는 `CATALOG_ITEM_ICON_BY_CANONICAL` / 시드에 경로 등록 · **자동완성·장부 획득명·마스터 카탈로그**에 `[아이콘] 풀네임` (`catalogItemDisplayHtml`, `bindItemNameAutocomplete`).
+- **시드:** load/`ensureGamificationState`마다 **canonical norm 중복 없이** 주문서·`시간의 조각`(별칭 `시조`)·**메이커 보석 48종**(`MAKER_GEM_CATALOG_NAMES`) 보충 · 신규 추가 시 `scheduleSave`.
+- **아이콘:** `inferCatalogIconForCanonical` — 주문서 `%` → `image/주문서 아이콘/` · `시간의 조각` → `image/아이템아이콘/` · 보석 → `image/메이커보석아이콘/{공식명}.png` (`makerGemIconPath`). **앞으로 아이콘 추가 시** PNG 넣고 `MAKER_GEM_CATALOG_NAMES` 또는 `CATALOG_ITEM_ICON_BY_CANONICAL`에 등록 · **자동완성·장부 획득명·메이커 표·마스터 카탈로그** (`catalogItemDisplayHtml`, `bindItemNameAutocomplete` — 획득·메이커 보석명).
 - **미출시 자동완성 숨김:** `catalogEntryHiddenByReleasePolicy` — **명중률 주문서** 전종 · **방패 주문서 중 방어력 제외** · 기본 **순퉁·지퉁 검색 불가** · **배퉁(memberIdx 2)만** 검색 가능. 출시 후 **마스터 옵션 → 아이템 추가** 상단 체크(`catalogSearchFlags`)로 전원 공개 — 소유자 “출시됐다”고 하면 토글 또는 HANDOFF에 따라 `accuracyScrolls` / `shieldScrollsExtra` 켜기.
 - **자동완성:** `filterItemNameSuggestions` → **카탈로그만** · query **공백 제거 후 1자 이상** · 드롭다운 **아이콘+canonical** · 별칭은 **검색용** (`itemNameMatchesQuery`).
 - **저장:** 획득 `saveEntryEdit` · 도전 추가 — `resolveCatalogItemInput`으로 canonical 치환(별칭 exact norm 일치) · 도전 `item_acquire`는 **카탈로그에 있는 이름만** 추가 가능.
@@ -236,6 +237,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — **메이커 보석 48종** 카탈로그 시드·아이콘 · 메이커 보석명 AC
 - **2026-09-18** — 훈장 도전 목록 **접기 후 빈 스크롤 영역** 보정 (`syncMedalChallengeListScroll`)
 - **2026-09-18** — **주문서 카탈로그 시드**(192+시간의 조각) · 확률별 아이콘 · 미출시(명중률·방패) 자동완성 숨김 · 배퉁 공개 토글
 - **2026-09-18** — 훈장 도전 탭 **접이 패널 `renderChallengeListView` 연동** · 달성 N/M · 퀘스트 블록 구분선
@@ -342,4 +344,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (훈장 목록 스크롤 보정)*
+*Last updated: 2026-09-18 (메이커 보석 카탈로그·아이콘)*
