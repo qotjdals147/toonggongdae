@@ -2945,6 +2945,24 @@
     '행운의 크리스탈', '흑수정', '힘의 크리스탈',
   ];
   const MAKER_GEM_CATALOG_NAME_SET = new Set(MAKER_GEM_CATALOG_NAMES);
+  /** 크리스탈 줄임 · 카탈로그 별칭 + 기존 장부/메이커 데이터 마이그 */
+  const MAKER_GEM_CATALOG_ALIASES = {
+    '힘의 크리스탈': ['힘크'],
+    '행운의 크리스탈': ['행크'],
+    '지혜의 크리스탈': ['지크'],
+    '민첩성의 크리스탈': ['민크'],
+    '중급 힘의 크리스탈': ['중힘크'],
+    '중급 행운의 크리스탈': ['중행크'],
+    '중급 지혜의 크리스탈': ['중지크'],
+    '중급 민첩성의 크리스탈': ['중민크'],
+  };
+  const LEGACY_GEM_SHORT_TO_CANONICAL = (() => {
+    const out = {};
+    Object.entries(MAKER_GEM_CATALOG_ALIASES).forEach(([canonical, aliases]) => {
+      aliases.forEach((alias) => { out[normalizeGamificationText(alias)] = canonical; });
+    });
+    return out;
+  })();
   const SCROLL_CATALOG_BASES = [
     '장갑 공격력 주문서', '장갑 민첩성 주문서', '장갑 체력 주문서',
     '투구 민첩성 주문서', '투구 방어력 주문서', '투구 지력 주문서', '투구 체력 주문서',
@@ -4472,6 +4490,7 @@
   function applyStateFromRemote(next, needsResave) {
     const prevViewId = hasInitialViewFocus ? null : state.viewCycleId;
     state = next;
+    const gemNamesMigrated = migrateLegacyGemNamesInState();
     if (!state.warehouseChars) state.warehouseChars = [];
     if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
       state.memberParcelReceive = normalizeMemberParcelReceive(state);
@@ -4488,7 +4507,7 @@
     } else if (prevViewId && (state.cycles || []).some((c) => c.id === prevViewId)) {
       state.viewCycleId = prevViewId;
     }
-    if (needsResave) scheduleSave();
+    if (needsResave || gemNamesMigrated) scheduleSave();
     runGamificationAfterStateLoad();
     render();
     if (!$('warehouseModal').hidden) renderWarehouseList();
@@ -4740,9 +4759,41 @@
       icon: CATALOG_ITEM_ICON_BY_CANONICAL['시간의 조각'],
     });
     MAKER_GEM_CATALOG_NAMES.forEach((name) => {
-      rows.push({ canonical: name, icon: makerGemIconPath(name) });
+      rows.push({
+        canonical: name,
+        icon: makerGemIconPath(name),
+        aliases: (MAKER_GEM_CATALOG_ALIASES[name] || []).slice(),
+      });
     });
     return rows;
+  }
+
+  function canonicalGemNameFromLegacy(label) {
+    const raw = String(label || '').trim();
+    if (!raw) return raw;
+    const mapped = LEGACY_GEM_SHORT_TO_CANONICAL[normalizeGamificationText(raw)];
+    return mapped || raw;
+  }
+
+  function migrateLegacyGemNamesInState() {
+    let changed = false;
+    (state.cycles || []).forEach((cycle) => {
+      (cycle.makerRefines || []).forEach((row) => {
+        const next = canonicalGemNameFromLegacy(row.gemName);
+        if (next && next !== row.gemName) {
+          row.gemName = next;
+          changed = true;
+        }
+      });
+      (cycle.entries || []).forEach((entry) => {
+        const next = canonicalGemNameFromLegacy(entry.item);
+        if (next && next !== entry.item) {
+          entry.item = next;
+          changed = true;
+        }
+      });
+    });
+    return changed;
   }
 
   function mergeBuiltinCatalogSeeds() {
