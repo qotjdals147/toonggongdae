@@ -30,7 +30,6 @@
 | `image/주문서 아이콘/` | 10·60·100% 주문서 아이콘 (카탈로그·자동완성) |
 | `image/아이템아이콘/` | 기타 아이템 (예: 시간의 조각) |
 | `image/메이커보석아이콘/` | 메이커 보석 48종 · 파일명=카탈로그 공식명 |
-| `image/이펙트/` | 뱃지 연출 PNG · `burn` 스프라이트(`badge-burn-flame-strip.png`)·잿불(`ember-star.png`) — **Kenney CC0** |
 | `README.md`, `HOSTING.md` | 배포 안내 |
 
 **하지 말 것:** `_patch_*.py` 같은 일회성 패치 스크립트를 repo에 남기지 않기 (과거 실수 있음).
@@ -240,6 +239,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — `burn` **초기 연출 복구**(글로우 펄스+잿불) · 불 스프라이트/SVG 제거 · **글로우 강도↑**
 - **2026-09-18** — `burn` **Kenney 스프라이트** 11프레임 + 잿불 PNG · 뱃지 전폭 steps 애니
 - **2026-09-18** — `burn` **전폭 단일 파도 실루엣** · 바깥 glow 제거 · screen blend · SVG 통째 flicker
 - **2026-09-18** — `burn` **전폭 heat·92% 높이 불꽃** · 8혀+베이스 · 잿불 전구간
@@ -359,4 +359,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (burn Kenney 스프라이트)*
+*Last updated: 2026-09-18 (burn 초기+글로우)*
