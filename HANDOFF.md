@@ -152,7 +152,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
 - **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP 보상.
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
-- **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `image/훈장아이콘/` 연결·조건 조정.
+- **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `CHALLENGE_TITLE_ASSETS`(칭호 이름→icon·`badgeEffect`) · PNG `image/훈장아이콘/`. 예: **시간의 광부** → `시간의광부.png` · `sparkle-subtle`(흰 점 3개, 약함 — 10·20회는 더 강한 effect 추가 예정).
 - **칭호 아이콘 참고:** https://www.inven.co.kr/board/maple/2304/7662
 
 ---
@@ -195,6 +195,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — **시간의 광부** 훈장·`sparkle-subtle` 뱃지 이펙트 · `CHALLENGE_TITLE_ASSETS`
 - **2026-09-18** — 도전과제 **단일 조건=단일 훈장**으로 복귀 (다단계·titleTiers 제거) · HANDOFF §6.3
 - **2026-09-18** — 도전 관리 **아이콘 경로 입력 제거** (기본 아이콘 · 커스텀은 요청 시)
 - **2026-09-18** — 공대원 제목·EXP 텍스트 **가운데 정렬**
@@ -276,4 +277,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (도전 단일 조건 복귀)*
+*Last updated: 2026-09-18 (시간의 광부 sparkle)*
