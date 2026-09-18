@@ -498,72 +498,62 @@
   }
   .member-title-badge--sharp-zap {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
   .member-title-badge .title-badge-zap {
     position: absolute;
-    inset: 0;
+    inset: -2px -4px;
     pointer-events: none;
-    overflow: hidden;
+    overflow: visible;
     border-radius: inherit;
-    z-index: 1;
+    z-index: 8;
   }
-  .member-title-badge .title-badge-zap-streak {
+  .member-title-badge .title-badge-zap-svg {
     position: absolute;
-    top: 12%;
-    bottom: 12%;
-    left: 0;
-    width: 20px;
-    transform: translateX(-130%);
+    top: 50%;
+    left: -70%;
+    width: 72%;
+    height: 14px;
+    transform: translateY(-50%);
     opacity: 0;
-    background: linear-gradient(
-      98deg,
-      transparent 0%,
-      rgba(163, 230, 53, 0.15) 18%,
-      #a3e635 38%,
-      #84cc16 52%,
-      #bef264 68%,
-      rgba(74, 222, 128, 0.2) 82%,
-      transparent 100%
-    );
-    clip-path: polygon(18% 0%, 62% 0%, 38% 44%, 82% 44%, 32% 100%, 68% 100%, 8% 46%, 52% 46%);
-    filter: drop-shadow(0 0 5px #84cc16) drop-shadow(0 0 10px rgba(132, 204, 22, 0.75));
-    animation: title-badge-zap-run 1.5s linear infinite;
+    animation: title-badge-zap-sweep 1.5s cubic-bezier(0.33, 0, 0.15, 1) infinite;
   }
-  .member-title-badge .title-badge-zap-streak--b {
-    width: 14px;
-    top: 22%;
-    bottom: 22%;
-    animation-delay: 0.07s;
+  .member-title-badge .title-badge-zap-svg--b {
+    animation-delay: 0.05s;
+    opacity: 0;
+    width: 68%;
+    height: 12px;
+  }
+  .member-title-badge .title-badge-zap-path {
+    fill: none;
+    stroke: #d9f99d;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 2px #84cc16) drop-shadow(0 0 5px rgba(74, 222, 128, 0.9));
+  }
+  .member-title-badge .title-badge-zap-path--branch {
+    stroke: #a3e635;
+    stroke-width: 1.7;
+    opacity: 0.92;
+  }
+  .member-title-badge .title-badge-zap-svg--b .title-badge-zap-path {
+    stroke-width: 2;
     opacity: 0.75;
-    filter: drop-shadow(0 0 4px #4ade80);
   }
-  @keyframes title-badge-zap-run {
-    0%, 54%, 100% {
-      transform: translateX(-130%);
+  @keyframes title-badge-zap-sweep {
+    0%, 57%, 100% {
+      left: -72%;
       opacity: 0;
     }
-    3% { opacity: 0.95; }
-    6% {
-      transform: translateX(-55%);
-      opacity: 1;
+    4% { opacity: 1; }
+    8% { opacity: 0.45; }
+    11% { opacity: 1; }
+    46% {
+      left: 108%;
+      opacity: 0.95;
     }
-    10% {
-      transform: translateX(-18%);
-      opacity: 0.55;
-    }
-    13% {
-      transform: translateX(-8%);
-      opacity: 1;
-    }
-    32% {
-      transform: translateX(92%);
-      opacity: 0.85;
-    }
-    42% {
-      transform: translateX(135%);
-      opacity: 0;
-    }
+    54% { opacity: 0; }
   }
   .member-title-badge--sharp-zap img,
   .member-title-badge--sharp-zap > span:last-child {
@@ -5460,7 +5450,16 @@
 
   function titleBadgeSharpZapHtml(effect) {
     if (effect !== 'sharp-zap') return '';
-    return `<span class="title-badge-zap" aria-hidden="true"><i class="title-badge-zap-streak"></i><i class="title-badge-zap-streak title-badge-zap-streak--b"></i></span>`;
+    const boltMain = 'M-2 10 L16 9.5 L22 4 L28 10 L44 10.5 L50 16 L56 7 L72 10 L80 6 L86 10 L104 9.5 L118 10';
+    const branchMain = 'M44 10.5 L40 14 L36 12 M72 10 L76 13.5 L80 11.5 M28 10 L24 13 L20 11';
+    const boltB = 'M0 10 L14 10.2 L20 6 L26 10 L42 9.8 L48 14 L54 8 L70 10 L78 7 L84 10 L102 10 L116 9.8';
+    const branchB = 'M42 9.8 L38 13 M70 10 L74 12.5';
+    const svg = (cls, d, branch) =>
+      `<svg class="title-badge-zap-svg ${cls}" viewBox="0 0 116 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
+      `<path class="title-badge-zap-path" d="${d}"/>` +
+      `<path class="title-badge-zap-path title-badge-zap-path--branch" d="${branch}"/>` +
+      `</svg>`;
+    return `<span class="title-badge-zap" aria-hidden="true">${svg('title-badge-zap-svg--main', boltMain, branchMain)}${svg('title-badge-zap-svg--b', boltB, branchB)}</span>`;
   }
 
   function getChallengeTitleDef(ch) {
