@@ -880,6 +880,22 @@
     object-fit: contain;
     flex-shrink: 0;
   }
+  /* 주문서 PNG/JPG는 캔버스 여백이 커서 슬롯 안에서만 확대 */
+  .catalog-scroll-icon-slot {
+    width: 28px;
+    height: 28px;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .catalog-scroll-icon-slot .catalog-item-icon--scroll {
+    width: 96px;
+    height: 96px;
+    max-width: none;
+    object-fit: contain;
+  }
   .catalog-item-cell {
     display: inline-flex;
     align-items: center;
@@ -4863,12 +4879,28 @@
     }).filter(Boolean);
   }
 
+  function isScrollCatalogIconPath(iconPath) {
+    const p = String(iconPath || '');
+    return p.includes('주문서 아이콘') || p.includes('주문서아이콘');
+  }
+
+  function catalogIconMarkup(iconPath, opts) {
+    const o = opts || {};
+    if (!iconPath) return '';
+    const src = escapeHtml(catalogAssetUrl(iconPath));
+    const lazy = o.lazy ? ' loading="lazy"' : '';
+    if (isScrollCatalogIconPath(iconPath)) {
+      return `<span class="catalog-scroll-icon-slot"><img class="catalog-item-icon catalog-item-icon--scroll" src="${src}" alt=""${lazy}></span>`;
+    }
+    return `<img class="catalog-item-icon" src="${src}" alt=""${lazy}>`;
+  }
+
   function catalogItemDisplayHtml(itemName) {
     const label = escapeHtml(String(itemName || ''));
     const entry = findCatalogEntryByAnyLabel(itemName);
     const icon = (entry && entry.icon) || inferCatalogIconForCanonical(itemName);
     if (!icon) return label;
-    return `<span class="catalog-item-cell"><img class="catalog-item-icon" src="${escapeHtml(catalogAssetUrl(icon))}" alt="" loading="lazy"><span>${label}</span></span>`;
+    return `<span class="catalog-item-cell">${catalogIconMarkup(icon, { lazy: true })}<span>${label}</span></span>`;
   }
 
   function findCatalogEntryByCanonicalName(name) {
@@ -6781,9 +6813,7 @@
         ? '<span class="catalog-admin-hidden-tag">자동완성 숨김</span>'
         : '';
       const icon = entry.icon || inferCatalogIconForCanonical(entry.canonical);
-      const iconHtml = icon
-        ? `<img class="catalog-item-icon" src="${escapeHtml(catalogAssetUrl(icon))}" alt="">`
-        : '';
+      const iconHtml = icon ? catalogIconMarkup(icon) : '';
       const card = document.createElement('div');
       card.className = 'challenge-card';
       card.innerHTML = `<div class="challenge-card-head">${iconHtml}<strong>${escapeHtml(entry.canonical)}</strong>${hiddenTag}</div>
@@ -6834,7 +6864,7 @@
         btn.className = 'item-ac-option' + (i === focusIdx ? ' is-focus' : '');
         btn.dataset.canonical = label;
         if (icon) {
-          btn.innerHTML = `<img class="catalog-item-icon" src="${escapeHtml(catalogAssetUrl(icon))}" alt=""><span class="item-ac-option-label">${escapeHtml(label)}</span>`;
+          btn.innerHTML = `${catalogIconMarkup(icon)}<span class="item-ac-option-label">${escapeHtml(label)}</span>`;
         } else {
           btn.innerHTML = `<span class="item-ac-option-label">${escapeHtml(label)}</span>`;
         }
