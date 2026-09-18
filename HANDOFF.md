@@ -54,7 +54,7 @@ xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:/exclu
 challengeDefs[]    // 배퉁 · badgeColor?, badgeTextColor?, description?, optionsText?, …
 levelTitleBadgeColors{}  // 레벨 훈장 4종 · badgeColor
 levelTitleMeta{}       // 레벨 · description, optionsText, badgeTextColor
-challengeItemCatalog[]  // 도전과제 아이템 자동완성 전용
+challengeItemCatalog[]  // { id, canonical, aliases[] } · 장부·도전 자동완성 · 집계 매칭
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
 ```
 
@@ -118,7 +118,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — Lv·칭호·EXP 바 (**클라우드+로그인**) · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 |
-| 도전과제 | `#challengeModal`(진행도) · `#challengeAdminModal`(memberIdx **2** 배퉁만) |
+| 도전과제 | `#challengeModal`(진행도) · `#challengeAdminModal` **마스터 옵션**(memberIdx **2**) |
 | 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -143,7 +143,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 6.2 아이템명
 
-- **MapleStory.io 외부 자동완성 없음** (2026-09-17). **획득 추가·수정**·**도전 관리 아이템**은 `cycles[].entries` + `challengeItemCatalog` 이름 풀에서 **로컬 자동완성** (`filterItemNameSuggestions`).
+- **MapleStory.io 외부 자동완성 없음**. **카탈로그만** 자동완성 (`challengeItemCatalog`) · **입력 1자 이상**일 때만 · 목록은 **풀네임만** · 별칭은 검색·집계 매칭 · 선택·저장 시 **canonical** (`resolveCatalogItemInput`).
 
 ### 6.3 계정 레벨·칭호·도전과제 (클라우드+로그인)
 
@@ -154,7 +154,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
-- **관리 UI(배퉁):** 탭 **도전 추가 / 레벨 훈장 / 등록된 도전** · **배경·글자색**·설명·옵션 → **저장** · 글자 `--badge-text` · **옵션 적용**은 코드.
+- **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전** · **아이템 추가**=카탈로그 CRUD · 도전 `item_acquire`는 카탈로그 선택 필수 · **배경·글자색**·설명 → **저장**.
 - **툴팁:** 훈장 모달 미리보기·장착 뱃지·관리 미리보기 hover · `optionsText` 또는 `bonuses` → [훈장 옵션].
 - **레거시:** 예전 `levels[]` 다단계 정의는 불러올 때 **단계마다 별도 challengeDef**로 펼침 (`migrateChallengeDefs`).
 - **아이콘/뱃지:** 관리 UI 없음. 도전 추가 후 **에이전트에게 요청** → `CHALLENGE_TITLE_ASSETS`(칭호 이름→icon·`badgeEffect`) · PNG `image/훈장아이콘/`. 예: **시간의 광부** → `시간의광부.png` · `sparkle-subtle`(흰 점 3개, 약함 — 10·20회는 더 강한 effect 추가 예정).
@@ -200,7 +200,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-09-18** — 아이템 자동완성 **장부 획득명** 풀 연동 · 획득 수정란
+- **2026-09-18** — **마스터 옵션** · 카탈로그+별칭 · 획득/도전 자동완성
+- **2026-09-18** — 아이템 자동완성 **장부 획득명** 풀 연동 · 획득 수정란 (→ 카탈로그 전용으로 대체)
 - **2026-09-18** — 훈장 **글자색** (`badgeTextColor`) · 관리 UI
 - **2026-09-18** — 도전 관리 **3탭** · 색·메타 **저장 버튼**(HEX)
 - **2026-09-18** — 훈장 **설명·optionsText** 관리 UI · 모달/관리 **hover 툴팁**
@@ -295,4 +296,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (장부 아이템 자동완성)*
+*Last updated: 2026-09-18 (마스터 옵션·아이템 카탈로그)*

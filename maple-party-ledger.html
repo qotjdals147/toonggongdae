@@ -2160,7 +2160,7 @@
         </button>
         <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
         <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
-        <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="도전과제 추가·관리 (배퉁)">도전 관리</button>
+        <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">마스터 옵션</button>
         <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
       </div>
     </nav>
@@ -2379,10 +2379,11 @@
 
 <div class="modal-backdrop" id="challengeAdminModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="challengeAdminTitle" style="max-width:540px;">
-    <h3 id="challengeAdminTitle">훈장 · 도전 관리</h3>
-    <p style="margin:-6px 0 10px;font-size:13px;color:var(--ink-soft);">배퉁 전용 · 색·설명·옵션은 각 탭에서 <strong>저장</strong>을 눌러야 반영돼요.</p>
-    <div class="mypage-tabs ch-admin-tabs" role="tablist" style="margin-bottom:10px;">
+    <h3 id="challengeAdminTitle">마스터 옵션</h3>
+    <p style="margin:-6px 0 10px;font-size:13px;color:var(--ink-soft);">배퉁 전용 · 훈장·도전·<strong>아이템 카탈로그</strong> · 색·설명은 <strong>저장</strong> 후 반영.</p>
+    <div class="mypage-tabs ch-admin-tabs" role="tablist" style="margin-bottom:10px;flex-wrap:wrap;">
       <button type="button" class="mypage-tab is-active" id="chAdminTabAdd" data-ch-admin-tab="add">도전 추가</button>
+      <button type="button" class="mypage-tab" id="chAdminTabItems" data-ch-admin-tab="items">아이템 추가</button>
       <button type="button" class="mypage-tab" id="chAdminTabLevel" data-ch-admin-tab="level">레벨 훈장</button>
       <button type="button" class="mypage-tab" id="chAdminTabList" data-ch-admin-tab="list">등록된 도전</button>
     </div>
@@ -2399,11 +2400,12 @@
         <div class="field" id="chAdminThresholdField"><span>등록가 (메소)</span><input id="chAdminThreshold" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
         <div class="field" id="chAdminCountField" hidden><span>획득 횟수</span><input id="chAdminCount" type="number" min="1" value="1"></div>
         <div class="field" id="chAdminItemField" hidden style="grid-column:1/-1;">
-          <span>아이템 (도전과제 전용)</span>
+          <span>아이템 (카탈로그 · 풀네임)</span>
           <div class="item-ac-wrap">
-            <input id="chAdminItem" type="text" autocomplete="off" placeholder="예: 시간의 조각">
+            <input id="chAdminItem" type="text" autocomplete="off" placeholder="글자 입력 → 목록에서 선택">
             <div class="item-ac-dropdown" id="chAdminItemDropdown" hidden></div>
           </div>
+          <p style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);"><strong>아이템 추가</strong> 탭에 등록된 이름만 도전 조건으로 쓸 수 있어요.</p>
         </div>
         <div class="field"><span>XP 보상</span><input id="chAdminXp" type="number" min="0" value="120"></div>
         <div class="field" style="grid-column:1/-1;">
@@ -2432,6 +2434,18 @@
         </div>
       </div>
       <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
+    </div>
+    <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelItems" hidden>
+      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">장부·도전 자동완성에 쓸 <strong>공식 풀네임</strong> · 별칭은 검색용(목록엔 풀네임만 표시).</p>
+      <div class="modal-grid">
+        <div class="field" style="grid-column:1/-1;"><span>공식 아이템명</span><input id="masterItemCanonical" type="text" autocomplete="off" placeholder="예: 시간의 조각"></div>
+        <div class="field" style="grid-column:1/-1;">
+          <span>별칭 (쉼표 또는 줄바꿈)</span>
+          <textarea id="masterItemAliases" rows="2" autocomplete="off" placeholder="예: 시조"></textarea>
+        </div>
+      </div>
+      <button type="button" class="btn-settle btn-sm" id="masterItemAddBtn" style="margin-bottom:12px;">카탈로그에 추가</button>
+      <div class="challenge-list" id="masterItemCatalogList"></div>
     </div>
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelLevel" hidden>
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">레벨 달성 훈장 4종 · 색·설명·옵션 수정 후 카드마다 <strong>저장</strong>.</p>
@@ -2495,7 +2509,7 @@
       <div class="field" style="grid-column:1/-1;">
         <span>아이템명</span>
         <div class="item-ac-wrap">
-          <input id="eEditItem" type="text" autocomplete="off" placeholder="장부에 쓴 이름 · 아래에서 고를 수 있어요">
+          <input id="eEditItem" type="text" autocomplete="off" placeholder="글자 입력 → 카탈로그에서 선택 (풀네임으로 저장)">
           <div class="item-ac-dropdown" id="eEditItemDropdown" hidden></div>
         </div>
       </div>
@@ -4228,7 +4242,9 @@
     if (Array.isArray(parsed.challengeDefs)) {
       next.challengeDefs = migrateChallengeDefs(parsed.challengeDefs);
     }
-    if (Array.isArray(parsed.challengeItemCatalog)) next.challengeItemCatalog = parsed.challengeItemCatalog.slice();
+    if (Array.isArray(parsed.challengeItemCatalog)) {
+      next.challengeItemCatalog = migrateChallengeItemCatalog(parsed.challengeItemCatalog);
+    }
     if (parsed.gamificationSchema != null) next.gamificationSchema = parsed.gamificationSchema;
     if (parsed.levelTitleBadgeColors && typeof parsed.levelTitleBadgeColors === 'object') {
       next.levelTitleBadgeColors = { ...parsed.levelTitleBadgeColors };
@@ -4443,6 +4459,76 @@
     return String(str == null ? '' : str).replace(/\s+/g, '').toLowerCase();
   }
 
+  function parseCatalogAliasText(raw) {
+    return String(raw == null ? '' : raw)
+      .split(/[\n,，]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  function migrateChallengeItemCatalog(list) {
+    return (list || []).map((raw) => {
+      if (typeof raw === 'string') {
+        const canonical = raw.trim();
+        return canonical ? { id: genId(), canonical, aliases: [] } : null;
+      }
+      const canonical = String(raw.canonical || '').trim();
+      if (!canonical) return null;
+      const aliases = Array.isArray(raw.aliases)
+        ? raw.aliases.map((a) => String(a).trim()).filter(Boolean)
+        : parseCatalogAliasText(raw.aliases);
+      return { id: raw.id || genId(), canonical, aliases };
+    }).filter(Boolean);
+  }
+
+  function findCatalogEntryByCanonicalName(name) {
+    const norm = normalizeGamificationText(name);
+    if (!norm) return null;
+    return (state.challengeItemCatalog || []).find(
+      (x) => normalizeGamificationText(x.canonical) === norm
+    ) || null;
+  }
+
+  function findCatalogEntryByAnyLabel(text) {
+    const norm = normalizeGamificationText(text);
+    if (!norm) return null;
+    for (const entry of state.challengeItemCatalog || []) {
+      const canon = String(entry.canonical || '').trim();
+      if (!canon) continue;
+      if (normalizeGamificationText(canon) === norm) return entry;
+      for (const alias of entry.aliases || []) {
+        if (normalizeGamificationText(alias) === norm) return entry;
+      }
+    }
+    return null;
+  }
+
+  function resolveCatalogItemInput(raw) {
+    const entry = findCatalogEntryByAnyLabel(raw);
+    return entry ? String(entry.canonical).trim() : '';
+  }
+
+  function challengeMatchTokensForEntry(entry) {
+    if (!entry) return [];
+    const set = new Set();
+    const add = (s) => {
+      const n = normalizeGamificationText(s);
+      if (n) set.add(n);
+    };
+    add(entry.canonical);
+    (entry.aliases || []).forEach(add);
+    add(String(entry.canonical).replace(/\s+/g, ''));
+    return [...set];
+  }
+
+  function syncChallengeItemMatchFromCatalog(ch) {
+    if (!ch || ch.type !== 'item_acquire') return;
+    const entry = findCatalogEntryByCanonicalName(ch.itemCanonical);
+    if (!entry) return;
+    ch.itemCanonical = entry.canonical;
+    ch.itemMatchTokens = challengeMatchTokensForEntry(entry);
+  }
+
   function entryParticipantIdxs(entry) {
     const owner = entry.ownerIdx != null ? Number(entry.ownerIdx) : 0;
     const set = new Set([owner, ...getContributorIdxs(entry)]);
@@ -4528,6 +4614,10 @@
       state.challengeDefs.forEach((ch) => applyKnownChallengeAssets(ch));
     }
     if (!Array.isArray(state.challengeItemCatalog)) state.challengeItemCatalog = [];
+    else state.challengeItemCatalog = migrateChallengeItemCatalog(state.challengeItemCatalog);
+    state.challengeDefs.forEach((ch) => {
+      if (ch.type === 'item_acquire') syncChallengeItemMatchFromCatalog(ch);
+    });
     if (!state.levelTitleBadgeColors || typeof state.levelTitleBadgeColors !== 'object') {
       state.levelTitleBadgeColors = {};
     }
@@ -5052,10 +5142,20 @@
   function itemTextMatchesChallenge(itemText, ch) {
     const normItem = normalizeGamificationText(itemText);
     if (!normItem) return false;
+    const cat = findCatalogEntryByCanonicalName(ch.itemCanonical);
+    if (cat) {
+      const labels = [cat.canonical, ...(cat.aliases || [])];
+      for (const label of labels) {
+        const n = normalizeGamificationText(label);
+        if (n && normItem === n) return true;
+      }
+      const canonNorm = normalizeGamificationText(cat.canonical);
+      if (canonNorm && (normItem.includes(canonNorm) || canonNorm.includes(normItem))) return true;
+    }
     const canon = normalizeGamificationText(ch.itemCanonical || ch.titleName || '');
-    if (canon && normItem.includes(canon)) return true;
+    if (canon && (normItem === canon || normItem.includes(canon))) return true;
     const tokens = (ch.itemMatchTokens || []).map(normalizeGamificationText).filter(Boolean);
-    return tokens.some((t) => t && normItem.includes(t));
+    return tokens.some((t) => t && (normItem === t || normItem.includes(t)));
   }
 
   function countItemAcquireForMember(memberIdx, ch) {
@@ -5435,15 +5535,22 @@
 
   function switchChAdminTab(tab) {
     chAdminActiveTab = tab;
-    const tabs = ['add', 'level', 'list'];
-    tabs.forEach((t) => {
-      const btn = $(`chAdminTab${t === 'add' ? 'Add' : t === 'level' ? 'Level' : 'List'}`);
-      const panel = $(`chAdminPanel${t === 'add' ? 'Add' : t === 'level' ? 'Level' : 'List'}`);
+    const map = {
+      add: ['chAdminTabAdd', 'chAdminPanelAdd'],
+      items: ['chAdminTabItems', 'chAdminPanelItems'],
+      level: ['chAdminTabLevel', 'chAdminPanelLevel'],
+      list: ['chAdminTabList', 'chAdminPanelList'],
+    };
+    Object.keys(map).forEach((t) => {
+      const [tabId, panelId] = map[t];
+      const btn = $(tabId);
+      const panel = $(panelId);
       if (btn) btn.classList.toggle('is-active', t === tab);
       if (panel) panel.hidden = t !== tab;
     });
     if (tab === 'level') renderLevelTitleBadgeColorsAdmin();
     if (tab === 'list') renderChallengeAdminList();
+    if (tab === 'items') renderMasterItemCatalogAdmin();
     if (tab === 'add') updateChAdminAddBadgePreview();
   }
 
@@ -5669,33 +5776,8 @@
     });
   }
 
-  function ensureCatalogItem(canonical) {
-    const name = String(canonical || '').trim();
-    if (!name) return;
-    ensureGamificationState();
-    const norm = normalizeGamificationText(name);
-    if (state.challengeItemCatalog.some((x) => normalizeGamificationText(x.canonical) === norm)) return;
-    state.challengeItemCatalog.push({ id: genId(), canonical: name });
-  }
-
-  function ledgerItemNamePool() {
-    const seen = new Map();
-    const add = (raw) => {
-      const display = String(raw == null ? '' : raw).trim();
-      if (!display) return;
-      const norm = normalizeGamificationText(display);
-      if (!norm || seen.has(norm)) return;
-      seen.set(norm, display);
-    };
-    (state.challengeItemCatalog || []).forEach((x) => add(x.canonical));
-    (state.cycles || []).forEach((cycle) => {
-      (cycle.entries || []).forEach((entry) => add(entry.item));
-    });
-    return [...seen.values()].sort((a, b) => a.localeCompare(b, 'ko'));
-  }
-
   function itemNameMatchesQuery(name, q) {
-    if (!q) return true;
+    if (!q) return false;
     const c = normalizeGamificationText(name);
     if (c.includes(q)) return true;
     let qi = 0;
@@ -5706,10 +5788,84 @@
   }
 
   function filterItemNameSuggestions(query) {
-    const q = normalizeGamificationText(query);
-    const pool = ledgerItemNamePool();
-    if (!q) return pool.slice(0, 12);
-    return pool.filter((name) => itemNameMatchesQuery(name, q)).slice(0, 12);
+    const q = normalizeGamificationText(String(query || '').trim());
+    if (!q) return [];
+    const seen = new Set();
+    const out = [];
+    (state.challengeItemCatalog || []).forEach((entry) => {
+      const canonical = String(entry.canonical || '').trim();
+      if (!canonical) return;
+      const labels = [canonical, ...(entry.aliases || [])];
+      const hit = labels.some((label) => itemNameMatchesQuery(label, q));
+      if (!hit) return;
+      const norm = normalizeGamificationText(canonical);
+      if (seen.has(norm)) return;
+      seen.add(norm);
+      out.push(canonical);
+    });
+    return out.sort((a, b) => a.localeCompare(b, 'ko')).slice(0, 12);
+  }
+
+  function addMasterCatalogItem(canonical, aliasesRaw) {
+    ensureGamificationState();
+    const name = String(canonical || '').trim();
+    if (!name) return false;
+    const norm = normalizeGamificationText(name);
+    if ((state.challengeItemCatalog || []).some((x) => normalizeGamificationText(x.canonical) === norm)) {
+      return false;
+    }
+    const aliases = parseCatalogAliasText(aliasesRaw).filter(
+      (a) => normalizeGamificationText(a) !== norm
+    );
+    state.challengeItemCatalog.push({ id: genId(), canonical: name, aliases });
+    state.challengeDefs.forEach((ch) => syncChallengeItemMatchFromCatalog(ch));
+    scheduleSave();
+    return true;
+  }
+
+  function renderMasterItemCatalogAdmin() {
+    const wrap = $('masterItemCatalogList');
+    if (!wrap) return;
+    ensureGamificationState();
+    wrap.innerHTML = '';
+    const list = (state.challengeItemCatalog || []).slice().sort(
+      (a, b) => String(a.canonical).localeCompare(String(b.canonical), 'ko')
+    );
+    if (!list.length) {
+      wrap.innerHTML = '<p class="challenge-meta">등록된 아이템이 없어요.</p>';
+      return;
+    }
+    list.forEach((entry) => {
+      const card = document.createElement('div');
+      card.className = 'challenge-card';
+      card.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(entry.canonical)}</strong></div>
+        <div class="ch-medal-meta-fields">
+          <label>별칭 (쉼표·줄바꿈)</label>
+          <textarea class="master-item-aliases" rows="2">${escapeHtml((entry.aliases || []).join(', '))}</textarea>
+        </div>
+        <div class="ch-admin-save-row">
+          <button type="button" class="btn-settle btn-sm master-item-save">저장</button>
+          <button type="button" class="btn-light btn-sm master-item-del">삭제</button>
+        </div>`;
+      const saveBtn = card.querySelector('.master-item-save');
+      const delBtn = card.querySelector('.master-item-del');
+      const aliasTa = card.querySelector('.master-item-aliases');
+      saveBtn.addEventListener('click', () => {
+        entry.aliases = parseCatalogAliasText(aliasTa.value).filter(
+          (a) => normalizeGamificationText(a) !== normalizeGamificationText(entry.canonical)
+        );
+        state.challengeDefs.forEach((ch) => syncChallengeItemMatchFromCatalog(ch));
+        scheduleSave();
+        flashChAdminSaved(saveBtn);
+      });
+      delBtn.addEventListener('click', () => {
+        if (!confirm(`「${entry.canonical}」을 카탈로그에서 삭제할까요?`)) return;
+        state.challengeItemCatalog = state.challengeItemCatalog.filter((x) => x.id !== entry.id);
+        scheduleSave();
+        renderMasterItemCatalogAdmin();
+      });
+      wrap.appendChild(card);
+    });
   }
 
   function bindItemNameAutocomplete(input, drop) {
@@ -5734,7 +5890,10 @@
       });
     };
     input.oninput = () => { focusIdx = -1; renderDrop(); };
-    input.onfocus = renderDrop;
+    input.onfocus = () => {
+      if (!String(input.value || '').trim()) drop.hidden = true;
+      else renderDrop();
+    };
     input.onblur = () => { setTimeout(() => { drop.hidden = true; }, 120); };
     input.onkeydown = (e) => {
       const opts = drop.querySelectorAll('.item-ac-option');
@@ -5770,12 +5929,18 @@
       def.threshold = parseMoneyInput($('chAdminThreshold').value);
       if (!def.threshold) { $('chAdminThreshold').focus(); return; }
     } else {
-      const itemCanonical = $('chAdminItem').value.trim();
+      ensureGamificationState();
+      const itemRaw = $('chAdminItem').value.trim();
       def.requiredCount = Math.max(1, Math.round(Number($('chAdminCount').value) || 1));
-      if (!itemCanonical) { $('chAdminItem').focus(); return; }
+      if (!itemRaw) { $('chAdminItem').focus(); return; }
+      const itemCanonical = resolveCatalogItemInput(itemRaw) || findCatalogEntryByCanonicalName(itemRaw)?.canonical || '';
+      if (!itemCanonical) {
+        alert('아이템 추가 탭에 등록된 이름을 목록에서 선택해 주세요.');
+        $('chAdminItem').focus();
+        return;
+      }
       def.itemCanonical = itemCanonical;
-      def.itemMatchTokens = [itemCanonical.replace(/\s+/g, '')];
-      ensureCatalogItem(itemCanonical);
+      syncChallengeItemMatchFromCatalog(def);
     }
     const badgeColor = normalizeBadgeColor($('chAdminBadgeColor').value);
     if (badgeColor) def.badgeColor = badgeColor;
@@ -6963,9 +7128,11 @@
     const price = parseMoneyInput($('eEditPrice').value);
     const unsold = price <= 0;
     const sum = editEntrySplit.reduce((s, v) => s + Number(v || 0), 0);
-    const item = $('eEditItem').value.trim();
+    const rawItem = $('eEditItem').value.trim();
     const ownerIdx = Number($('eEditOwner').value);
-    if (!item) { $('eEditItem').focus(); return; }
+    if (!rawItem) { $('eEditItem').focus(); return; }
+    ensureGamificationState();
+    const item = resolveCatalogItemInput(rawItem) || rawItem;
     if (Math.abs(sum - 100) > 0.01) return;
 
     const contributorIdxs = readChipPickers('eEditContributors').filter((i) => i !== ownerIdx);
@@ -7874,8 +8041,21 @@
   $('chAdminDescription').addEventListener('input', updateChAdminAddBadgePreview);
   $('chAdminOptions').addEventListener('input', updateChAdminAddBadgePreview);
   $('chAdminTabAdd').addEventListener('click', () => switchChAdminTab('add'));
+  $('chAdminTabItems').addEventListener('click', () => switchChAdminTab('items'));
   $('chAdminTabLevel').addEventListener('click', () => switchChAdminTab('level'));
   $('chAdminTabList').addEventListener('click', () => switchChAdminTab('list'));
+  $('masterItemAddBtn').addEventListener('click', () => {
+    if (!authSession || authSession.memberIdx !== 2) return;
+    const ok = addMasterCatalogItem($('masterItemCanonical').value, $('masterItemAliases').value);
+    if (!ok) {
+      if (!$('masterItemCanonical').value.trim()) $('masterItemCanonical').focus();
+      else alert('이미 같은 공식명이 있거나 이름이 비어 있어요.');
+      return;
+    }
+    $('masterItemCanonical').value = '';
+    $('masterItemAliases').value = '';
+    renderMasterItemCatalogAdmin();
+  });
   $('challengeAdminCloseBtn').addEventListener('click', () => { $('challengeAdminModal').hidden = true; });
   $('challengeAdminModal').addEventListener('click', (e) => {
     if (e.target.id === 'challengeAdminModal') $('challengeAdminModal').hidden = true;
