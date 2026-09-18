@@ -417,28 +417,31 @@
   }
   .member-title-badge .title-badge-sparkles {
     position: absolute;
-    inset: -1px -2px;
+    inset: -4px -6px;
     pointer-events: none;
-    overflow: hidden;
+    overflow: visible;
     border-radius: inherit;
     z-index: 1;
   }
   .member-title-badge .title-badge-sparkles i {
     position: absolute;
-    width: 2px;
-    height: 2px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 3px 1px rgba(255, 255, 255, 0.55);
+    width: var(--ss, 4px);
+    height: var(--ss, 4px);
+    margin: calc(var(--ss, 4px) / -2) 0 0 calc(var(--ss, 4px) / -2);
+    background: #fff;
+    clip-path: polygon(50% 0%, 58% 38%, 100% 38%, 66% 59%, 79% 100%, 50% 72%, 21% 100%, 34% 59%, 0% 38%, 42% 38%);
+    filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px rgba(255, 255, 255, 0.85))
+      drop-shadow(0 0 6px rgba(255, 255, 255, 0.45));
     opacity: 0;
-    transform: scale(0.2);
-    animation: title-badge-sparkle var(--sd, 2s) ease-in-out infinite;
+    transform: scale(0.15) rotate(var(--sr, 0deg));
+    animation: title-badge-sparkle var(--sd, 2.6s) ease-in-out infinite;
     animation-delay: var(--sdelay, 0s);
   }
   @keyframes title-badge-sparkle {
-    0%, 72%, 100% { opacity: 0; transform: scale(0.2); }
-    38% { opacity: 0.75; transform: scale(1); }
-    48% { opacity: 0.35; transform: scale(0.65); }
+    0%, 78%, 100% { opacity: 0; transform: scale(0.15) rotate(var(--sr, 0deg)); }
+    12% { opacity: 0; }
+    42% { opacity: 1; transform: scale(1.05) rotate(var(--sr, 0deg)); }
+    52% { opacity: 0.55; transform: scale(0.75) rotate(var(--sr, 0deg)); }
   }
   .member-title-badge--sparkle-subtle img,
   .member-title-badge--sparkle-subtle > span:last-child {
@@ -4268,14 +4271,16 @@
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     })();
-    const count = 3;
+    const count = 6 + Math.floor(rnd() * 3);
     let html = '<span class="title-badge-sparkles" aria-hidden="true">';
     for (let i = 0; i < count; i++) {
-      const x = (6 + rnd() * 88).toFixed(1);
-      const y = (8 + rnd() * 78).toFixed(1);
-      const dur = (1.9 + rnd() * 1.6).toFixed(2);
-      const delay = (rnd() * 2.8).toFixed(2);
-      html += `<i style="left:${x}%;top:${y}%;--sd:${dur}s;--sdelay:${delay}s"></i>`;
+      const x = (2 + rnd() * 96).toFixed(1);
+      const y = (4 + rnd() * 92).toFixed(1);
+      const dur = (2.2 + rnd() * 2.4).toFixed(2);
+      const delay = (rnd() * 5.5).toFixed(2);
+      const size = (3.5 + rnd() * 2.5).toFixed(1);
+      const rot = (rnd() * 360).toFixed(0);
+      html += `<i style="left:${x}%;top:${y}%;--ss:${size}px;--sr:${rot}deg;--sd:${dur}s;--sdelay:${delay}s"></i>`;
     }
     html += '</span>';
     return html;
