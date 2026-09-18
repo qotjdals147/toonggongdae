@@ -25,7 +25,8 @@
 |------|------|
 | **`index.html`** | **유일한 실제 소스.** HTML + CSS + JS 한 파일. |
 | **`maple-party-ledger.html`** | **배포/미러용 복사본.** 변경 시 `index.html`과 **항상 동일**하게 유지 (`Copy-Item -Force`). |
-| `image/` | meso 아이콘, 섹션 아이콘 등 정적 이미지 |
+| `image/아이콘/` | meso·섹션 아이콘 |
+| `image/훈장아이콘/` | 레벨·도전 칭호 PNG |
 | `README.md`, `HOSTING.md` | 배포 안내 |
 
 **하지 말 것:** `_patch_*.py` 같은 일회성 패치 스크립트를 repo에 남기지 않기 (과거 실수 있음).
@@ -48,7 +49,11 @@ entryPriceBasis: 'listing' | (legacy net → 1회 마이그)
 entryPriceNetUpgraded: boolean
 partyRoster: { loginId, memberIdx }[]   // Auth ID ↔ 슬롯 0·1·2 (데이터는 idx로만 연결)
 members[3]   // 표시 닉네임 (계정 슬롯과 동기, idx 변경 없음)
-hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, text, images[] }[]
+memberProfiles[3]  // totalXp, equippedTitleId|null, unlockedTitleIds[] — **클라우드+로그인만**
+xpGrantKeys[]      // XP 중복 방지 (acq:/sale:/cycle:/hot:/login:/ach:)
+challengeDefs[]    // 배퉁이 추가 · sale_amount | item_acquire
+challengeItemCatalog[]  // 도전과제 아이템 자동완성 전용
+hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -109,7 +114,10 @@ legacySummaryOnly (옛 회차 요약만)
 | 상단 헤더 | `.app-header`, `.app-toolbar` — 참고/운영/링크 공유 그룹 |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
-| 내 계정 | `#accountModal` — 닉(`state.members[idx]`)·비밀번호(Supabase Auth) |
+| 공대원·레벨 | `renderMembers` — Lv·칭호·EXP 바 (**클라우드+로그인**) · `replayLedgerGamificationXp` |
+| 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 |
+| 도전과제 | `#challengeModal`(진행도) · `#challengeAdminModal`(memberIdx **2** 배퉁만) |
+| 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
 
@@ -122,7 +130,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 6.1 핫이슈
 
-- `state.hotIssues[]`: `{ id, createdAt, updatedAt?, authorMemberIdx?, text, images[] }`.
+- `state.hotIssues[]`: `{ id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }`.
 - **수정:** 피드 **수정** → 상단 작성란에 불러오기 → **저장** / **수정 취소** (`startHotIssueEdit`, `postHotIssue` 분기).
 - `images`: JPEG **data URL** — `compressImageBlobToDataUrl` (최대 약 1280px, 품질 자동 하향).
 - **입력:** `#hotIssueCompose` — 파일 첨부, **Ctrl+V** 캡처 붙여넣기, **Ctrl+Enter** 등록.
@@ -134,6 +142,15 @@ legacySummaryOnly (옛 회차 요약만)
 ### 6.2 아이템명
 
 - **itemCatalog / MapleStory.io 자동완성 제거** (2026-09-17). 획득·인수·메이커 등 **자유 텍스트**만.
+
+### 6.3 계정 레벨·칭호·도전과제 (클라우드+로그인)
+
+- **Lv 1~200** · `xpToNextLevel` / `levelFromTotalXp` · EXP 바는 메이플랜드 스타일.
+- **레벨 칭호 4종** (`LEVEL_TITLE_DEFS`): 초보(1), 주니어(30), 베테랑(70), 마스터(120) — 아이콘 `image/훈장아이콘/*.png`.
+- **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
+- **집계:** `replayLedgerGamificationXp()` — 불러올 때·장부/핫이슈/마감/도전 변경 후 · **과거 회차 소급** · `login:` 키만 보존.
+- **도전과제:** `challengeDefs` — 판매 등록가 1건 ≥ N / 아이템 획득 N회(띄어쓰기 무시·부분 일치) · 보상 칭호+XP.
+- **칭호 아이콘 참고(요청 시 안내):** https://www.inven.co.kr/board/maple/2304/7662
 
 ---
 
@@ -175,6 +192,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — **계정 Lv/EXP·칭호·도전과제**(배퉁 관리) · 핫이슈 **대상** · 공대원 카드 UI · 마이페이지
 - **2026-09-18** — Supabase **로그인**·`partyRoster`/슬롯 연동 · AUTH-SETUP (데이터 idx 유지)
 - **2026-09-18** — 회차 요약 **순수익**에 메이커 재련 메소 반영 (정산·송금과 일치)
 - **2026-09-18** — 장부 **점프 내비·회차 요약 스트립**(sticky, 구역별 뱃지, 접기 없음)
@@ -247,4 +265,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (Auth)*
+*Last updated: 2026-09-18 (Lv/칭호/도전)*

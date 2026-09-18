@@ -79,8 +79,11 @@
   .auth-gate-error { min-height: 1.2em; font-size: 13px; color: var(--rust); margin: -4px 0 10px; text-align: center; }
   .auth-gate .btn-settle { width: 100%; padding: 12px; font-size: 15px; }
   .member-slot--readonly strong { font-size: 16px; color: var(--ink); }
-  .member-slot-login { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
-  .member-slot-me { border: 1.5px solid var(--settle); border-radius: 10px; padding: 10px 12px; background: var(--settle-soft); }
+  .member-slot-login { font-size: 11px; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
+  .member-slot-me {
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.07) 0%, rgba(255, 255, 255, 0) 48%);
+    box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.35);
+  }
 
   .wrap { max-width: 980px; width: 100%; margin: 0 auto; min-width: 0; }
 
@@ -276,10 +279,193 @@
   .members-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 0;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--paper-card);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   }
-  .member-slot { display: flex; flex-direction: column; gap: 4px; }
+  .member-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 14px 12px 12px;
+    border-right: 1px solid var(--line);
+    min-width: 0;
+  }
+  .member-slot:last-child { border-right: none; }
+  .member-slot-label { font-size: 11px; color: var(--ink-soft); font-weight: 600; letter-spacing: 0.02em; }
+  .member-nameplate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    align-self: center;
+    max-width: 100%;
+    word-break: break-all;
+  }
+  .member-nameplate .member-lv {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fde047;
+    letter-spacing: 0.02em;
+  }
+  .member-title-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: center;
+    max-width: 100%;
+    padding: 3px 10px 3px 4px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
+    border: 1.5px solid #1e3a8a;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 2px 6px rgba(29, 78, 216, 0.35);
+  }
+  .member-title-badge img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+  }
+  .member-title-badge span {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+  .member-exp-wrap { margin-top: 2px; width: 100%; }
+  .member-exp-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 3px;
+    letter-spacing: 0.01em;
+  }
+  .member-exp-label .member-exp-pct { color: #64748b; font-weight: 600; }
+  .member-exp-track {
+    height: 11px;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 100%);
+    border: 1px solid #94a3b8;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+  }
+  .member-exp-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #bef264 0%, #84cc16 45%, #65a30d 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    transition: width 0.35s ease;
+  }
   .member-slot span { font-size: 11.5px; color: var(--ink-soft); font-weight: 500; }
+  .mypage-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 14px;
+    flex-wrap: wrap;
+  }
+  .mypage-tab {
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--line-strong);
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .mypage-tab.is-active {
+    border-color: var(--settle);
+    background: var(--settle-soft);
+    color: var(--settle);
+  }
+  .mypage-panel[hidden] { display: none !important; }
+  .title-pick-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+  .title-pick-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .title-pick-row.is-equipped { border-color: var(--settle); background: var(--settle-soft); }
+  .title-pick-row img { width: 28px; height: 28px; object-fit: contain; }
+  .title-pick-row strong { font-size: 14px; flex: 1; }
+  .challenge-list { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+  .challenge-card {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fff;
+  }
+  .challenge-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .challenge-card-head img { width: 26px; height: 26px; object-fit: contain; }
+  .challenge-card-head strong { font-size: 14px; flex: 1; }
+  .challenge-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--line);
+    overflow: hidden;
+    margin: 6px 0 4px;
+  }
+  .challenge-progress > div {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #2563eb);
+    border-radius: 4px;
+  }
+  .challenge-meta { font-size: 12px; color: var(--ink-soft); line-height: 1.45; }
+  .challenge-meta.done { color: var(--forest); font-weight: 600; }
+  .item-ac-wrap { position: relative; }
+  .item-ac-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 20;
+    margin-top: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  }
+  .item-ac-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .item-ac-option:hover, .item-ac-option.is-focus { background: var(--settle-soft); }
+  .hot-compose-target { margin-bottom: 8px; }
+  .hot-compose-target label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-right: 8px; }
+  .hot-compose-target select { font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line-strong); }
   .member-slot input {
     border: 1px solid var(--line);
     background: #fff;
@@ -1648,7 +1834,9 @@
         </button>
         <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
         <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 공유</button>
-        <button type="button" class="btn-light btn-sm" id="accountBtn" style="display:none;" title="닉네임·비밀번호">내 계정</button>
+        <button type="button" class="btn-light btn-sm" id="challengeBtn" style="display:none;" title="도전과제 진행도">도전과제</button>
+        <button type="button" class="btn-light btn-sm" id="challengeAdminBtn" style="display:none;" title="도전과제 추가·관리 (배퉁)">도전 관리</button>
+        <button type="button" class="btn-light btn-sm" id="accountBtn" style="display:none;" title="마이페이지">마이페이지</button>
         <button type="button" class="btn-light btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
       </div>
     </nav>
@@ -1673,7 +1861,7 @@
   </nav>
 
   <div class="card card-zone-ledger" id="zoneLedger">
-    <h2 class="section-title"><img src="image/jangboo.png" alt="" class="section-icon" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
+    <h2 class="section-title"><img src="image/아이콘/jangboo.png" alt="" class="section-icon" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 획득 내역</h2>
     <div class="ledger-toolbar">
       <button type="button" class="btn-income" id="openEntryAddBtn">+ 획득 추가</button>
       <button type="button" class="reset-sort-btn btn-light" id="resetSortBtn">기본 정렬</button>
@@ -1752,7 +1940,7 @@
   </div>
 
   <div class="card card-zone-expense" id="zoneExpense">
-    <h2 class="section-title"><img src="image/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
+    <h2 class="section-title"><img src="image/아이콘/icon-expense.png" alt="" class="section-icon section-icon--expense" width="46" height="46" decoding="async">퉁퉁이 공대 분배금 지출 내역</h2>
     <div class="exp-form">
       <div class="field"><span>지출 항목</span><input id="fExpDesc" type="text" placeholder="예: 무기 구매"></div>
       <div class="field"><span>금액</span><input id="fExpAmount" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></div>
@@ -1779,7 +1967,7 @@
   </div>
 
   <div class="card card-zone-settle" id="zoneSettle">
-    <h2 class="section-title"><img src="image/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
+    <h2 class="section-title"><img src="image/아이콘/icon-settle.png" alt="" class="section-icon section-icon--settle" width="46" height="46" decoding="async">정산</h2>
     <p class="settle-lead" id="settleLead" style="display:none;">위에서 <strong>인당 가져갈 금액</strong>을 확인하고, 필요하면 아래 <strong>송금</strong>만 맞추면 끝이에요.</p>
     <div id="makerSettleSummary" style="display:none;margin-bottom:14px;"></div>
     <div class="settle-overview" id="settleOverview" style="display:none;"></div>
@@ -1813,16 +2001,70 @@
 </div>
 
 <div class="modal-backdrop" id="accountModal" hidden>
-  <div class="modal" role="dialog" aria-labelledby="accountModalTitle" style="max-width:420px;">
-    <h3 id="accountModalTitle">내 계정</h3>
-    <p id="accountModalSub" style="margin:-6px 0 14px;font-size:13px;color:var(--ink-soft);"></p>
-    <div class="field"><span>닉네임 (장부에 표시)</span><input id="accountNickInput" type="text" autocomplete="off"></div>
-    <div class="field" style="margin-top:12px;"><span>새 비밀번호</span><input id="accountPwNew" type="password" autocomplete="new-password"></div>
-    <div class="field"><span>새 비밀번호 확인</span><input id="accountPwConfirm" type="password" autocomplete="new-password"></div>
+  <div class="modal" role="dialog" aria-labelledby="accountModalTitle" style="max-width:440px;">
+    <h3 id="accountModalTitle">마이페이지</h3>
+    <p id="accountModalSub" style="margin:-6px 0 10px;font-size:13px;color:var(--ink-soft);"></p>
+    <div class="mypage-tabs" role="tablist">
+      <button type="button" class="mypage-tab is-active" id="mypageTabNick" data-mypage="nick">닉·비밀번호</button>
+      <button type="button" class="mypage-tab" id="mypageTabTitle" data-mypage="title">칭호</button>
+    </div>
+    <div class="mypage-panel" id="mypagePanelNick">
+      <div class="field"><span>닉네임 (장부에 표시)</span><input id="accountNickInput" type="text" autocomplete="off"></div>
+      <div class="field" style="margin-top:12px;"><span>새 비밀번호</span><input id="accountPwNew" type="password" autocomplete="new-password"></div>
+      <div class="field"><span>새 비밀번호 확인</span><input id="accountPwConfirm" type="password" autocomplete="new-password"></div>
+    </div>
+    <div class="mypage-panel" id="mypagePanelTitle" hidden>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 10px;">획득한 칭호를 장착하거나 해제할 수 있어요.</p>
+      <div class="title-pick-list" id="titlePickList"></div>
+      <button type="button" class="btn-light btn-sm" id="titleUnequipBtn" style="margin-top:10px;">칭호 해제</button>
+    </div>
     <p id="accountModalMsg" style="min-height:1.2em;font-size:13px;color:var(--rust);margin:8px 0 0;"></p>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="accountCancelBtn">닫기</button>
       <button type="button" class="btn-settle" id="accountSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="challengeModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="challengeModalTitle" style="max-width:520px;">
+    <h3 id="challengeModalTitle">도전과제</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">레벨 칭호와 도전 보상 · 진행도는 공대원별로 표시돼요.</p>
+    <div class="challenge-list" id="challengeListView"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="challengeCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="challengeAdminModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="challengeAdminTitle" style="max-width:540px;">
+    <h3 id="challengeAdminTitle">도전과제 관리</h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">배퉁 전용 · 판매 금액·아이템 획득 조건과 칭호·XP 보상을 추가해요.</p>
+    <div class="modal-grid">
+      <div class="field"><span>유형</span>
+        <select id="chAdminType">
+          <option value="sale_amount">1건 판매 등록가 ≥ N</option>
+          <option value="item_acquire">아이템 획득 N회</option>
+        </select>
+      </div>
+      <div class="field"><span>칭호 이름</span><input id="chAdminTitleName" type="text" autocomplete="off" placeholder="예: 대박 판매왕"></div>
+      <div class="field" id="chAdminThresholdField"><span>등록가 (메소)</span><input id="chAdminThreshold" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="field" id="chAdminCountField" hidden><span>획득 횟수</span><input id="chAdminCount" type="number" min="1" value="1"></div>
+      <div class="field" id="chAdminItemField" hidden style="grid-column:1/-1;">
+        <span>아이템 (도전과제 전용)</span>
+        <div class="item-ac-wrap">
+          <input id="chAdminItem" type="text" autocomplete="off" placeholder="예: 시간의 조각">
+          <div class="item-ac-dropdown" id="chAdminItemDropdown" hidden></div>
+        </div>
+      </div>
+      <div class="field"><span>XP 보상</span><input id="chAdminXp" type="number" min="0" value="120"></div>
+      <div class="field"><span>아이콘 경로 (선택)</span><input id="chAdminIcon" type="text" autocomplete="off" placeholder="image/훈장아이콘/…"></div>
+    </div>
+    <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
+    <div class="challenge-list" id="challengeAdminList" style="margin-top:16px;max-height:220px;"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="challengeAdminCloseBtn">닫기</button>
     </div>
   </div>
 </div>
@@ -2050,6 +2292,10 @@
     <h3 id="hotIssueModalTitle">퉁공대 핫이슈</h3>
     <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">그날 기억할 일 · <strong>Ctrl+V</strong>로 캡처 붙여넣기 또는 사진 첨부 · 공대원과 실시간 공유</p>
     <div class="hot-compose">
+      <div class="hot-compose-target">
+        <label for="hotIssueTarget">핫이슈 대상</label>
+        <select id="hotIssueTarget"></select>
+      </div>
       <textarea id="hotIssueCompose" placeholder="예: 오늘 어크 2연속 드랍, 3시에 보스 터짐…" autocomplete="off"></textarea>
       <div class="hot-draft-imgs" id="hotIssueDraftImgs"></div>
       <div class="hot-compose-bar">
@@ -2109,6 +2355,22 @@
   const HOT_ISSUE_MAX_IMAGES = 4;
   const HOT_ISSUE_MAX_DATA_URL_LEN = 520000;
 
+  const MAX_MEMBER_LEVEL = 200;
+  const XP_ACQUIRE = 28;
+  const XP_SALE_DIVISOR = 45_000;
+  const XP_SALE_CAP = 320;
+  const XP_CYCLE_CLOSE = 200;
+  const XP_HOT_ISSUE = 95;
+  const XP_DAILY_LOGIN = 40;
+  const LEVEL_TITLE_DEFS = [
+    { id: 'title-rookie', name: '초보 퉁퉁이', icon: 'image/훈장아이콘/초보퉁퉁이.png', minLevel: 1 },
+    { id: 'title-junior', name: '주니어 퉁퉁이', icon: 'image/훈장아이콘/주니어퉁퉁이.png', minLevel: 30 },
+    { id: 'title-veteran', name: '베테랑 퉁퉁이', icon: 'image/훈장아이콘/베테랑퉁퉁이.png', minLevel: 70 },
+    { id: 'title-master', name: '마스터 퉁퉁이', icon: 'image/훈장아이콘/마스터퉁퉁이.png', minLevel: 120 },
+  ];
+  const DEFAULT_TITLE_ICON = 'image/훈장아이콘/초보퉁퉁이.png';
+  const INVEN_TITLE_ICON_REF = 'https://www.inven.co.kr/board/maple/2304/7662';
+
   let state = {
     members: [...DEFAULT_MEMBERS],
     cycles: [],
@@ -2150,8 +2412,8 @@
   ];
 
   const $ = (id) => document.getElementById(id);
-  const MESO_ICON_HTML = '<img src="image/meso.png" alt="" class="meso-icon" decoding="async">';
-  const MESO_ICON_LG_HTML = '<img src="image/meso.png" alt="" class="meso-icon meso-icon--lg" decoding="async">';
+  const MESO_ICON_HTML = '<img src="image/아이콘/meso.png" alt="" class="meso-icon" decoding="async">';
+  const MESO_ICON_LG_HTML = '<img src="image/아이콘/meso.png" alt="" class="meso-icon meso-icon--lg" decoding="async">';
   const fmtNum = (n) => Math.round(n).toLocaleString('ko-KR');
   const fmt = (n) => `<span class="money-with-meso">${fmtNum(n)}${MESO_ICON_HTML}</span>`;
   const parseMoneyInput = (str) => {
@@ -2211,6 +2473,10 @@
     const cloud = storageMode === 'cloud';
     if ($('accountBtn')) $('accountBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
     if ($('logoutBtn')) $('logoutBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
+    if ($('challengeBtn')) $('challengeBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
+    if ($('challengeAdminBtn')) {
+      $('challengeAdminBtn').style.display = cloud && authSession && authSession.memberIdx === 2 ? 'inline-block' : 'none';
+    }
   }
 
   async function resolveAuthMember(user) {
@@ -2286,11 +2552,13 @@
 
   function openAccountModal() {
     if (!authSession) return;
+    $('accountModalTitle').textContent = '마이페이지';
     $('accountModalSub').textContent = `아이디 ${authSession.loginId} · 슬롯 ${authSession.memberIdx + 1}`;
     $('accountNickInput').value = state.members[authSession.memberIdx] || '';
     $('accountPwNew').value = '';
     $('accountPwConfirm').value = '';
     $('accountModalMsg').textContent = '';
+    switchMyPageTab('nick');
     $('accountModal').hidden = false;
   }
 
@@ -3039,6 +3307,8 @@
       || !$('takeoverEditModal').hidden
       || !$('hotIssueModal').hidden
       || !$('accountModal').hidden
+      || !$('challengeModal').hidden
+      || !$('challengeAdminModal').hidden
       || !$('makerEditModal').hidden;
   }
 
@@ -3129,11 +3399,13 @@
       if (!text && !images.length) return;
       const updatedAt = raw && raw.updatedAt ? String(raw.updatedAt) : null;
       const authorMemberIdx = raw && raw.authorMemberIdx != null ? Number(raw.authorMemberIdx) : null;
+      const targetMemberIdx = raw && raw.targetMemberIdx != null ? Number(raw.targetMemberIdx) : null;
       out.push({
         id: (raw && raw.id) || genId(),
         createdAt: (raw && raw.createdAt) || new Date().toISOString(),
         updatedAt: updatedAt || null,
         authorMemberIdx: authorMemberIdx >= 0 && authorMemberIdx <= 2 ? authorMemberIdx : null,
+        targetMemberIdx: targetMemberIdx >= 0 && targetMemberIdx <= 2 ? targetMemberIdx : null,
         text,
         images
       });
@@ -3319,6 +3591,9 @@
     if (!post) return;
     editingHotIssueId = id;
     $('hotIssueCompose').value = post.text || '';
+    if ($('hotIssueTarget') && post.targetMemberIdx != null) {
+      $('hotIssueTarget').value = String(post.targetMemberIdx);
+    }
     hotIssueDraftImages = (post.images || []).slice();
     renderHotIssueDraftImgs();
     updateHotIssueComposeHint();
@@ -3335,6 +3610,7 @@
     renderHotIssueDraftImgs();
     updateHotIssueComposeHint();
     $('hotIssueFile').value = '';
+    if ($('hotIssueTarget') && authSession) $('hotIssueTarget').value = String(authSession.memberIdx);
     updateHotIssueComposeModeUi();
   }
 
@@ -3349,8 +3625,10 @@
       const card = document.createElement('article');
       card.className = 'hot-post' + (post.id === editingHotIssueId ? ' hot-post--editing' : '');
       const authorName = post.authorMemberIdx != null ? state.members[post.authorMemberIdx] : '';
+      const targetName = post.targetMemberIdx != null ? state.members[post.targetMemberIdx] : '';
       const authorBit = authorName ? ` · ${escapeHtml(authorName)}` : '';
-      const whenLabel = escapeHtml(formatHotIssueWhen(post.createdAt)) + authorBit
+      const targetBit = targetName ? ` · 대상 ${escapeHtml(targetName)}` : '';
+      const whenLabel = escapeHtml(formatHotIssueWhen(post.createdAt)) + authorBit + targetBit
         + (post.updatedAt ? ` <span class="hot-post-edited">· 수정 ${escapeHtml(formatHotIssueWhen(post.updatedAt))}</span>` : '');
       const head = document.createElement('div');
       head.className = 'hot-post-head';
@@ -3395,6 +3673,7 @@
         if (!confirm('이 핫이슈를 삭제할까요?')) return;
         if (editingHotIssueId === btn.dataset.id) editingHotIssueId = null;
         state.hotIssues = (state.hotIssues || []).filter((p) => p.id !== btn.dataset.id);
+        if (gamificationActive()) replayLedgerGamificationXp();
         scheduleSave();
         resetHotIssueCompose();
         renderHotIssueFeed();
@@ -3404,6 +3683,7 @@
   }
 
   function openHotIssueModal() {
+    populateHotIssueTargetSelect();
     renderHotIssueFeed();
     resetHotIssueCompose();
     $('hotIssueModal').hidden = false;
@@ -3433,16 +3713,21 @@
       post.text = text;
       post.images = images;
       post.updatedAt = new Date().toISOString();
+      const tEdit = Number($('hotIssueTarget').value);
+      post.targetMemberIdx = tEdit >= 0 && tEdit <= 2 ? tEdit : post.targetMemberIdx;
     } else {
+      const tNew = Number($('hotIssueTarget').value);
       state.hotIssues.unshift({
         id: genId(),
         createdAt: new Date().toISOString(),
         updatedAt: null,
         authorMemberIdx: authSession ? authSession.memberIdx : null,
+        targetMemberIdx: tNew >= 0 && tNew <= 2 ? tNew : (authSession ? authSession.memberIdx : 0),
         text,
         images
       });
     }
+    if (gamificationActive()) replayLedgerGamificationXp();
     scheduleSave();
     resetHotIssueCompose();
     renderHotIssueFeed();
@@ -3457,6 +3742,13 @@
     next.entryPriceBasis = parsed.entryPriceBasis;
     next.entryPriceNetUpgraded = parsed.entryPriceNetUpgraded;
     next.hotIssues = normalizeHotIssues(parsed.hotIssues);
+    if (parsed.memberProfiles && Array.isArray(parsed.memberProfiles) && parsed.memberProfiles.length === 3) {
+      next.memberProfiles = parsed.memberProfiles;
+    }
+    if (Array.isArray(parsed.xpGrantKeys)) next.xpGrantKeys = parsed.xpGrantKeys.slice();
+    if (Array.isArray(parsed.challengeDefs)) next.challengeDefs = parsed.challengeDefs.slice();
+    if (Array.isArray(parsed.challengeItemCatalog)) next.challengeItemCatalog = parsed.challengeItemCatalog.slice();
+    if (parsed.gamificationSchema != null) next.gamificationSchema = parsed.gamificationSchema;
     const rosterNorm = normalizePartyRoster(parsed.partyRoster);
     if (rosterNorm) next.partyRoster = rosterNorm;
     else if (ROOM_ID === 'tongtongi') {
@@ -3485,6 +3777,7 @@
       state.viewCycleId = prevViewId;
     }
     if (needsResave) scheduleSave();
+    runGamificationAfterStateLoad();
     render();
     if (!$('warehouseModal').hidden) renderWarehouseList();
     if (!$('hotIssueModal').hidden) renderHotIssueFeed();
@@ -3638,34 +3931,523 @@
     saveTimeout = setTimeout(saveState, 400);
   }
 
+  // ---------- gamification (cloud + login only) ----------
+  function gamificationActive() {
+    return storageMode === 'cloud' && !!authSession;
+  }
+
+  function xpToNextLevel(level) {
+    if (level >= MAX_MEMBER_LEVEL) return 0;
+    return Math.floor(68 + level * 34 + Math.pow(level, 1.42) * 10.5);
+  }
+
+  function levelFromTotalXp(totalXp) {
+    let level = 1;
+    let rem = Math.max(0, Math.round(Number(totalXp) || 0));
+    while (level < MAX_MEMBER_LEVEL) {
+      const need = xpToNextLevel(level);
+      if (rem < need) return { level, progressXp: rem, needXp: need };
+      rem -= need;
+      level += 1;
+    }
+    return { level: MAX_MEMBER_LEVEL, progressXp: 0, needXp: 0 };
+  }
+
+  function normalizeGamificationText(str) {
+    return String(str == null ? '' : str).replace(/\s+/g, '').toLowerCase();
+  }
+
+  function entryParticipantIdxs(entry) {
+    const owner = entry.ownerIdx != null ? Number(entry.ownerIdx) : 0;
+    const set = new Set([owner, ...getContributorIdxs(entry)]);
+    return [...set].filter((i) => i >= 0 && i < 3);
+  }
+
+  function defaultMemberProfile() {
+    return {
+      totalXp: 0,
+      equippedTitleId: 'title-rookie',
+      unlockedTitleIds: ['title-rookie'],
+    };
+  }
+
+  function ensureGamificationState() {
+    if (!state.memberProfiles || state.memberProfiles.length !== 3) {
+      state.memberProfiles = [0, 1, 2].map(() => defaultMemberProfile());
+    }
+    state.memberProfiles.forEach((p, i) => {
+      if (!p || typeof p !== 'object') state.memberProfiles[i] = defaultMemberProfile();
+      if (!Array.isArray(p.unlockedTitleIds)) p.unlockedTitleIds = ['title-rookie'];
+      if (p.equippedTitleId === undefined) p.equippedTitleId = 'title-rookie';
+      p.totalXp = Math.max(0, Math.round(Number(p.totalXp) || 0));
+    });
+    if (!Array.isArray(state.xpGrantKeys)) state.xpGrantKeys = [];
+    if (!Array.isArray(state.challengeDefs)) state.challengeDefs = [];
+    if (!Array.isArray(state.challengeItemCatalog)) state.challengeItemCatalog = [];
+    if (state.gamificationSchema == null) state.gamificationSchema = 1;
+  }
+
+  function getLevelTitleDef(id) {
+    return LEVEL_TITLE_DEFS.find((t) => t.id === id) || null;
+  }
+
+  function getChallengeTitleDef(ch) {
+    if (!ch) return null;
+    return {
+      id: ch.titleId,
+      name: ch.titleName,
+      icon: ch.icon || DEFAULT_TITLE_ICON,
+      challengeId: ch.id,
+    };
+  }
+
+  function getTitleDefById(titleId) {
+    const lv = getLevelTitleDef(titleId);
+    if (lv) return lv;
+    const ch = (state.challengeDefs || []).find((c) => c.titleId === titleId);
+    if (ch) return getChallengeTitleDef(ch);
+    return null;
+  }
+
+  function syncLevelTitlesForMember(memberIdx) {
+    ensureGamificationState();
+    const p = state.memberProfiles[memberIdx];
+    const { level } = levelFromTotalXp(p.totalXp);
+    LEVEL_TITLE_DEFS.forEach((t) => {
+      if (level >= t.minLevel && !p.unlockedTitleIds.includes(t.id)) {
+        p.unlockedTitleIds.push(t.id);
+      }
+    });
+    if (p.equippedTitleId && !p.unlockedTitleIds.includes(p.equippedTitleId)) {
+      p.equippedTitleId = null;
+    }
+  }
+
+  function syncAllLevelTitles() {
+    [0, 1, 2].forEach((i) => syncLevelTitlesForMember(i));
+  }
+
+  function grantXp(memberIdx, amount, key) {
+    if (!gamificationActive() || memberIdx < 0 || memberIdx > 2) return 0;
+    const amt = Math.round(Number(amount) || 0);
+    if (amt <= 0 || !key) return 0;
+    ensureGamificationState();
+    if (state.xpGrantKeys.includes(key)) return 0;
+    state.xpGrantKeys.push(key);
+    state.memberProfiles[memberIdx].totalXp += amt;
+    syncLevelTitlesForMember(memberIdx);
+    return amt;
+  }
+
+  function saleXpFromListingPrice(price) {
+    const p = Math.max(0, Math.round(Number(price) || 0));
+    if (p <= 0) return 0;
+    return Math.min(XP_SALE_CAP, Math.floor(p / XP_SALE_DIVISOR));
+  }
+
+  function itemTextMatchesChallenge(itemText, ch) {
+    const normItem = normalizeGamificationText(itemText);
+    if (!normItem) return false;
+    const canon = normalizeGamificationText(ch.itemCanonical || ch.titleName || '');
+    if (canon && normItem.includes(canon)) return true;
+    const tokens = (ch.itemMatchTokens || []).map(normalizeGamificationText).filter(Boolean);
+    return tokens.some((t) => t && normItem.includes(t));
+  }
+
+  function countItemAcquireForMember(memberIdx, ch) {
+    let count = 0;
+    (state.cycles || []).forEach((cycle) => {
+      (cycle.entries || []).forEach((entry) => {
+        if (!itemTextMatchesChallenge(entry.item, ch)) return;
+        if (!entryParticipantIdxs(entry).includes(memberIdx)) return;
+        count += 1;
+      });
+    });
+    return count;
+  }
+
+  function maxSaleEntryForMember(memberIdx) {
+    let max = 0;
+    (state.cycles || []).forEach((cycle) => {
+      (cycle.entries || []).forEach((entry) => {
+        if (!isSoldEntry(entry)) return;
+        if (!entryParticipantIdxs(entry).includes(memberIdx)) return;
+        max = Math.max(max, Math.round(Number(entry.price) || 0));
+      });
+    });
+    return max;
+  }
+
+  function challengeProgressForMember(ch, memberIdx) {
+    if (ch.type === 'sale_amount') {
+      const max = maxSaleEntryForMember(memberIdx);
+      const need = Math.max(1, Math.round(Number(ch.threshold) || 0));
+      return { current: max, target: need, done: max >= need };
+    }
+    if (ch.type === 'item_acquire') {
+      const cur = countItemAcquireForMember(memberIdx, ch);
+      const need = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
+      return { current: cur, target: need, done: cur >= need };
+    }
+    return { current: 0, target: 1, done: false };
+  }
+
+  function unlockChallengeTitle(memberIdx, ch) {
+    ensureGamificationState();
+    const p = state.memberProfiles[memberIdx];
+    if (!p.unlockedTitleIds.includes(ch.titleId)) p.unlockedTitleIds.push(ch.titleId);
+  }
+
+  function replayLedgerGamificationXp() {
+    ensureGamificationState();
+    const loginKeys = state.xpGrantKeys.filter((k) => k.startsWith('login:'));
+    state.xpGrantKeys = loginKeys.slice();
+    state.memberProfiles.forEach((p) => { p.totalXp = 0; });
+    loginKeys.forEach((key) => {
+      const m = Number(key.split(':')[1]);
+      if (m >= 0 && m < 3) state.memberProfiles[m].totalXp += XP_DAILY_LOGIN;
+    });
+
+    (state.cycles || []).forEach((cycle) => {
+      (cycle.entries || []).forEach((entry) => {
+        normalizeEntry(entry);
+        const participants = entryParticipantIdxs(entry);
+        participants.forEach((idx) => {
+          grantXp(idx, XP_ACQUIRE, `acq:${entry.id}:${idx}`);
+          if (isSoldEntry(entry)) {
+            grantXp(idx, saleXpFromListingPrice(entry.price), `sale:${entry.id}:${idx}`);
+          }
+        });
+      });
+      if (cycle.status === 'closed') {
+        [0, 1, 2].forEach((idx) => {
+          grantXp(idx, XP_CYCLE_CLOSE, `cycle:${cycle.id}:${idx}`);
+        });
+      }
+    });
+
+    (state.hotIssues || []).forEach((post) => {
+      const t = post.targetMemberIdx;
+      if (t == null || t < 0 || t > 2) return;
+      grantXp(t, XP_HOT_ISSUE, `hot:${post.id}:${t}`);
+    });
+
+    (state.challengeDefs || []).forEach((ch) => {
+      [0, 1, 2].forEach((idx) => {
+        const prog = challengeProgressForMember(ch, idx);
+        if (!prog.done) return;
+        unlockChallengeTitle(idx, ch);
+        grantXp(idx, Math.max(0, Math.round(Number(ch.xpReward) || 0)), `ach:${ch.id}:${idx}`);
+      });
+    });
+
+    syncAllLevelTitles();
+  }
+
+  function tryDailyLoginXp() {
+    if (!gamificationActive()) return false;
+    ensureGamificationState();
+    const key = `login:${authSession.memberIdx}:${localCalendarDateStr()}`;
+    const added = grantXp(authSession.memberIdx, XP_DAILY_LOGIN, key);
+    return added > 0;
+  }
+
+  function runGamificationAfterStateLoad() {
+    if (!gamificationActive()) return;
+    ensureGamificationState();
+    replayLedgerGamificationXp();
+    if (tryDailyLoginXp()) scheduleSave();
+  }
+
+  function memberExpBarHtml(memberIdx) {
+    const p = state.memberProfiles[memberIdx];
+    const { level, progressXp, needXp } = levelFromTotalXp(p.totalXp);
+    const pct = needXp > 0 ? Math.min(100, (progressXp / needXp) * 100) : 100;
+    return `
+      <div class="member-exp-wrap">
+        <div class="member-exp-label">EXP. ${fmtNum(progressXp)} / ${fmtNum(needXp || 0)} <span class="member-exp-pct">[${pct.toFixed(2)}%]</span></div>
+        <div class="member-exp-track"><div class="member-exp-fill" style="width:${pct.toFixed(2)}%"></div></div>
+      </div>
+    `;
+  }
+
+  function memberNameplateHtml(name, memberIdx) {
+    const { level } = levelFromTotalXp(state.memberProfiles[memberIdx].totalXp);
+    return `<div class="member-nameplate"><span class="member-lv">Lv.${level}</span><span>${escapeHtml(name)}</span></div>`;
+  }
+
+  function memberTitleBadgeHtml(memberIdx) {
+    const eq = state.memberProfiles[memberIdx].equippedTitleId;
+    if (!eq) return '';
+    const def = getTitleDefById(eq);
+    if (!def) return '';
+    return `<div class="member-title-badge"><img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+  }
+
+  function populateHotIssueTargetSelect() {
+    const sel = $('hotIssueTarget');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = name || loginIdForMemberIdx(i) || `공대원 ${i + 1}`;
+      sel.appendChild(opt);
+    });
+    if (authSession && prev === '') sel.value = String(authSession.memberIdx);
+    else if (prev !== '') sel.value = prev;
+  }
+
+  function switchMyPageTab(tab) {
+    const nick = tab === 'nick';
+    $('mypageTabNick').classList.toggle('is-active', nick);
+    $('mypageTabTitle').classList.toggle('is-active', !nick);
+    $('mypagePanelNick').hidden = !nick;
+    $('mypagePanelTitle').hidden = nick;
+    if (!nick) renderTitlePickList();
+  }
+
+  function renderTitlePickList() {
+    const wrap = $('titlePickList');
+    if (!wrap || !authSession) return;
+    ensureGamificationState();
+    const p = state.memberProfiles[authSession.memberIdx];
+    wrap.innerHTML = '';
+    p.unlockedTitleIds.forEach((tid) => {
+      const def = getTitleDefById(tid);
+      if (!def) return;
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'title-pick-row' + (p.equippedTitleId === tid ? ' is-equipped' : '');
+      row.innerHTML = `<img src="${escapeHtml(def.icon)}" alt=""><strong>${escapeHtml(def.name)}</strong><span>${p.equippedTitleId === tid ? '장착 중' : '장착'}</span>`;
+      row.addEventListener('click', () => {
+        p.equippedTitleId = tid;
+        scheduleSave();
+        renderTitlePickList();
+        renderMembers();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function renderChallengeListView() {
+    const wrap = $('challengeListView');
+    if (!wrap) return;
+    ensureGamificationState();
+    wrap.innerHTML = '';
+    const blocks = [];
+    LEVEL_TITLE_DEFS.forEach((t) => {
+      blocks.push({ kind: 'level', def: t });
+    });
+    (state.challengeDefs || []).forEach((ch) => {
+      blocks.push({ kind: 'challenge', def: ch });
+    });
+    if (!blocks.length) {
+      wrap.innerHTML = '<p class="challenge-meta">등록된 도전과제가 없어요.</p>';
+      return;
+    }
+    [0, 1, 2].forEach((memberIdx) => {
+      const head = document.createElement('div');
+      head.className = 'challenge-card';
+      head.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(state.members[memberIdx] || loginIdForMemberIdx(memberIdx))}</strong></div>`;
+      const inner = document.createElement('div');
+      blocks.forEach((b) => {
+        if (b.kind === 'level') {
+          const t = b.def;
+          const { level } = levelFromTotalXp(state.memberProfiles[memberIdx].totalXp);
+          const done = level >= t.minLevel;
+          inner.innerHTML += `<div class="challenge-meta${done ? ' done' : ''}">· ${escapeHtml(t.name)} — Lv.${t.minLevel} ${done ? '달성' : `(현재 Lv.${level})`}</div>`;
+          return;
+        }
+        const ch = b.def;
+        const prog = challengeProgressForMember(ch, memberIdx);
+        const icon = ch.icon || DEFAULT_TITLE_ICON;
+        const pct = Math.min(100, (prog.current / prog.target) * 100);
+        const done = prog.done || state.memberProfiles[memberIdx].unlockedTitleIds.includes(ch.titleId);
+        inner.innerHTML += `
+          <div style="margin-top:8px;">
+            <div class="challenge-card-head"><img src="${escapeHtml(icon)}" alt=""><strong>${escapeHtml(ch.titleName)}</strong></div>
+            <div class="challenge-meta">${ch.type === 'sale_amount' ? `1건 등록가 ${fmtNum(ch.threshold)} 이상` : `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`} · 보상 XP ${fmtNum(ch.xpReward || 0)}</div>
+            <div class="challenge-progress"><div style="width:${pct}%"></div></div>
+            <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 칭호 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
+          </div>`;
+      });
+      head.appendChild(inner);
+      wrap.appendChild(head);
+    });
+  }
+
+  function renderChallengeAdminList() {
+    const wrap = $('challengeAdminList');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    (state.challengeDefs || []).forEach((ch) => {
+      const row = document.createElement('div');
+      row.className = 'challenge-card';
+      const label = ch.type === 'sale_amount'
+        ? `등록가 ≥ ${fmtNum(ch.threshold)}`
+        : `${ch.itemCanonical} × ${ch.requiredCount}`;
+      row.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(ch.titleName)}</strong></div>
+        <div class="challenge-meta">${escapeHtml(label)} · XP ${fmtNum(ch.xpReward || 0)}</div>
+        <button type="button" class="btn-light btn-sm" data-del="${escapeHtml(ch.id)}" style="margin-top:6px;">삭제</button>`;
+      row.querySelector('button').addEventListener('click', () => {
+        if (!confirm('이 도전과제를 삭제할까요?')) return;
+        state.challengeDefs = state.challengeDefs.filter((x) => x.id !== ch.id);
+        replayLedgerGamificationXp();
+        scheduleSave();
+        renderChallengeAdminList();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function ensureCatalogItem(canonical) {
+    const name = String(canonical || '').trim();
+    if (!name) return;
+    ensureGamificationState();
+    const norm = normalizeGamificationText(name);
+    if (state.challengeItemCatalog.some((x) => normalizeGamificationText(x.canonical) === norm)) return;
+    state.challengeItemCatalog.push({ id: genId(), canonical: name });
+  }
+
+  function filterChallengeItemSuggestions(query) {
+    const q = normalizeGamificationText(query);
+    if (!q) return (state.challengeItemCatalog || []).slice(0, 12);
+    return (state.challengeItemCatalog || []).filter((item) => {
+      const c = normalizeGamificationText(item.canonical);
+      if (c.includes(q)) return true;
+      let qi = 0;
+      for (let i = 0; i < c.length && qi < q.length; i++) {
+        if (c[i] === q[qi]) qi += 1;
+      }
+      return qi >= q.length;
+    }).slice(0, 12);
+  }
+
+  function bindChallengeAdminItemAutocomplete() {
+    const input = $('chAdminItem');
+    const drop = $('chAdminItemDropdown');
+    if (!input || !drop) return;
+    let focusIdx = -1;
+    const renderDrop = () => {
+      const list = filterChallengeItemSuggestions(input.value);
+      if (!list.length) { drop.hidden = true; return; }
+      drop.hidden = false;
+      drop.innerHTML = '';
+      list.forEach((item, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'item-ac-option' + (i === focusIdx ? ' is-focus' : '');
+        btn.textContent = item.canonical;
+        btn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          input.value = item.canonical;
+          drop.hidden = true;
+        });
+        drop.appendChild(btn);
+      });
+    };
+    input.oninput = () => { focusIdx = -1; renderDrop(); };
+    input.onfocus = renderDrop;
+    input.onblur = () => { setTimeout(() => { drop.hidden = true; }, 120); };
+    input.onkeydown = (e) => {
+      const opts = drop.querySelectorAll('.item-ac-option');
+      if (e.key === 'ArrowDown' && opts.length) {
+        e.preventDefault();
+        focusIdx = Math.min(focusIdx + 1, opts.length - 1);
+        renderDrop();
+      } else if (e.key === 'ArrowUp' && opts.length) {
+        e.preventDefault();
+        focusIdx = Math.max(focusIdx - 1, 0);
+        renderDrop();
+      } else if (e.key === 'Enter' && focusIdx >= 0 && opts[focusIdx]) {
+        e.preventDefault();
+        input.value = opts[focusIdx].textContent;
+        drop.hidden = true;
+      }
+    };
+  }
+
+  function addChallengeFromAdminForm() {
+    if (!authSession || authSession.memberIdx !== 2) return;
+    const type = $('chAdminType').value;
+    const titleName = $('chAdminTitleName').value.trim();
+    const xpReward = Math.max(0, Math.round(Number($('chAdminXp').value) || 0));
+    const icon = $('chAdminIcon').value.trim();
+    if (!titleName) { $('chAdminTitleName').focus(); return; }
+    const titleId = `title-ch-${genId()}`;
+    const def = { id: genId(), type, titleId, titleName, xpReward, icon: icon || DEFAULT_TITLE_ICON };
+    if (type === 'sale_amount') {
+      def.threshold = parseMoneyInput($('chAdminThreshold').value);
+      if (!def.threshold) { $('chAdminThreshold').focus(); return; }
+    } else {
+      const itemCanonical = $('chAdminItem').value.trim();
+      def.requiredCount = Math.max(1, Math.round(Number($('chAdminCount').value) || 1));
+      if (!itemCanonical) { $('chAdminItem').focus(); return; }
+      def.itemCanonical = itemCanonical;
+      def.itemMatchTokens = [itemCanonical.replace(/\s+/g, '')];
+      ensureCatalogItem(itemCanonical);
+    }
+    ensureGamificationState();
+    state.challengeDefs.push(def);
+    replayLedgerGamificationXp();
+    scheduleSave();
+    $('chAdminTitleName').value = '';
+    $('chAdminThreshold').value = '';
+    $('chAdminItem').value = '';
+    renderChallengeAdminList();
+    renderChallengeListView();
+  }
+
+  function syncChallengeAdminTypeFields() {
+    const type = $('chAdminType').value;
+    $('chAdminThresholdField').hidden = type !== 'sale_amount';
+    $('chAdminCountField').hidden = type !== 'item_acquire';
+    $('chAdminItemField').hidden = type !== 'item_acquire';
+  }
+
   // ---------- members ----------
   function renderMembers() {
     const grid = $('membersGrid');
     grid.innerHTML = '';
     ensurePartyRosterOnState();
+    if (gamificationActive()) ensureGamificationState();
     state.members.forEach((name, i) => {
       const slot = document.createElement('div');
       const isSelf = authSession && authSession.memberIdx === i;
       const loginId = loginIdForMemberIdx(i);
       slot.className = 'member-slot' + (isSelf ? ' member-slot-me' : '');
-      if (storageMode === 'cloud' && authSession) {
-        slot.innerHTML = `<span>${isSelf ? '내 닉네임' : `공대원 ${i + 1}`}</span>`;
-        const strong = document.createElement('strong');
-        strong.className = 'member-display-name';
-        strong.textContent = name || loginId || `멤버 ${i + 1}`;
-        slot.appendChild(strong);
+      if (gamificationActive()) {
+        const label = document.createElement('div');
+        label.className = 'member-slot-label';
+        label.textContent = isSelf ? '내 캐릭터' : `공대원 ${i + 1}`;
+        slot.appendChild(label);
+        const displayName = name || loginId || `멤버 ${i + 1}`;
+        const plate = document.createElement('div');
+        plate.innerHTML = memberNameplateHtml(displayName, i);
+        slot.appendChild(plate.firstElementChild);
+        const badgeHtml = memberTitleBadgeHtml(i);
+        if (badgeHtml) {
+          const badgeWrap = document.createElement('div');
+          badgeWrap.innerHTML = badgeHtml;
+          slot.appendChild(badgeWrap.firstElementChild);
+        }
+        const expWrap = document.createElement('div');
+        expWrap.innerHTML = memberExpBarHtml(i);
+        slot.appendChild(expWrap.firstElementChild);
         if (loginId) {
           const sub = document.createElement('div');
           sub.className = 'member-slot-login';
-          sub.textContent = isSelf ? `아이디 ${loginId} · 내 계정에서 닉 변경` : `아이디 ${loginId}`;
+          sub.textContent = isSelf ? `아이디 ${loginId} · 마이페이지에서 닉·칭호` : `아이디 ${loginId}`;
           slot.appendChild(sub);
         }
         if (isSelf) {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'btn-light btn-sm';
-          btn.style.marginTop = '8px';
-          btn.textContent = '닉·비밀번호 변경';
+          btn.style.marginTop = '4px';
+          btn.textContent = '마이페이지';
           btn.addEventListener('click', () => openAccountModal());
           slot.appendChild(btn);
         }
@@ -3877,9 +4659,11 @@
       btn.addEventListener('click', () => {
         const cycleDel = getViewCycle();
         cycleDel.entries = cycleDel.entries.filter((e) => e.id !== btn.dataset.id);
+        if (gamificationActive()) replayLedgerGamificationXp();
         scheduleSave();
         renderLedger();
         renderSettlement();
+        renderMembers();
       });
     });
     body.querySelectorAll('.entry-edit-btn').forEach((btn) => {
@@ -4794,9 +5578,11 @@
     }
 
     closeEntryEdit();
+    if (gamificationActive()) replayLedgerGamificationXp();
     scheduleSave();
     renderLedger();
     renderSettlement();
+    renderMembers();
   }
 
   function openExpEdit(id) {
@@ -5585,6 +6371,7 @@
     state.activeCycleId = newId;
     state.viewCycleId = newId;
     relabelCycles(state.cycles);
+    if (gamificationActive()) replayLedgerGamificationXp();
     scheduleSave();
     render();
   });
@@ -5632,6 +6419,37 @@
   $('accountModal').addEventListener('click', (e) => {
     if (e.target.id === 'accountModal') closeAccountModal();
   });
+  $('mypageTabNick').addEventListener('click', () => switchMyPageTab('nick'));
+  $('mypageTabTitle').addEventListener('click', () => switchMyPageTab('title'));
+  $('titleUnequipBtn').addEventListener('click', () => {
+    if (!authSession) return;
+    ensureGamificationState();
+    state.memberProfiles[authSession.memberIdx].equippedTitleId = null;
+    scheduleSave();
+    renderTitlePickList();
+    renderMembers();
+  });
+  $('challengeBtn').addEventListener('click', () => {
+    renderChallengeListView();
+    $('challengeModal').hidden = false;
+  });
+  $('challengeCloseBtn').addEventListener('click', () => { $('challengeModal').hidden = true; });
+  $('challengeModal').addEventListener('click', (e) => {
+    if (e.target.id === 'challengeModal') $('challengeModal').hidden = true;
+  });
+  $('challengeAdminBtn').addEventListener('click', () => {
+    syncChallengeAdminTypeFields();
+    renderChallengeAdminList();
+    $('challengeAdminModal').hidden = false;
+  });
+  $('challengeAdminCloseBtn').addEventListener('click', () => { $('challengeAdminModal').hidden = true; });
+  $('challengeAdminModal').addEventListener('click', (e) => {
+    if (e.target.id === 'challengeAdminModal') $('challengeAdminModal').hidden = true;
+  });
+  $('chAdminType').addEventListener('change', syncChallengeAdminTypeFields);
+  $('chAdminAddBtn').addEventListener('click', addChallengeFromAdminForm);
+  bindChallengeAdminItemAutocomplete();
+  bindMoneyInput('chAdminThreshold');
 
   bootApp();
 })();
