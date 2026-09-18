@@ -667,6 +667,13 @@
     line-height: 1.4;
   }
   .challenge-list { display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow-y: auto; }
+  #challengeListView.challenge-list {
+    max-height: min(420px, calc(100vh - 240px));
+    min-height: 0;
+    align-content: flex-start;
+    overflow-anchor: none;
+  }
+  #challengeListView .medal-member-panel { flex: 0 0 auto; }
   .medal-member-panel {
     border: 2px solid #c8d0dc;
     border-radius: 12px;
@@ -5866,6 +5873,18 @@
     medalMemberPanelOpen = [false, false, false];
   }
 
+  function syncMedalChallengeListScroll() {
+    const wrap = $('challengeListView');
+    if (!wrap) return;
+    const maxScroll = Math.max(0, wrap.scrollHeight - wrap.clientHeight);
+    if (wrap.scrollTop > maxScroll) wrap.scrollTop = maxScroll;
+  }
+
+  function resetMedalChallengeListScroll() {
+    const wrap = $('challengeListView');
+    if (wrap) wrap.scrollTop = 0;
+  }
+
   function memberQuestDoneCount(memberIdx, blocks) {
     let done = 0;
     blocks.forEach((b) => {
@@ -5897,8 +5916,10 @@
     $('challengeListView').hidden = !challenge;
     $('exclusiveMedalView').hidden = challenge;
     $('medalTabChallengeHint').hidden = !challenge;
-    if (challenge) renderChallengeListView();
-    else renderExclusiveMedalView();
+    if (challenge) {
+      renderChallengeListView();
+      resetMedalChallengeListScroll();
+    } else renderExclusiveMedalView();
   }
 
   function renderExclusiveMedalView() {
@@ -5975,6 +5996,7 @@
         medalMemberPanelOpen[memberIdx] = !medalMemberPanelOpen[memberIdx];
         panel.classList.toggle('is-collapsed', !medalMemberPanelOpen[memberIdx]);
         syncMedalMemberToggleUi(toggle, medalMemberPanelOpen[memberIdx]);
+        requestAnimationFrame(syncMedalChallengeListScroll);
       });
 
       const inner = document.createElement('div');
@@ -6013,6 +6035,7 @@
       wrap.appendChild(panel);
     });
     bindMemberTitleBadgeTooltips(wrap);
+    syncMedalChallengeListScroll();
   }
 
   let chAdminActiveTab = 'add';
@@ -8842,6 +8865,7 @@
   $('challengeBtn').addEventListener('click', () => {
     resetMedalMemberPanelsCollapsed();
     switchMedalModalTab('challenge');
+    resetMedalChallengeListScroll();
     $('challengeModal').hidden = false;
   });
   $('medalTabChallenge').addEventListener('click', () => switchMedalModalTab('challenge'));
