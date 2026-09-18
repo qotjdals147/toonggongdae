@@ -496,6 +496,80 @@
     position: relative;
     z-index: 2;
   }
+  .member-title-badge--sharp-zap {
+    position: relative;
+    overflow: hidden;
+  }
+  .member-title-badge .title-badge-zap {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
+    z-index: 1;
+  }
+  .member-title-badge .title-badge-zap-streak {
+    position: absolute;
+    top: 12%;
+    bottom: 12%;
+    left: 0;
+    width: 20px;
+    transform: translateX(-130%);
+    opacity: 0;
+    background: linear-gradient(
+      98deg,
+      transparent 0%,
+      rgba(163, 230, 53, 0.15) 18%,
+      #a3e635 38%,
+      #84cc16 52%,
+      #bef264 68%,
+      rgba(74, 222, 128, 0.2) 82%,
+      transparent 100%
+    );
+    clip-path: polygon(18% 0%, 62% 0%, 38% 44%, 82% 44%, 32% 100%, 68% 100%, 8% 46%, 52% 46%);
+    filter: drop-shadow(0 0 5px #84cc16) drop-shadow(0 0 10px rgba(132, 204, 22, 0.75));
+    animation: title-badge-zap-run 1.5s linear infinite;
+  }
+  .member-title-badge .title-badge-zap-streak--b {
+    width: 14px;
+    top: 22%;
+    bottom: 22%;
+    animation-delay: 0.07s;
+    opacity: 0.75;
+    filter: drop-shadow(0 0 4px #4ade80);
+  }
+  @keyframes title-badge-zap-run {
+    0%, 54%, 100% {
+      transform: translateX(-130%);
+      opacity: 0;
+    }
+    3% { opacity: 0.95; }
+    6% {
+      transform: translateX(-55%);
+      opacity: 1;
+    }
+    10% {
+      transform: translateX(-18%);
+      opacity: 0.55;
+    }
+    13% {
+      transform: translateX(-8%);
+      opacity: 1;
+    }
+    32% {
+      transform: translateX(92%);
+      opacity: 0.85;
+    }
+    42% {
+      transform: translateX(135%);
+      opacity: 0;
+    }
+  }
+  .member-title-badge--sharp-zap img,
+  .member-title-badge--sharp-zap > span:last-child {
+    position: relative;
+    z-index: 2;
+  }
   .member-title-badge-wrap {
     position: relative;
     display: inline-flex;
@@ -3020,6 +3094,17 @@
       xpReward: 150,
       bonuses: { xpGainRate: 0.05 },
     },
+    {
+      id: 'title-exclusive-sharp-eyes-20',
+      name: '중급 샤프아이즈',
+      icon: 'image/아이템아이콘/샤프아이즈20.png',
+      memberIdx: 1,
+      description: '샤프아이즈 20을 뚫은 자에게 지급된다.',
+      badgeColor: '#0a0a0a',
+      badgeTextColor: '#ffffff',
+      badgeEffect: 'sharp-zap',
+      xpReward: 0,
+    },
   ];
   const INVEN_TITLE_ICON_REF = 'https://www.inven.co.kr/board/maple/2304/7662';
 
@@ -5363,6 +5448,11 @@
     return html;
   }
 
+  function titleBadgeSharpZapHtml(effect) {
+    if (effect !== 'sharp-zap') return '';
+    return `<span class="title-badge-zap" aria-hidden="true"><i class="title-badge-zap-streak"></i><i class="title-badge-zap-streak title-badge-zap-streak--b"></i></span>`;
+  }
+
   function getChallengeTitleDef(ch) {
     if (!ch) return null;
     const assets = resolveChallengeTitleAssets(ch);
@@ -5886,9 +5976,13 @@
     const cls = effect ? ` member-title-badge--${effect}` : '';
     const spark = titleBadgeSparkleHtml(effect, seedKey);
     const burn = titleBadgeBurnHtml(effect, seedKey);
+    const zap = titleBadgeSharpZapHtml(effect);
     const styleRaw = titleBadgeStyleAttrForDef(def);
     const styleAttr = styleRaw ? ` style="${escapeHtml(styleRaw)}"` : '';
-    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+    const iconSrc = def.icon && (def.icon.includes('아이템아이콘') || def.icon.includes(' '))
+      ? catalogAssetUrl(def.icon)
+      : def.icon;
+    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}${zap}<img src="${escapeHtml(iconSrc)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
     if (!showTooltip || !titleBadgeHasTooltip(def)) return inner;
     return `<div class="member-title-badge-wrap">${titleBadgeTooltipHtml(def)}${inner}</div>`;
   }
