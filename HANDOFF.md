@@ -150,7 +150,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **Lv 1~200** · `xpToNextLevel` / `levelFromTotalXp` · EXP 바는 메이플랜드 스타일.
 - **레벨 칭호 4종** (`LEVEL_TITLE_DEFS`): 초보(1), 주니어(30), 베테랑(70), 마스터(120) — 아이콘 `image/훈장아이콘/*.png`.
 - **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
-- **집계:** `replayLedgerGamificationXp()` — 불러올 때·장부/핫이슈/마감/도전 변경 후 · **과거 회차 소급** · `login:` 키만 보존.
+- **집계:** `replayLedgerGamificationXp()` — 장부·도전·**카탈로그** 변경 후 **totalXp·ach 키 재계산** · 도전 훈장 unlock 리셋 후 조건 충족분만 재부여 · `login:`·`exclusive:`(replay 후 sync) · **카탈로그만 등록/삭제는 XP 없음** — 도전 매칭이 바뀔 때만 replay로 ach XP 변동.
 - **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
@@ -200,6 +200,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — XP **replay** · 카탈로그 변경·도전 훈장 unlock 재계산 · exclusive XP replay 복원
 - **2026-09-18** — **마스터 옵션** · 카탈로그+별칭 · 획득/도전 자동완성
 - **2026-09-18** — 아이템 자동완성 **장부 획득명** 풀 연동 · 획득 수정란 (→ 카탈로그 전용으로 대체)
 - **2026-09-18** — 훈장 **글자색** (`badgeTextColor`) · 관리 UI
@@ -296,4 +297,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (마스터 옵션·아이템 카탈로그)*
+*Last updated: 2026-09-18 (XP replay·카탈로그)*

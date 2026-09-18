@@ -5202,11 +5202,19 @@
     if (!p.unlockedTitleIds.includes(ch.titleId)) p.unlockedTitleIds.push(ch.titleId);
   }
 
+  function stripReplayChallengeTitleUnlocks() {
+    const chTitleIds = new Set((state.challengeDefs || []).map((c) => c.titleId).filter(Boolean));
+    state.memberProfiles.forEach((p) => {
+      p.unlockedTitleIds = p.unlockedTitleIds.filter((tid) => !chTitleIds.has(tid));
+    });
+  }
+
   function replayLedgerGamificationXp() {
     ensureGamificationState();
     const loginKeys = state.xpGrantKeys.filter((k) => k.startsWith('login:'));
     state.xpGrantKeys = loginKeys.slice();
     state.memberProfiles.forEach((p) => { p.totalXp = 0; });
+    stripReplayChallengeTitleUnlocks();
     loginKeys.forEach((key) => {
       const m = Number(key.split(':')[1]);
       if (m >= 0 && m < 3) state.memberProfiles[m].totalXp += XP_DAILY_LOGIN;
@@ -5245,8 +5253,19 @@
       });
     });
 
+    syncExclusiveTitlesAll();
     syncAllLevelTitles();
     rebuildAllXpLogs();
+  }
+
+  function gamificationReplayAndRefresh() {
+    if (!gamificationActive()) return;
+    replayLedgerGamificationXp();
+    renderMembers();
+    if ($('challengeModal') && !$('challengeModal').hidden) {
+      if ($('exclusiveMedalView') && !$('exclusiveMedalView').hidden) renderExclusiveMedalView();
+      else renderChallengeListView();
+    }
   }
 
   function tryDailyLoginXp() {
@@ -5820,6 +5839,7 @@
     state.challengeItemCatalog.push({ id: genId(), canonical: name, aliases });
     state.challengeDefs.forEach((ch) => syncChallengeItemMatchFromCatalog(ch));
     scheduleSave();
+    gamificationReplayAndRefresh();
     return true;
   }
 
@@ -5856,12 +5876,14 @@
         );
         state.challengeDefs.forEach((ch) => syncChallengeItemMatchFromCatalog(ch));
         scheduleSave();
+        gamificationReplayAndRefresh();
         flashChAdminSaved(saveBtn);
       });
       delBtn.addEventListener('click', () => {
         if (!confirm(`「${entry.canonical}」을 카탈로그에서 삭제할까요?`)) return;
         state.challengeItemCatalog = state.challengeItemCatalog.filter((x) => x.id !== entry.id);
         scheduleSave();
+        gamificationReplayAndRefresh();
         renderMasterItemCatalogAdmin();
       });
       wrap.appendChild(card);
