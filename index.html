@@ -2119,7 +2119,6 @@
         </div>
       </div>
       <div class="field"><span>XP 보상</span><input id="chAdminXp" type="number" min="0" value="120"></div>
-      <div class="field"><span>아이콘 경로 (선택)</span><input id="chAdminIcon" type="text" autocomplete="off" placeholder="image/훈장아이콘/…"></div>
     </div>
     <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
     <div class="challenge-list" id="challengeAdminList" style="margin-top:16px;max-height:220px;"></div>
@@ -4502,10 +4501,9 @@
     const type = $('chAdminType').value;
     const titleName = $('chAdminTitleName').value.trim();
     const xpReward = Math.max(0, Math.round(Number($('chAdminXp').value) || 0));
-    const icon = $('chAdminIcon').value.trim();
     if (!titleName) { $('chAdminTitleName').focus(); return; }
     const titleId = `title-ch-${genId()}`;
-    const def = { id: genId(), type, titleId, titleName, xpReward, icon: icon || DEFAULT_TITLE_ICON };
+    const def = { id: genId(), type, titleId, titleName, xpReward, icon: DEFAULT_TITLE_ICON };
     if (type === 'sale_amount') {
       def.threshold = parseMoneyInput($('chAdminThreshold').value);
       if (!def.threshold) { $('chAdminThreshold').focus(); return; }
