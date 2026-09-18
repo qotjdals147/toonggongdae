@@ -111,7 +111,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `.app-header`, `.app-toolbar` — 참고/운영/링크 공유 그룹 |
+| 상단 헤더 | `.app-toolbar` — 수수료·창고캐·핫이슈·통계·도전·로그아웃 (마이페이지는 공대원 카드) |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — Lv·칭호·EXP 바 (**클라우드+로그인**) · `replayLedgerGamificationXp` |
@@ -192,6 +192,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 헤더 **링크 공유·마이페이지** 제거 · 통계/도전/로그아웃 **컬러 버튼** (마이페이지는 공대원 카드)
 - **2026-09-18** — 로그인 슬롯: **`party_room_access.login_id`→슬롯** · 로그인 전 signOut · 세션 갱신 시 공대원 UI
 - **2026-09-18** — 로그인 슬롯: **`party_room_access` 우선** · `LOGIN_ID_TO_MEMBER_IDX` · partyRoster 0·1·2 고정
 - **2026-09-18** — 로그인 슬롯: **입력 ID·Auth 이메일** 우선 (`resolveAuthMember`) · access UUID 필수

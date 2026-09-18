@@ -243,6 +243,50 @@
     font-weight: 600;
   }
   .btn-fee-info:hover { background: var(--settle-hover) !important; color: #fff !important; }
+  .btn-stats {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(5, 150, 105, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-stats:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+    color: #fff !important;
+  }
+  .btn-challenge {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(217, 119, 6, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-challenge:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    color: #fff !important;
+  }
+  .btn-challenge-admin {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(8, 145, 178, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-challenge-admin:hover {
+    background: linear-gradient(135deg, #0e7490 0%, #155e75 100%) !important;
+    color: #fff !important;
+  }
+  .btn-logout {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(71, 85, 105, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-logout:hover {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+    color: #fff !important;
+  }
 
   .card {
     background: var(--paper-card);
@@ -1844,12 +1888,10 @@
           퉁공대 핫이슈
           <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
         </button>
-        <button type="button" class="btn-light btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
-        <button type="button" class="btn-light btn-sm" id="copyLinkBtn" style="display:none;" title="공대원에게 이 링크를 보내세요">링크 공유</button>
-        <button type="button" class="btn-light btn-sm" id="challengeBtn" style="display:none;" title="도전과제 진행도">도전과제</button>
-        <button type="button" class="btn-light btn-sm" id="challengeAdminBtn" style="display:none;" title="도전과제 추가·관리 (배퉁)">도전 관리</button>
-        <button type="button" class="btn-light btn-sm" id="accountBtn" style="display:none;" title="마이페이지">마이페이지</button>
-        <button type="button" class="btn-light btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
+        <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
+        <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="도전과제 진행도">도전과제</button>
+        <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="도전과제 추가·관리 (배퉁)">도전 관리</button>
+        <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
       </div>
     </nav>
   </header>
@@ -2505,7 +2547,6 @@
     $('authGate').hidden = true;
     $('appRoot').hidden = false;
     const cloud = storageMode === 'cloud';
-    if ($('accountBtn')) $('accountBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
     if ($('logoutBtn')) $('logoutBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
     if ($('challengeBtn')) $('challengeBtn').style.display = cloud && authSession ? 'inline-block' : 'none';
     if ($('challengeAdminBtn')) {
@@ -3875,21 +3916,17 @@
   }
 
   function updateStatusUi() {
-    const copyBtn = $('copyLinkBtn');
     const livePill = $('livePill');
     if (storageMode === 'cloud') {
-      copyBtn.style.display = 'inline-block';
       const live = !!realtimeReady;
       if (livePill) livePill.dataset.live = live ? 'on' : 'off';
       $('statusText').textContent = live
         ? `실시간 공유 중 · 방 ${ROOM_ID}`
         : `클라우드 저장 · 방 ${ROOM_ID}`;
     } else if (storageMode === 'cursor') {
-      copyBtn.style.display = 'none';
       if (livePill) livePill.dataset.live = 'off';
       $('statusText').textContent = 'Cursor에서 함께 보는 중 · 자동 저장됨';
     } else {
-      copyBtn.style.display = 'none';
       if (livePill) livePill.dataset.live = 'off';
       $('statusText').textContent = '⚠ 이 기기만 저장 · 공대 공유는 Supabase 설정 필요 (NETLIFY-배포.md)';
     }
@@ -6391,17 +6428,6 @@
     if (e.target.id === 'statsModal') closeStatsModal();
   });
 
-  $('copyLinkBtn').addEventListener('click', async () => {
-    const url = shareUrl();
-    try {
-      await navigator.clipboard.writeText(url);
-      $('statusText').textContent = '링크 복사됨 · 공대원에게 보내세요';
-      setTimeout(updateStatusUi, 2500);
-    } catch (e) {
-      prompt('아래 링크를 복사해서 공대원에게 보내세요:', url);
-    }
-  });
-
   $('eEditCancelBtn').addEventListener('click', closeEntryEdit);
   $('eEditSaveBtn').addEventListener('click', saveEntryEdit);
   $('eEditSplitEqualBtn').addEventListener('click', () => {
@@ -6492,7 +6518,6 @@
   $('authPassword').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('authSubmitBtn').click();
   });
-  $('accountBtn').addEventListener('click', () => openAccountModal());
   $('logoutBtn').addEventListener('click', () => signOutPartyAccount());
   $('accountCancelBtn').addEventListener('click', closeAccountModal);
   $('accountSaveBtn').addEventListener('click', () => saveAccountModal());
