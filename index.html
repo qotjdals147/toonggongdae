@@ -2492,7 +2492,13 @@
   <div class="modal" role="dialog">
     <h3 id="entryEditTitle">획득 기록 수정</h3>
     <div class="modal-grid">
-      <div class="field"><span>아이템명</span><input id="eEditItem" type="text" autocomplete="off"></div>
+      <div class="field" style="grid-column:1/-1;">
+        <span>아이템명</span>
+        <div class="item-ac-wrap">
+          <input id="eEditItem" type="text" autocomplete="off" placeholder="장부에 쓴 이름 · 아래에서 고를 수 있어요">
+          <div class="item-ac-dropdown" id="eEditItemDropdown" hidden></div>
+        </div>
+      </div>
       <div class="field"><span>거래소 등록가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="올린 금액"></div>
       <p class="takeover-hint" id="eEditAhPreview" style="grid-column:1/-1;margin:0;"></p>
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
@@ -5672,38 +5678,56 @@
     state.challengeItemCatalog.push({ id: genId(), canonical: name });
   }
 
-  function filterChallengeItemSuggestions(query) {
-    const q = normalizeGamificationText(query);
-    if (!q) return (state.challengeItemCatalog || []).slice(0, 12);
-    return (state.challengeItemCatalog || []).filter((item) => {
-      const c = normalizeGamificationText(item.canonical);
-      if (c.includes(q)) return true;
-      let qi = 0;
-      for (let i = 0; i < c.length && qi < q.length; i++) {
-        if (c[i] === q[qi]) qi += 1;
-      }
-      return qi >= q.length;
-    }).slice(0, 12);
+  function ledgerItemNamePool() {
+    const seen = new Map();
+    const add = (raw) => {
+      const display = String(raw == null ? '' : raw).trim();
+      if (!display) return;
+      const norm = normalizeGamificationText(display);
+      if (!norm || seen.has(norm)) return;
+      seen.set(norm, display);
+    };
+    (state.challengeItemCatalog || []).forEach((x) => add(x.canonical));
+    (state.cycles || []).forEach((cycle) => {
+      (cycle.entries || []).forEach((entry) => add(entry.item));
+    });
+    return [...seen.values()].sort((a, b) => a.localeCompare(b, 'ko'));
   }
 
-  function bindChallengeAdminItemAutocomplete() {
-    const input = $('chAdminItem');
-    const drop = $('chAdminItemDropdown');
+  function itemNameMatchesQuery(name, q) {
+    if (!q) return true;
+    const c = normalizeGamificationText(name);
+    if (c.includes(q)) return true;
+    let qi = 0;
+    for (let i = 0; i < c.length && qi < q.length; i++) {
+      if (c[i] === q[qi]) qi += 1;
+    }
+    return qi >= q.length;
+  }
+
+  function filterItemNameSuggestions(query) {
+    const q = normalizeGamificationText(query);
+    const pool = ledgerItemNamePool();
+    if (!q) return pool.slice(0, 12);
+    return pool.filter((name) => itemNameMatchesQuery(name, q)).slice(0, 12);
+  }
+
+  function bindItemNameAutocomplete(input, drop) {
     if (!input || !drop) return;
     let focusIdx = -1;
     const renderDrop = () => {
-      const list = filterChallengeItemSuggestions(input.value);
+      const list = filterItemNameSuggestions(input.value);
       if (!list.length) { drop.hidden = true; return; }
       drop.hidden = false;
       drop.innerHTML = '';
-      list.forEach((item, i) => {
+      list.forEach((label, i) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'item-ac-option' + (i === focusIdx ? ' is-focus' : '');
-        btn.textContent = item.canonical;
+        btn.textContent = label;
         btn.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          input.value = item.canonical;
+          input.value = label;
           drop.hidden = true;
         });
         drop.appendChild(btn);
@@ -5728,6 +5752,10 @@
         drop.hidden = true;
       }
     };
+  }
+
+  function bindChallengeAdminItemAutocomplete() {
+    bindItemNameAutocomplete($('chAdminItem'), $('chAdminItemDropdown'));
   }
 
   function addChallengeFromAdminForm() {
@@ -7855,6 +7883,7 @@
   $('chAdminType').addEventListener('change', syncChallengeAdminTypeFields);
   $('chAdminAddBtn').addEventListener('click', addChallengeFromAdminForm);
   bindChallengeAdminItemAutocomplete();
+  bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'));
   bootApp();
 })();
 </script>

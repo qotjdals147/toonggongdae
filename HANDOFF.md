@@ -143,7 +143,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 6.2 아이템명
 
-- **itemCatalog / MapleStory.io 자동완성 제거** (2026-09-17). 획득·인수·메이커 등 **자유 텍스트**만.
+- **MapleStory.io 외부 자동완성 없음** (2026-09-17). **획득 추가·수정**·**도전 관리 아이템**은 `cycles[].entries` + `challengeItemCatalog` 이름 풀에서 **로컬 자동완성** (`filterItemNameSuggestions`).
 
 ### 6.3 계정 레벨·칭호·도전과제 (클라우드+로그인)
 
@@ -200,6 +200,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 아이템 자동완성 **장부 획득명** 풀 연동 · 획득 수정란
 - **2026-09-18** — 훈장 **글자색** (`badgeTextColor`) · 관리 UI
 - **2026-09-18** — 도전 관리 **3탭** · 색·메타 **저장 버튼**(HEX)
 - **2026-09-18** — 훈장 **설명·optionsText** 관리 UI · 모달/관리 **hover 툴팁**
@@ -294,4 +295,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (훈장 글자색)*
+*Last updated: 2026-09-18 (장부 아이템 자동완성)*
