@@ -150,7 +150,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **레벨 칭호 4종** (`LEVEL_TITLE_DEFS`): 초보(1), 주니어(30), 베테랑(70), 마스터(120) — 아이콘 `image/훈장아이콘/*.png`.
 - **XP:** 획득 entry 기여자(`entryParticipantIdxs`) · 등록가 비례 판매(`sale:`) · 회차 마감 3명 · 핫이슈 대상 · 일 1회 로그인 · 도전 `ach:`.
 - **집계:** `replayLedgerGamificationXp()` — 불러올 때·장부/핫이슈/마감/도전 변경 후 · **과거 회차 소급** · `login:` 키만 보존.
-- **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward`(예: 리버스 150) · 키 `exclusive:{id}:{idx}` · 헤더 **훈장** 모달 **고유 훈장** 탭.
+- **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `bonuses`(예: `xpGainRate: 0.05`) · **장착 시** EXP 보너스(`grantXp` → 키 `:medalXp`) · 호버 툴팁(설명+[훈장 옵션]) · UI **칭호→훈장** 통일.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
 - **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
 - **관리 UI(배퉁):** 칭호 이름 · 등록가 또는 획득 횟수+아이템 · XP · **뱃지 배경색**(color) · 추가 시·목록에서 **레벨 칭호 4종** 색도 편집 (`levelTitleBadgeColors`). 장착·도전 미리보기 동일 템플릿(`memberTitleBadgeStyleAttr`).
@@ -198,6 +198,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-18** — 훈장 **옵션**(리버스 EXP+5%·내역 분리·툴팁) · UI 칭호→훈장
 - **2026-09-18** — 훈장 모달 탭 **패널 hidden** fix · 제목 **훈장제목아이콘**
 - **2026-09-18** — fix: `ensureGamificationState`↔고유훈장 sync **무한 재귀**(불러오기 멈춤)
 - **2026-09-18** — 고유 훈장 **150 XP** · 마이페이지 **경험치 획득내역** 탭(200건·필터)
@@ -287,4 +288,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-18 (훈장 탭 UI)*
+*Last updated: 2026-09-18 (훈장 옵션 EXP)*

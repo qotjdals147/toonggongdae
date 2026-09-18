@@ -490,6 +490,48 @@
     position: relative;
     z-index: 2;
   }
+  .member-title-badge-wrap {
+    position: relative;
+    display: inline-flex;
+    align-self: center;
+    max-width: 100%;
+  }
+  .title-badge-tooltip {
+    position: absolute;
+    z-index: 20;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 200px;
+    max-width: min(280px, 92vw);
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.82);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: left;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+  }
+  .title-badge-tooltip p { margin: 0 0 8px; }
+  .title-badge-tooltip p:last-child { margin-bottom: 0; }
+  .title-badge-tooltip-opts-head {
+    display: block;
+    font-weight: 800;
+    margin-bottom: 4px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: #fde68a;
+  }
+  .member-title-badge-wrap:hover .title-badge-tooltip,
+  .member-title-badge-wrap:focus-within .title-badge-tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
   .exclusive-medal-card {
     border: 1.5px solid var(--line);
     border-radius: 10px;
@@ -2250,7 +2292,7 @@
     <p id="accountModalSub" style="margin:-6px 0 10px;font-size:13px;color:var(--ink-soft);"></p>
     <div class="mypage-tabs" role="tablist">
       <button type="button" class="mypage-tab is-active" id="mypageTabNick" data-mypage="nick">닉·비밀번호</button>
-      <button type="button" class="mypage-tab" id="mypageTabTitle" data-mypage="title">칭호</button>
+      <button type="button" class="mypage-tab" id="mypageTabTitle" data-mypage="title">훈장</button>
       <button type="button" class="mypage-tab" id="mypageTabXp" data-mypage="xp">경험치 획득내역</button>
     </div>
     <div class="mypage-panel" id="mypagePanelNick">
@@ -2259,9 +2301,9 @@
       <div class="field"><span>새 비밀번호 확인</span><input id="accountPwConfirm" type="password" autocomplete="new-password"></div>
     </div>
     <div class="mypage-panel" id="mypagePanelTitle" hidden>
-      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 10px;">획득한 칭호를 장착하거나 해제할 수 있어요.</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 10px;">획득한 훈장을 장착하거나 해제할 수 있어요.</p>
       <div class="title-pick-list" id="titlePickList"></div>
-      <button type="button" class="btn-light btn-sm" id="titleUnequipBtn" style="margin-top:10px;">칭호 해제</button>
+      <button type="button" class="btn-light btn-sm" id="titleUnequipBtn" style="margin-top:10px;">훈장 해제</button>
     </div>
     <div class="mypage-panel" id="mypagePanelXp" hidden>
       <div class="xp-log-filters" id="xpLogFilters" role="tablist" aria-label="경험치 필터">
@@ -2288,7 +2330,7 @@
       <button type="button" class="mypage-tab is-active" id="medalTabChallenge" data-medal-tab="challenge">도전과제</button>
       <button type="button" class="mypage-tab" id="medalTabExclusive" data-medal-tab="exclusive">고유 훈장</button>
     </div>
-    <p id="medalTabChallengeHint" style="margin:-4px 0 12px;font-size:13px;color:var(--ink-soft);">레벨 칭호와 도전 보상 · 진행도는 공대원별로 표시돼요.</p>
+    <p id="medalTabChallengeHint" style="margin:-4px 0 12px;font-size:13px;color:var(--ink-soft);">레벨 훈장과 도전 보상 · 진행도는 공대원별로 표시돼요.</p>
     <div class="challenge-list medal-tab-panel" id="challengeListView"></div>
     <div class="challenge-list medal-tab-panel" id="exclusiveMedalView" hidden></div>
     <div class="modal-foot">
@@ -2300,7 +2342,7 @@
 <div class="modal-backdrop" id="challengeAdminModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="challengeAdminTitle" style="max-width:540px;">
     <h3 id="challengeAdminTitle">도전과제 관리</h3>
-    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">배퉁 전용 · 판매 금액·아이템 획득 조건과 칭호·XP 보상을 추가해요.</p>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">배퉁 전용 · 판매 금액·아이템 획득 조건과 훈장·XP 보상을 추가해요.</p>
     <div class="modal-grid">
       <div class="field"><span>유형</span>
         <select id="chAdminType">
@@ -2308,7 +2350,7 @@
           <option value="item_acquire">아이템 획득 N회</option>
         </select>
       </div>
-      <div class="field"><span>칭호 이름</span><input id="chAdminTitleName" type="text" autocomplete="off" placeholder="예: 대박 판매왕"></div>
+      <div class="field"><span>훈장 이름</span><input id="chAdminTitleName" type="text" autocomplete="off" placeholder="예: 대박 판매왕"></div>
       <div class="field" id="chAdminThresholdField"><span>등록가 (메소)</span><input id="chAdminThreshold" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
       <div class="field" id="chAdminCountField" hidden><span>획득 횟수</span><input id="chAdminCount" type="number" min="1" value="1"></div>
       <div class="field" id="chAdminItemField" hidden style="grid-column:1/-1;">
@@ -2328,9 +2370,9 @@
       </div>
     </div>
     <button type="button" class="btn-settle btn-sm" id="chAdminAddBtn" style="margin-top:8px;">도전과제 추가</button>
-    <p class="ch-admin-section-title">레벨 칭호 (4종) · 뱃지 색</p>
+    <p class="ch-admin-section-title">레벨 훈장 (4종) · 뱃지 색</p>
     <div id="levelTitleBadgeColorsAdmin"></div>
-    <p class="ch-admin-section-title" style="margin-top:14px;">조건부 칭호 · 도전과제</p>
+    <p class="ch-admin-section-title" style="margin-top:14px;">조건부 훈장 · 도전과제</p>
     <div class="challenge-list" id="challengeAdminList" style="margin-top:6px;max-height:220px;"></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="challengeAdminCloseBtn">닫기</button>
@@ -2640,7 +2682,7 @@
   ];
   const DEFAULT_TITLE_ICON = 'image/훈장아이콘/초보퉁퉁이.png';
   const DEFAULT_BADGE_COLOR = '#2563eb';
-  /** 도전 칭호 이름 → 아이콘·뱃지 이펙트 (10·20회 등 단계 추가 시 여기 확장) */
+  /** 도전 훈장 이름 → 아이콘·뱃지 이펙트 (10·20회 등 단계 추가 시 여기 확장) */
   const CHALLENGE_TITLE_ASSETS = {
     '시간의 광부': {
       icon: 'image/훈장아이콘/시간의광부.png',
@@ -2658,6 +2700,7 @@
       badgeColor: '#0a0a0a',
       badgeEffect: 'burn',
       xpReward: 150,
+      bonuses: { xpGainRate: 0.05 },
     },
   ];
   const INVEN_TITLE_ICON_REF = 'https://www.inven.co.kr/board/maple/2304/7662';
@@ -4669,9 +4712,51 @@
   }
 
   function xpLogCategoryForKey(key) {
+    if (key.endsWith(':medalXp')) return 'title';
     if (key.startsWith('acq:') || key.startsWith('sale:') || key.startsWith('cycle:')) return 'ledger';
     if (key.startsWith('ach:') || key.startsWith('exclusive:')) return 'title';
     return 'etc';
+  }
+
+  function titleXpGainRate(def) {
+    if (!def || !def.bonuses) return 0;
+    return Math.max(0, Number(def.bonuses.xpGainRate) || 0);
+  }
+
+  function equippedTitleDef(memberIdx) {
+    const id = state.memberProfiles[memberIdx]?.equippedTitleId;
+    return id ? getTitleDefById(id) : null;
+  }
+
+  function medalXpBonusAmount(memberIdx, baseAmount) {
+    const base = Math.round(Number(baseAmount) || 0);
+    if (base <= 0) return 0;
+    const rate = titleXpGainRate(equippedTitleDef(memberIdx));
+    if (!rate) return 0;
+    return Math.max(0, Math.floor(base * rate));
+  }
+
+  function titleBonusOptionLines(def) {
+    if (!def || !def.bonuses) return [];
+    const out = [];
+    const rate = titleXpGainRate(def);
+    if (rate > 0) out.push(`경험치 획득률 +${Math.round(rate * 100)}%`);
+    return out;
+  }
+
+  function titleBadgeHasTooltip(def) {
+    return !!(def && (def.description || titleBonusOptionLines(def).length));
+  }
+
+  function titleBadgeTooltipHtml(def) {
+    if (!titleBadgeHasTooltip(def)) return '';
+    const desc = def.description
+      ? `<p>${escapeHtml(def.description)}</p>` : '';
+    const optLines = titleBonusOptionLines(def);
+    const opts = optLines.length
+      ? `<p class="title-badge-tooltip-opts"><span class="title-badge-tooltip-opts-head">[훈장 옵션]</span>${optLines.map((l) => escapeHtml(l)).join('<br>')}</p>`
+      : '';
+    return `<div class="title-badge-tooltip" role="tooltip">${desc}${opts}</div>`;
   }
 
   function xpLogAtIsoForKey(key) {
@@ -4700,6 +4785,21 @@
   }
 
   function xpLogRowForKey(key, memberIdx) {
+    if (key.endsWith(':medalXp')) {
+      const parentKey = key.slice(0, -':medalXp'.length);
+      const parentRow = xpLogRowForKey(parentKey, memberIdx);
+      if (!parentRow) return null;
+      const def = equippedTitleDef(memberIdx);
+      const amount = medalXpBonusAmount(memberIdx, parentRow.amount);
+      if (amount <= 0) return null;
+      return {
+        key,
+        amount,
+        label: `훈장 추가 EXP · ${def?.name || '장착 훈장'}`,
+        at: parentRow.at,
+        cat: 'title',
+      };
+    }
     const parts = key.split(':');
     const kind = parts[0];
     let targetIdx = null;
@@ -4769,9 +4869,20 @@
     ensureGamificationState();
     if (state.xpGrantKeys.includes(key)) return 0;
     state.xpGrantKeys.push(key);
-    state.memberProfiles[memberIdx].totalXp += amt;
+    const p = state.memberProfiles[memberIdx];
+    p.totalXp += amt;
+    let added = amt;
+    const bonus = medalXpBonusAmount(memberIdx, amt);
+    if (bonus > 0) {
+      const bKey = `${key}:medalXp`;
+      if (!state.xpGrantKeys.includes(bKey)) {
+        state.xpGrantKeys.push(bKey);
+        p.totalXp += bonus;
+        added += bonus;
+      }
+    }
     syncLevelTitlesForMember(memberIdx);
-    return amt;
+    return added;
   }
 
   function saleXpFromListingPrice(price) {
@@ -4912,7 +5023,7 @@
     return `<div class="member-nameplate"><span class="member-lv">Lv.${level}</span><span class="member-nick">${escapeHtml(name)}</span></div>`;
   }
 
-  function titleBadgePreviewHtml(def, seedKey) {
+  function titleBadgePreviewHtml(def, seedKey, showTooltip) {
     if (!def) return '';
     const effect = def.badgeEffect || '';
     const cls = effect ? ` member-title-badge--${effect}` : '';
@@ -4920,7 +5031,9 @@
     const burn = titleBadgeBurnHtml(effect, seedKey);
     const styleRaw = memberTitleBadgeStyleAttr(resolveTitleBadgeColor(def) || def.badgeColor);
     const styleAttr = styleRaw ? ` style="${escapeHtml(styleRaw)}"` : '';
-    return `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}<img src="${escapeHtml(def.icon)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+    if (!showTooltip || !titleBadgeHasTooltip(def)) return inner;
+    return `<div class="member-title-badge-wrap">${titleBadgeTooltipHtml(def)}${inner}</div>`;
   }
 
   function memberTitleBadgeHtml(memberIdx) {
@@ -4928,7 +5041,7 @@
     if (!eq) return '';
     const def = getTitleDefById(eq);
     if (!def) return '';
-    return titleBadgePreviewHtml(def, `${eq}:${memberIdx}`);
+    return titleBadgePreviewHtml(def, `${eq}:${memberIdx}`, true);
   }
 
   function populateHotIssueTargetSelect() {
@@ -5112,7 +5225,7 @@
             <div class="challenge-badge-preview">${badge}</div>
             <div class="challenge-meta">${ch.type === 'sale_amount' ? `1건 등록가 ${fmtNum(ch.threshold)} 이상` : `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`} · 보상 XP ${fmtNum(ch.xpReward || 0)}</div>
             <div class="challenge-progress"><div style="width:${pct}%"></div></div>
-            <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 칭호 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
+            <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 훈장 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
           </div>`;
       });
       head.appendChild(inner);
