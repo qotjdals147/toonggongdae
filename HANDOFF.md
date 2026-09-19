@@ -136,6 +136,14 @@ legacySummaryOnly (옛 회차 요약만)
 
 - `<td>`에 **`display:flex` 금지** (격자선 깨짐). flex는 **내부 wrapper** (`owner-tags-wrap`, `row-actions` div).
 - `.data-table` — `border-collapse: separate`, 일반 `tbody td` 규칙은 `table:not(.data-table)`로 분리.
+- **`.table-scroll:has(> .data-table)`** — `overflow-x: auto` (모바일 가로 스크롤). `overflow: hidden` 쓰면 열 잘림.
+- **`table.data-table`** — `min-width: 720px` · 좁은 화면은 `.table-scroll` 안에서 스와이프.
+
+### 5.3 모달 · 스크롤
+
+- **배경 스크롤 잠금:** `installOverlayScrollLock()` · `.modal-backdrop` / `#hotIssueLightbox` `hidden` 감시 → `body.is-modal-scroll-locked` (`position: fixed` + scrollY 복원).
+- **체이닝 완화:** `.modal` · `.hot-feed` — `overscroll-behavior: contain` · backdrop `overflow: hidden`.
+- **핫이슈:** `.modal-hot-issue` flex · 피드만 세로 스크롤 (모달 전체+피드 이중 스크롤 축소).
 
 ### 5.2 공대원 카드 (`#membersGrid` · `gamificationActive()`)
 
@@ -260,6 +268,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-19** — 모바일 **`.table-scroll` 가로 스크롤** · 모달 **배경 scroll lock** + overscroll contain
 - **2026-09-19** — HANDOFF **§3 부트/hydrate · §5.2 공대원 카드 · §6.3 badgeEffect** 인수인계 보강
 - **2026-09-19** — 공대원 칸 **하단 정렬**(EXP 바닥) · 마이페이지 상단 · 로드 전 닉 깜빡임 방지
 - **2026-09-19** — 공대원 캐릭터 PNG **흰 배경→진짜 알파**(모서리 flood) · 스프라이트 CSS 박스/그림자 제거
@@ -385,4 +394,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-19 (HANDOFF §3·§5·§6 정리)*
+*Last updated: 2026-09-19 (모바일 표·모달 스크롤)*

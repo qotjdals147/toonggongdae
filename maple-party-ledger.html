@@ -1357,7 +1357,10 @@
   .table-scroll:has(> .data-table) {
     border: 2px solid var(--line-strong);
     border-radius: 8px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
     background: #fff;
   }
   table.data-table {
@@ -1936,13 +1939,24 @@
     border-radius: 100px; padding: 7px 13px;
   }
 
+  body.is-modal-scroll-locked {
+    position: fixed;
+    left: 0;
+    right: 0;
+    width: 100%;
+    overflow: hidden;
+  }
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
     display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
   .modal-backdrop[hidden] { display: none; }
   .modal {
-    width: 100%; max-width: 520px; max-height: min(90vh, 720px); overflow: auto;
+    width: 100%; max-width: 520px; max-height: min(90vh, 720px); overflow-x: hidden; overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     background: #fff; border-radius: 14px; border: 1px solid var(--line);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15); padding: 22px 22px 18px;
   }
@@ -1964,7 +1978,25 @@
   .modal-warehouse { max-width: 560px; }
   .warehouse-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
   .warehouse-list { display: flex; flex-direction: column; gap: 10px; max-height: min(50vh, 420px); overflow-y: auto; }
-  .modal-hot-issue { max-width: 640px; }
+  .modal-hot-issue {
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-hot-issue > p,
+  .modal-hot-issue > h3,
+  .modal-hot-issue .hot-compose,
+  .modal-hot-issue .empty-state,
+  .modal-hot-issue .modal-foot {
+    flex-shrink: 0;
+  }
+  .modal-hot-issue .hot-feed {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overscroll-behavior: contain;
+  }
   .hot-compose {
     border: 1.5px solid var(--line-strong);
     border-radius: 10px;
@@ -2410,6 +2442,10 @@
     .settle-grid { grid-template-columns: 1fr; }
     .settle-tx-amt { width: 100%; margin-left: 0; margin-top: 4px; }
     .settle-takehome-grid { grid-template-columns: 1fr; }
+    .modal-backdrop { padding: 12px; align-items: flex-end; }
+    .modal { max-height: min(92vh, 720px); padding: 18px 16px 14px; border-radius: 14px 14px 0 0; }
+    .modal-hot-issue { max-height: min(94vh, 780px); }
+    .table-scroll:has(> .data-table) { border-radius: 8px; }
     .modal-row, .modal-row.exp-row { grid-template-columns: 1fr 1fr; }
     .modal-row .icon-btn, .modal-row.exp-row .icon-btn { grid-column: 1 / -1; justify-self: end; }
   }
@@ -4199,6 +4235,40 @@
     const source = selectedOverride != null ? selectedOverride : readChipPickers('eEditContributors');
     const picked = source.filter((i) => i !== holder);
     renderContributorPickers('eEditContributors', picked, null, holder);
+  }
+
+  let pageScrollLockY = 0;
+  let pageScrollLocked = false;
+
+  function anyOverlayScrollLock() {
+    if ($('hotIssueLightbox') && !$('hotIssueLightbox').hidden) return true;
+    return Array.from(document.querySelectorAll('.modal-backdrop')).some((el) => !el.hidden);
+  }
+
+  function syncPageScrollLock() {
+    const shouldLock = anyOverlayScrollLock();
+    if (shouldLock && !pageScrollLocked) {
+      pageScrollLockY = window.scrollY || window.pageYOffset || 0;
+      document.body.classList.add('is-modal-scroll-locked');
+      document.body.style.top = `-${pageScrollLockY}px`;
+      pageScrollLocked = true;
+    } else if (!shouldLock && pageScrollLocked) {
+      document.body.classList.remove('is-modal-scroll-locked');
+      document.body.style.top = '';
+      window.scrollTo(0, pageScrollLockY);
+      pageScrollLocked = false;
+    }
+  }
+
+  function installOverlayScrollLock() {
+    const nodes = [...document.querySelectorAll('.modal-backdrop'), $('hotIssueLightbox')].filter(Boolean);
+    nodes.forEach((el) => {
+      new MutationObserver(() => syncPageScrollLock()).observe(el, {
+        attributes: true,
+        attributeFilter: ['hidden'],
+      });
+    });
+    syncPageScrollLock();
   }
 
   function modalBlocksRemote() {
@@ -9230,6 +9300,7 @@
       const today = localCalendarDateStr();
       if (today !== hotIssueBadgeWatchDate) updateHotIssueTodayBadge();
     }, 60000);
+    installOverlayScrollLock();
   }
 
   $('authSubmitBtn').addEventListener('click', async () => {
