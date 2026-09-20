@@ -119,7 +119,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **데이터:** `state.partyTimer` → `party_ledgers.data` · 장부 **`scheduleSave`** 와 동일 JSON.
 - **UX:** **페이지 이동 없음** · PiP는 **버튼 클릭 직후** 같은 탭에서 `requestWindow` (이전 `party-timer.html` 이동 시 user gesture 소실 → PiP 실패).
 - **동기화:** `runtime.slotEndsAt` + `huntActive` · 사냥 종료 → 각 슬롯 `durationSec`으로 `slotRemaining` 초기화.
-- **PIP:** Chrome/Edge Document PiP · **알림음·0초 번쩍은 PIP 창에서만** · PIP 닫으면 tick/사운드 중지.
+- **PIP:** Chrome/Edge Document PiP · **2×2 컴팩트 타일**(아이콘+이름+시간+슬롯 ⏸/↺) · 상단 전체 ▶⏸↺·음소거·줌 · **3초 이하 urgent 배경** · 0초 alarm.
+- **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, icon?, enabled }] }]` · 버프/아이콘 확장 예정.
 
 ---
@@ -283,6 +284,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — PIP **maple-atelier형 2×2 UI** · 슬롯별 ⏸/↺ · 상단 전역·줌
 - **2026-09-21** — 타이머 **장부 모달 통합** · PiP user-gesture 수정 · `party-timer-app.js`
 - **2026-09-21** — **`party-timer.html`** MVP · **`퉁공대 타이머`** 버튼 · PiP·사냥 시작/종료·프리셋 · `partyTimer` merge 저장
 - **2026-09-20** — 획득 모달 **카탈로그 아이콘** · **`잡장비` UI**(상점 판매 문구·함께 기여 전원 고정)
@@ -413,4 +415,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (타이머 모달·PiP 수정)*
+*Last updated: 2026-09-21 (PIP 컴팩트 UI)*

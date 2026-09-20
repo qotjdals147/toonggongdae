@@ -15,6 +15,8 @@
   let slotAlarmFired = {};
   let modalOpen = false;
   let pipStyleEl = null;
+  let pipShellReady = false;
+  const pipUi = { muted: false, zoom: 100 };
 
   function defaultSlots() {
     return [
@@ -34,7 +36,7 @@
       schema: 1,
       activePresetId: presetId,
       presets: [{ id: presetId, name: '기본', slots: slots.map((s) => ({ ...s })) }],
-      runtime: { huntActive: false, rev: 0, slotRemaining, slotEndsAt: {} },
+      runtime: { huntActive: false, rev: 0, slotRemaining, slotEndsAt: {}, slotPaused: {} },
     };
   }
 
@@ -64,6 +66,7 @@
       rev: Number(rt.rev) || 0,
       slotRemaining: rt.slotRemaining && typeof rt.slotRemaining === 'object' ? { ...rt.slotRemaining } : {},
       slotEndsAt: rt.slotEndsAt && typeof rt.slotEndsAt === 'object' ? { ...rt.slotEndsAt } : {},
+      slotPaused: rt.slotPaused && typeof rt.slotPaused === 'object' ? { ...rt.slotPaused } : {},
     };
     preset.slots.forEach((s) => {
       if (pt.runtime.slotRemaining[s.id] == null) pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
@@ -88,12 +91,19 @@
     return pt.presets.find((p) => p.id === pt.activePresetId) || pt.presets[0];
   }
 
+  function findSlot(slotId) {
+    return getActivePreset().slots.find((s) => s.id === slotId);
+  }
+
   function bumpRuntimeRev() {
     partyTimer().runtime.rev = (Number(partyTimer().runtime.rev) || 0) + 1;
   }
 
   function slotRemainingMs(slot, now) {
     const rt = partyTimer().runtime;
+    if (rt.huntActive && rt.slotPaused[slot.id]) {
+      return Math.max(0, Math.round(Number(rt.slotRemaining[slot.id]) || 0));
+    }
     if (rt.huntActive && rt.slotEndsAt[slot.id] != null) {
       return Math.max(0, Math.round(rt.slotEndsAt[slot.id] - now));
     }
@@ -101,7 +111,7 @@
   }
 
   function formatMs(ms) {
-    const sec = Math.ceil(ms / 1000);
+    const sec = Math.max(0, Math.ceil(ms / 1000));
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
@@ -111,6 +121,7 @@
     const rt = partyTimer().runtime;
     if (!rt.huntActive) return;
     getActivePreset().slots.filter((s) => s.enabled).forEach((s) => {
+      if (rt.slotPaused[s.id]) return;
       if (rt.slotEndsAt[s.id] != null) rt.slotRemaining[s.id] = Math.max(0, rt.slotEndsAt[s.id] - now);
     });
   }
@@ -186,7 +197,8 @@
         if (!partyTimer().runtime.huntActive) partyTimer().runtime.slotRemaining[id] = sec * 1000;
         bumpRuntimeRev();
         scheduleSave();
-        renderPipTimers();
+        rebuildPipTiles();
+        updatePipDisplay();
       });
     });
     list.querySelectorAll('input[type=checkbox]').forEach((cb) => {
@@ -196,7 +208,8 @@
         if (s) s.enabled = cb.checked;
         bumpRuntimeRev();
         scheduleSave();
-        renderPipTimers();
+        rebuildPipTiles();
+        updatePipDisplay();
       });
     });
   }
@@ -206,11 +219,12 @@
     renderPresetSelect();
     renderSlotList();
     updateStatusUi();
-    renderPipTimers();
+    rebuildPipTiles();
+    updatePipDisplay();
   }
 
   function playPipAlarm() {
-    if (!pipWindow || pipWindow.closed) return;
+    if (pipUi.muted || !pipWindow || pipWindow.closed) return;
     try {
       const ctx = new (pipWindow.AudioContext || pipWindow.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -222,6 +236,7 @@
       osc.start();
       setTimeout(() => { osc.stop(); ctx.close(); }, 280);
       setTimeout(() => {
+        if (pipUi.muted) return;
         const ctx2 = new (pipWindow.AudioContext || pipWindow.webkitAudioContext)();
         const o2 = ctx2.createOscillator();
         const g2 = ctx2.createGain();
@@ -241,44 +256,143 @@
       return;
     }
     document.querySelectorAll('style').forEach((st) => {
-      if (st.textContent && st.textContent.includes('pip-card')) {
+      if (st.textContent && st.textContent.includes('pip-app')) {
         doc.head.appendChild(st.cloneNode(true));
       }
     });
   }
 
-  function renderPipTimers() {
+  function applyPipZoom(doc) {
+    const app = doc.getElementById('pipApp');
+    if (app) app.style.setProperty('--pip-zoom', String(pipUi.zoom / 100));
+    const zoomLabel = doc.getElementById('pipZoomLabel');
+    if (zoomLabel) zoomLabel.textContent = `${pipUi.zoom}%`;
+  }
+
+  function pipToolbarHtml() {
+    return `
+      <header class="pip-toolbar">
+        <span class="pip-toolbar-brand">퉁공대</span>
+        <div class="pip-toolbar-actions">
+          <button type="button" class="pip-tb-btn pip-tb-play" data-pip-act="play" title="전체 재개">▶</button>
+          <button type="button" class="pip-tb-btn pip-tb-pause" data-pip-act="pause-all" title="전체 일시정지">⏸</button>
+          <button type="button" class="pip-tb-btn pip-tb-reset" data-pip-act="reset-all" title="전체 설정 시간으로">↺</button>
+          <button type="button" class="pip-tb-btn pip-tb-mute" data-pip-act="mute" title="알림음">🔊</button>
+          <span class="pip-zoom-wrap">
+            <button type="button" class="pip-tb-btn pip-tb-zoom" data-pip-act="zoom-out">−</button>
+            <span class="pip-zoom-label" id="pipZoomLabel">${pipUi.zoom}%</span>
+            <button type="button" class="pip-tb-btn pip-tb-zoom" data-pip-act="zoom-in">+</button>
+          </span>
+        </div>
+      </header>
+    `;
+  }
+
+  function pipTileHtml(slot) {
+    const icon = slot.icon
+      ? `<img class="pip-tile-icon" src="${slot.icon}" alt="">`
+      : '<span class="pip-tile-icon pip-tile-icon--ph"></span>';
+    return `
+      <div class="pip-tile" data-slot-id="${slot.id}">
+        <div class="pip-tile-top">
+          <span class="pip-tile-spacer"></span>
+          <button type="button" class="pip-mini-btn pip-slot-mute" data-pip-act="slot-mute" title="이 버프 알림 (준비)" disabled aria-hidden="true">🔈</button>
+        </div>
+        <div class="pip-tile-head">${icon}<span class="pip-tile-name">${slot.label}</span></div>
+        <div class="pip-tile-time">00:00</div>
+        <div class="pip-tile-foot">
+          <button type="button" class="pip-btn-pause" data-pip-act="slot-pause" title="일시정지">⏸</button>
+          <button type="button" class="pip-btn-reset" data-pip-act="slot-reset" title="설정 시간으로">↺</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function ensurePipShell() {
     if (!pipWindow || pipWindow.closed) return;
     const doc = pipWindow.document;
-    let root = doc.getElementById('pipRoot');
-    if (!root) {
-      doc.body.innerHTML = '';
-      doc.body.className = 'pip-root';
-      root = doc.createElement('div');
-      root.id = 'pipRoot';
-      root.className = 'pip-root';
-      doc.body.appendChild(root);
-    }
-    const preset = getActivePreset();
-    const now = Date.now();
-    const grid = doc.createElement('div');
-    grid.className = 'pip-grid';
-    preset.slots.filter((s) => s.enabled).forEach((slot) => {
-      const rem = slotRemainingMs(slot, now);
-      const card = doc.createElement('div');
-      card.className = 'pip-card';
-      card.dataset.slotId = slot.id;
-      const icon = slot.icon ? `<img class="pip-card-icon" src="${slot.icon}" alt="">` : '';
-      card.innerHTML = `${icon}<div class="pip-card-label">${slot.label}</div><div class="pip-card-time${rem <= 0 ? ' is-zero' : ''}">${formatMs(rem)}</div>`;
-      grid.appendChild(card);
+    if (pipShellReady && doc.getElementById('pipApp')) return;
+
+    doc.body.innerHTML = '';
+    doc.body.className = 'pip-root';
+    const app = doc.createElement('div');
+    app.id = 'pipApp';
+    app.className = 'pip-app';
+    app.innerHTML = pipToolbarHtml() + '<div class="pip-grid" id="pipGrid"></div>';
+    doc.body.appendChild(app);
+
+    app.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-pip-act]');
+      if (!btn) return;
+      const act = btn.dataset.pipAct;
+      const tile = btn.closest('.pip-tile');
+      const slotId = tile ? tile.dataset.slotId : null;
+      if (act === 'play') pipGlobalPlay();
+      else if (act === 'pause-all') pipGlobalPauseAll();
+      else if (act === 'reset-all') pipResetAllSlots();
+      else if (act === 'mute') {
+        pipUi.muted = !pipUi.muted;
+        btn.textContent = pipUi.muted ? '🔇' : '🔊';
+        btn.classList.toggle('is-muted', pipUi.muted);
+      } else if (act === 'zoom-in') {
+        pipUi.zoom = Math.min(140, pipUi.zoom + 10);
+        applyPipZoom(doc);
+      } else if (act === 'zoom-out') {
+        pipUi.zoom = Math.max(70, pipUi.zoom - 10);
+        applyPipZoom(doc);
+      } else if (act === 'slot-pause' && slotId) toggleSlotPause(slotId);
+      else if (act === 'slot-reset' && slotId) resetSlot(slotId);
     });
-    root.innerHTML = '';
-    root.appendChild(grid);
+
+    pipShellReady = true;
+    rebuildPipTiles();
+    applyPipZoom(doc);
+  }
+
+  function rebuildPipTiles() {
+    if (!pipWindow || pipWindow.closed) return;
+    ensurePipShell();
+    const grid = pipWindow.document.getElementById('pipGrid');
+    if (!grid) return;
+    const slots = getActivePreset().slots.filter((s) => s.enabled);
+    grid.innerHTML = slots.map((s) => pipTileHtml(s)).join('');
+  }
+
+  function updatePipDisplay() {
+    if (!pipWindow || pipWindow.closed) return;
+    ensurePipShell();
+    const doc = pipWindow.document;
+    const now = Date.now();
+    const rt = partyTimer().runtime;
+    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+      const tile = doc.querySelector(`.pip-tile[data-slot-id="${slot.id}"]`);
+      if (!tile) return;
+      const rem = slotRemainingMs(slot, now);
+      const timeEl = tile.querySelector('.pip-tile-time');
+      if (timeEl) {
+        timeEl.textContent = formatMs(rem);
+        timeEl.classList.toggle('is-zero', rem <= 0);
+      }
+      tile.classList.toggle('is-paused', !!rt.slotPaused[slot.id]);
+      tile.classList.toggle('is-urgent', rem > 0 && rem <= 3000);
+      tile.classList.toggle('is-idle', !rt.huntActive);
+      const pauseBtn = tile.querySelector('.pip-btn-pause');
+      if (pauseBtn) {
+        pauseBtn.textContent = rt.slotPaused[slot.id] ? '▶' : '⏸';
+        pauseBtn.title = rt.slotPaused[slot.id] ? '재개' : '일시정지';
+      }
+    });
+    const muteBtn = doc.querySelector('[data-pip-act="mute"]');
+    if (muteBtn) {
+      muteBtn.textContent = pipUi.muted ? '🔇' : '🔊';
+      muteBtn.classList.toggle('is-muted', pipUi.muted);
+    }
   }
 
   function checkPipAlarms(now) {
     if (!pipWindow || pipWindow.closed || !partyTimer().runtime.huntActive) return;
     getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+      if (partyTimer().runtime.slotPaused[slot.id]) return;
       const rem = slotRemainingMs(slot, now);
       if (rem > 0) {
         delete slotAlarmFired[slot.id];
@@ -287,10 +401,10 @@
       if (slotAlarmFired[slot.id]) return;
       slotAlarmFired[slot.id] = true;
       playPipAlarm();
-      const card = pipWindow.document.querySelector(`.pip-card[data-slot-id="${slot.id}"]`);
-      if (card) {
-        card.classList.add('is-alarm');
-        setTimeout(() => card.classList.remove('is-alarm'), 2000);
+      const tile = pipWindow.document.querySelector(`.pip-tile[data-slot-id="${slot.id}"]`);
+      if (tile) {
+        tile.classList.add('is-alarm');
+        setTimeout(() => tile.classList.remove('is-alarm'), 2000);
       }
     });
   }
@@ -307,12 +421,13 @@
     pipTickId = setInterval(() => {
       if (!pipWindow || pipWindow.closed) {
         stopPipTick();
+        pipShellReady = false;
         updateStatusUi();
         return;
       }
       const now = Date.now();
       if (partyTimer().runtime.huntActive) syncRuntimeRemainingFromEndsAt(now);
-      renderPipTimers();
+      updatePipDisplay();
       checkPipAlarms(now);
     }, 200);
   }
@@ -327,22 +442,99 @@
       return true;
     }
     try {
-      pipWindow = await global.documentPictureInPicture.requestWindow({ width: 480, height: 320 });
+      pipWindow = await global.documentPictureInPicture.requestWindow({ width: 400, height: 440 });
+      pipShellReady = false;
       injectPipStyles(pipWindow.document);
       pipWindow.document.title = '퉁공대 타이머';
       pipWindow.addEventListener('pagehide', () => {
         pipWindow = null;
+        pipShellReady = false;
         stopPipTick();
         updateStatusUi();
       });
-      renderPipTimers();
+      ensurePipShell();
       startPipTick();
       updateStatusUi();
       return true;
     } catch (e) {
-      setPipBannerMessage('PIP를 열지 못했어요. 주소창 자물쇠/권한에서 「Picture-in-Picture」를 허용하거나, 팝업·PIP 차단을 해제한 뒤 「PIP 열기」를 다시 눌러 주세요.', false);
+      setPipBannerMessage('PIP를 열지 못했어요. 주소창 자물쇠/권한에서 Picture-in-Picture를 허용한 뒤 「PIP 열기」를 다시 눌러 주세요.', false);
       return false;
     }
+  }
+
+  function toggleSlotPause(slotId) {
+    const rt = partyTimer().runtime;
+    const slot = findSlot(slotId);
+    if (!slot || !rt.huntActive) return;
+    const now = Date.now();
+    if (rt.slotPaused[slotId]) {
+      delete rt.slotPaused[slotId];
+      const rem = Math.max(0, Number(rt.slotRemaining[slotId]) || slot.durationSec * 1000);
+      rt.slotEndsAt[slotId] = now + rem;
+    } else {
+      if (rt.slotEndsAt[slotId] != null) {
+        rt.slotRemaining[slotId] = Math.max(0, rt.slotEndsAt[slotId] - now);
+      }
+      delete rt.slotEndsAt[slotId];
+      rt.slotPaused[slotId] = true;
+    }
+    bumpRuntimeRev();
+    scheduleSave();
+    updatePipDisplay();
+  }
+
+  function resetSlot(slotId) {
+    const rt = partyTimer().runtime;
+    const slot = findSlot(slotId);
+    if (!slot) return;
+    const rem = slot.durationSec * 1000;
+    rt.slotRemaining[slotId] = rem;
+    delete rt.slotPaused[slotId];
+    delete slotAlarmFired[slotId];
+    if (rt.huntActive) rt.slotEndsAt[slotId] = Date.now() + rem;
+    else delete rt.slotEndsAt[slotId];
+    bumpRuntimeRev();
+    scheduleSave();
+    updatePipDisplay();
+  }
+
+  function pipResetAllSlots() {
+    getActivePreset().slots.filter((s) => s.enabled).forEach((s) => resetSlot(s.id));
+  }
+
+  function pipGlobalPauseAll() {
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) return;
+    const now = Date.now();
+    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+      if (rt.slotPaused[slot.id]) return;
+      if (rt.slotEndsAt[slot.id] != null) {
+        rt.slotRemaining[slot.id] = Math.max(0, rt.slotEndsAt[slot.id] - now);
+      }
+      delete rt.slotEndsAt[slot.id];
+      rt.slotPaused[slot.id] = true;
+    });
+    bumpRuntimeRev();
+    scheduleSave();
+    updatePipDisplay();
+  }
+
+  function pipGlobalPlay() {
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) {
+      huntStart();
+      return;
+    }
+    const now = Date.now();
+    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+      if (!rt.slotPaused[slot.id]) return;
+      delete rt.slotPaused[slot.id];
+      const rem = Math.max(0, Number(rt.slotRemaining[slot.id]) || slot.durationSec * 1000);
+      rt.slotEndsAt[slot.id] = now + rem;
+    });
+    bumpRuntimeRev();
+    scheduleSave();
+    updatePipDisplay();
   }
 
   function huntStart() {
@@ -351,6 +543,7 @@
     const now = Date.now();
     const preset = getActivePreset();
     pt.runtime.huntActive = true;
+    pt.runtime.slotPaused = {};
     preset.slots.filter((s) => s.enabled).forEach((s) => {
       const rem = Math.max(0, Number(pt.runtime.slotRemaining[s.id]) || s.durationSec * 1000);
       pt.runtime.slotEndsAt[s.id] = now + rem;
@@ -359,6 +552,7 @@
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     scheduleSave();
     renderAll();
+    updatePipDisplay();
   }
 
   function huntEnd() {
@@ -367,6 +561,7 @@
     const preset = getActivePreset();
     pt.runtime.huntActive = false;
     pt.runtime.slotEndsAt = {};
+    pt.runtime.slotPaused = {};
     preset.slots.forEach((s) => {
       pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
     });
@@ -374,6 +569,7 @@
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     scheduleSave();
     renderAll();
+    updatePipDisplay();
   }
 
   function closeModal() {
@@ -385,6 +581,7 @@
       try { pipWindow.close(); } catch (err) { /* ignore */ }
     }
     pipWindow = null;
+    pipShellReady = false;
   }
 
   function openModal() {
@@ -403,7 +600,10 @@
   function onRemoteStateApplied() {
     ensurePartyTimerState();
     if (modalOpen) renderAll();
-    else if (pipWindow && !pipWindow.closed) renderPipTimers();
+    else if (pipWindow && !pipWindow.closed) {
+      rebuildPipTiles();
+      updatePipDisplay();
+    }
   }
 
   function bindUiOnce() {

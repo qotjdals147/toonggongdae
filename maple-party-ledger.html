@@ -3157,15 +3157,37 @@
   </div>
 </div>
 <style id="partyTimerPipStyles" media="not all">
-  .pip-root { padding: 10px; background: #0a0e14; min-height: 100%; }
-  .pip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-  .pip-card { background: #1e293b; border-radius: 12px; padding: 12px 10px; text-align: center; border: 2px solid transparent; }
-  .pip-card.is-alarm { animation: pip-flash 0.45s ease-in-out 5; border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,.65); }
-  @keyframes pip-flash { 0%,100%{background:#1e293b} 50%{background:#7f1d1d;color:#fecaca} }
-  .pip-card-icon { width: 40px; height: 40px; object-fit: contain; margin-bottom: 6px; }
-  .pip-card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
-  .pip-card-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .pip-card-time.is-zero { color: #f87171; }
+  html, body.pip-root { margin: 0; padding: 0; background: #12151c; font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif; color: #e8eaed; }
+  .pip-app { padding: 8px; transform: scale(var(--pip-zoom, 1)); transform-origin: top center; width: calc(100% / var(--pip-zoom, 1)); box-sizing: border-box; }
+  .pip-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; padding: 4px 2px; }
+  .pip-toolbar-brand { font-size: 11px; color: #64748b; font-weight: 600; }
+  .pip-toolbar-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .pip-tb-btn { border: none; background: #1e2430; color: #cbd5e1; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+  .pip-tb-btn:hover { background: #2a3344; }
+  .pip-tb-play { background: #1d4ed8; color: #fff; }
+  .pip-tb-pause { background: #b91c1c; color: #fff; }
+  .pip-tb-mute.is-muted { opacity: 0.55; }
+  .pip-zoom-wrap { display: inline-flex; align-items: center; gap: 2px; margin-left: 2px; }
+  .pip-zoom-label { font-size: 10px; color: #94a3b8; min-width: 34px; text-align: center; }
+  .pip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pip-tile { background: #1a1f2a; border-radius: 14px; padding: 8px 10px 10px; border: 1px solid #2a3140; min-height: 118px; display: flex; flex-direction: column; }
+  .pip-tile.is-urgent { background: #3d2224; border-color: #7f1d1d; }
+  .pip-tile.is-paused { opacity: 0.82; }
+  .pip-tile.is-alarm { animation: pip-flash 0.45s ease-in-out 5; border-color: #ef4444; box-shadow: 0 0 16px rgba(239,68,68,.55); }
+  @keyframes pip-flash { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.35)} }
+  .pip-tile-top { display: flex; justify-content: space-between; min-height: 18px; }
+  .pip-mini-btn { border: none; background: transparent; color: #64748b; font-size: 11px; cursor: default; padding: 0; opacity: 0.35; }
+  .pip-tile-head { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 2px 0 4px; }
+  .pip-tile-icon { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+  .pip-tile-icon--ph { width: 18px; height: 18px; border-radius: 4px; background: #334155; display: inline-block; }
+  .pip-tile-name { font-size: 12px; font-weight: 600; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 88px; }
+  .pip-tile-time { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; letter-spacing: 0.04em; line-height: 1.1; flex: 1; display: flex; align-items: center; justify-content: center; font-family: "Segoe UI", sans-serif; }
+  .pip-tile-time.is-zero { color: #fca5a5; }
+  .pip-tile-foot { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px; }
+  .pip-btn-pause { width: 36px; height: 36px; border-radius: 50%; border: none; background: #dc2626; color: #fff; font-size: 14px; cursor: pointer; line-height: 1; }
+  .pip-btn-pause:hover { background: #b91c1c; }
+  .pip-btn-reset { width: 32px; height: 32px; border-radius: 50%; border: none; background: #374151; color: #e5e7eb; font-size: 15px; cursor: pointer; }
+  .pip-btn-reset:hover { background: #4b5563; }
 </style>
 
 <div class="hot-lightbox" id="hotIssueLightbox" hidden role="dialog" aria-modal="true" aria-label="사진 크게 보기">
