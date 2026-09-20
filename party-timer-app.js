@@ -17,15 +17,6 @@
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
 
-  function pipConfirm(message) {
-    try {
-      if (global.opener && !global.opener.closed && typeof global.opener.confirm === 'function') {
-        return global.opener.confirm(message);
-      }
-    } catch (e) { /* ignore */ }
-    return global.confirm(message);
-  }
-
   function setPipSetupNotice(text) {
     pipUi.notice = text || '';
     if (!pipWindow || pipWindow.closed) return;
@@ -464,7 +455,6 @@
         return;
       }
       setPipSetupNotice('');
-      if (!pipConfirm('이 사냥터 프리셋을 삭제할까요?')) return;
       pt.presets = pt.presets.filter((p) => p.id !== pt.activePresetId);
       pt.activePresetId = pt.presets[0].id;
       if (!pt.runtime.huntActive) {
