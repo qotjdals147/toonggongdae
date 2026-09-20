@@ -92,28 +92,21 @@
     background: var(--paper-card);
     border: 2px solid var(--line-strong);
     border-radius: 14px;
-    padding: 16px 20px;
+    padding: 20px 22px 16px;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px 20px;
   }
   .app-header-main {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    gap: 6px;
-    min-width: 0;
-    flex: 0 1 auto;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
   }
   header.app-header h1 {
     font-family: 'Fraunces', serif;
     font-optical-sizing: auto;
     font-weight: 700;
-    font-size: 28px;
+    font-size: 32px;
     margin: 0;
     color: var(--ink);
     letter-spacing: -0.02em;
@@ -122,9 +115,10 @@
   .app-header-meta {
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 8px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     max-width: 100%;
   }
@@ -141,56 +135,71 @@
     box-shadow: none;
   }
   .app-toolbar {
-    flex: 1 1 280px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .app-toolbar-categories {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+  }
+  .app-toolbar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px 12px;
+    background: var(--surface-muted);
+    border: 1px solid var(--line);
+    border-radius: 10px;
     min-width: 0;
+  }
+  .app-toolbar-group[hidden] { display: none !important; }
+  .app-toolbar-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    line-height: 1.2;
+  }
+  .app-toolbar-btns {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-end;
     gap: 6px;
   }
-  .app-toolbar-divider {
-    width: 1px;
-    height: 22px;
-    background: var(--line);
-    margin: 0 2px;
-    flex-shrink: 0;
-    align-self: center;
-  }
   .app-toolbar .btn-sm {
-    padding: 7px 12px;
-    font-size: 12.5px;
+    padding: 8px 14px;
+    font-size: 13px;
     border-radius: 8px;
-    font-weight: 600;
-    background: var(--paper-card) !important;
-    color: var(--ink) !important;
-    border: 1px solid var(--line-strong) !important;
-    box-shadow: none !important;
-  }
-  .app-toolbar .btn-sm:hover {
-    background: var(--surface-muted) !important;
-    border-color: #94a3b8 !important;
-    color: var(--ink) !important;
   }
   @media (max-width: 640px) {
-    header.app-header { flex-direction: column; align-items: stretch; }
-    .app-header-main { align-items: center; text-align: center; }
-    .app-header-meta { justify-content: center; }
-    .app-toolbar { justify-content: center; }
+    .app-toolbar-categories { flex-direction: column; align-items: stretch; }
+    .app-toolbar-group { align-items: center; }
+    .app-toolbar-btns { justify-content: center; }
   }
   .btn-hot-issue {
     position: relative;
     overflow: visible;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(109, 40, 217, 0.35) !important;
+    font-weight: 600;
   }
-  .app-toolbar .btn-hot-issue {
-    color: #5b21b6 !important;
-    border-color: #c4b5fd !important;
-    background: #faf5ff !important;
+  .btn-hot-issue:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%) !important;
+    color: #fff !important;
   }
-  .app-toolbar .btn-hot-issue:hover {
-    background: #f3e8ff !important;
-    border-color: #a78bfa !important;
-    color: #4c1d95 !important;
+  .btn-hot-issue.has-today-hot {
+    animation: hot-btn-glow 2s ease-in-out infinite;
+  }
+  @keyframes hot-btn-glow {
+    0%, 100% { box-shadow: 0 1px 3px rgba(109, 40, 217, 0.35); }
+    50% { box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.5), 0 2px 8px rgba(109, 40, 217, 0.45); }
   }
   .hot-issue-badge {
     position: absolute;
@@ -223,16 +232,34 @@
     box-shadow: none !important;
   }
   .btn-light:hover { background: var(--surface-muted) !important; color: var(--ink) !important; }
-  .app-toolbar .btn-logout {
-    font-weight: 500 !important;
-    color: var(--ink-soft) !important;
-    background: transparent !important;
-    border-color: var(--line) !important;
+  .btn-warehouse {
+    background: var(--rust) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(225, 29, 72, 0.35) !important;
+    font-weight: 600;
   }
-  .app-toolbar .btn-logout:hover {
-    color: var(--ink) !important;
-    background: var(--surface-muted) !important;
+  .btn-warehouse:hover { background: var(--rust-hover) !important; color: #fff !important; }
+  .btn-fee-info {
+    background: var(--settle) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.35) !important;
+    font-weight: 600;
   }
+  .btn-fee-info:hover { background: var(--settle-hover) !important; color: #fff !important; }
+  .btn-stats {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(5, 150, 105, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-timer {
+    background: #0f766e; color: #fff; border: none;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+  .btn-timer:hover { background: #0d9488 !important; color: #fff !important; }
   .modal-party-timer .modal { max-width: min(920px, 96vw); max-height: min(92vh, 820px); overflow-y: auto; }
   .pt-pip-banner {
     padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.45;
@@ -277,12 +304,42 @@
   .pip-card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pip-card-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .pip-card-time.is-zero { color: #f87171; }
-  @keyframes hot-btn-glow {
-    0%, 100% { box-shadow: none; }
-    50% { box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.45); }
+  .btn-stats:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+    color: #fff !important;
   }
-  .app-toolbar .btn-hot-issue.has-today-hot {
-    animation: hot-btn-glow 2s ease-in-out infinite;
+  .btn-challenge {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(217, 119, 6, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-challenge:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    color: #fff !important;
+  }
+  .btn-challenge-admin {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(8, 145, 178, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-challenge-admin:hover {
+    background: linear-gradient(135deg, #0e7490 0%, #155e75 100%) !important;
+    color: #fff !important;
+  }
+  .btn-logout {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(71, 85, 105, 0.35) !important;
+    font-weight: 600;
+  }
+  .btn-logout:hover {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+    color: #fff !important;
   }
 
   .card {
@@ -2487,18 +2544,29 @@
       </div>
     </div>
     <nav class="app-toolbar" aria-label="공대 도구">
-      <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
-      <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
-      <button type="button" class="btn-timer btn-sm" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">타이머</button>
-      <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
-        핫이슈
-        <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
-      </button>
-      <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
-      <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
-      <span class="app-toolbar-divider" id="appToolbarAdminDivider" style="display:none;" aria-hidden="true"></span>
-      <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">마스터</button>
-      <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
+      <div class="app-toolbar-categories">
+        <div class="app-toolbar-group">
+          <span class="app-toolbar-label">참고</span>
+          <div class="app-toolbar-btns">
+            <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
+          </div>
+        </div>
+        <div class="app-toolbar-group">
+          <span class="app-toolbar-label">운영</span>
+          <div class="app-toolbar-btns">
+            <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
+            <button type="button" class="btn-timer btn-sm" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">퉁공대 타이머</button>
+            <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
+              퉁공대 핫이슈
+              <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
+            </button>
+            <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
+            <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
+            <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">마스터 옵션</button>
+            <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
+          </div>
+        </div>
+      </div>
     </nav>
   </header>
 
@@ -3514,8 +3582,6 @@
     if ($('logoutBtn')) $('logoutBtn').style.display = showLogout ? 'inline-block' : 'none';
     if ($('challengeBtn')) $('challengeBtn').style.display = showLogout ? 'inline-block' : 'none';
     if ($('challengeAdminBtn')) $('challengeAdminBtn').style.display = showMaster ? 'inline-block' : 'none';
-    const adminDiv = $('appToolbarAdminDivider');
-    if (adminDiv) adminDiv.style.display = showLogout ? 'inline-block' : 'none';
   }
 
   function rosterEntryForAuthEmail(email) {

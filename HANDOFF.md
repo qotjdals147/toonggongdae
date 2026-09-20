@@ -139,7 +139,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `.app-header` 좌 제목·상태 / 우 `.app-toolbar` — 통일 outline 버튼 · **타이머·핫이슈** 짧은 라벨 · 구분선 뒤 **마스터**(배퉁)·로그아웃 |
+| 상단 헤더 | `.app-toolbar-categories` — **참고**·**운영** 카테고리 박스(라벨+버튼) · 기존 컬러 버튼·풀 라벨 |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -286,7 +286,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-09-21** — 상단 헤더 **툴바 정리**(참고/운영 제거 · outline 통일 · 타이머/핫이슈 짧은 라벨)
+- **2026-09-21** — 상단 헤더 **카테고리 박스**(참고·운영 · 라벨 위·버튼 아래) · 잘못된 outline 통일 롤백
 - **2026-09-21** — PiP **프리셋 삭제** 즉시 (확인창 없음 · 마지막 1개만 차단)
 - **2026-09-21** — PiP 설정 **2열·초/분 단위** · 상단 제목 제거 · resize 여유↑
 - **2026-09-21** — PiP **CSS 주입 버그 수정**(`media=not all` clone) · **resizeTo** 설정/사냥 공통
@@ -422,4 +422,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (상단 헤더 툴바 정리)*
+*Last updated: 2026-09-21 (헤더 참고·운영 카테고리 박스)*
