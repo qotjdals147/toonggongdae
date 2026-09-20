@@ -1,5 +1,5 @@
 /**
- * 퉁공대 타이머 — index.html 모달 + Document PiP (장부 페이지 이동 없음)
+ * 퉁공대 타이머 — PIP 전용 (설정 ↔ 사냥 화면 전환)
  */
 (function (global) {
   let $ = (id) => document.getElementById(id);
@@ -13,10 +13,9 @@
   let pipWindow = null;
   let pipTickId = null;
   let slotAlarmFired = {};
-  let modalOpen = false;
   let pipStyleEl = null;
-  let pipShellReady = false;
-  const pipUi = { muted: false, zoom: 100 };
+  let pipClickBound = false;
+  const pipUi = { muted: false };
 
   function defaultSlots() {
     return [
@@ -126,101 +125,267 @@
     });
   }
 
-  function setPipBannerMessage(msg, isOk) {
-    const banner = $('ptPipBanner');
-    if (!banner) return;
-    banner.textContent = msg;
-    banner.classList.toggle('off', !isOk);
+  function assetUrl(path) {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path) || path.startsWith('data:')) return path;
+    try {
+      return new URL(path, global.location.href).href;
+    } catch (e) {
+      return path;
+    }
   }
 
-  function updateStatusUi() {
-    const pt = partyTimer();
-    const hunt = pt.runtime.huntActive;
-    const live = getStorageMode() === 'cloud' && getRealtimeReady();
-    const status = $('ptTimerStatus');
-    if (status) {
-      status.textContent = `${live ? '실시간 · ' : ''}방 ${getRoomId()}${hunt ? ' · 사냥 중' : ''}`;
-    }
-    if (pipWindow && !pipWindow.closed) {
-      setPipBannerMessage('PIP 활성 — 알림음은 이 PIP 창에서만 재생됩니다. 크기는 모서리를 드래그해 조절하세요.', true);
-    } else {
-      setPipBannerMessage('PIP가 꺼져 있으면 알림음이 나지 않습니다. 「PIP 열기」를 누르거나 퉁공대 타이머 버튼을 다시 눌러 보세요.', false);
-    }
-    const startBtn = $('ptHuntStartBtn');
-    const endBtn = $('ptHuntEndBtn');
-    if (startBtn) startBtn.disabled = hunt;
-    if (endBtn) endBtn.disabled = !hunt;
+  function enabledSlots() {
+    return getActivePreset().slots.filter((s) => s.enabled);
   }
 
-  function renderPresetSelect() {
-    const pt = partyTimer();
-    const sel = $('ptPresetSelect');
-    if (!sel) return;
-    sel.innerHTML = '';
-    pt.presets.forEach((p) => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      if (p.id === pt.activePresetId) opt.selected = true;
-      sel.appendChild(opt);
+  function injectPipStyles(doc) {
+    if (pipStyleEl) doc.head.appendChild(pipStyleEl.cloneNode(true));
+  }
+
+  function fitPipWindowSize() {
+    if (!pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
+    const app = doc.getElementById('pipApp');
+    if (!app) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const rect = app.getBoundingClientRect();
+        const w = Math.min(560, Math.max(300, Math.ceil(rect.width) + 20));
+        const h = Math.min(780, Math.max(160, Math.ceil(rect.height) + 24));
+        try {
+          if (typeof pipWindow.resizeTo === 'function') pipWindow.resizeTo(w, h);
+        } catch (e) { /* ignore */ }
+      });
     });
-    const nameInp = $('ptPresetNameInput');
-    if (nameInp) nameInp.value = getActivePreset().name;
   }
 
-  function renderSlotList() {
-    const list = $('ptSlotList');
-    if (!list) return;
-    list.innerHTML = '';
+  function pipToolbarHtml() {
+    return `
+      <header class="pip-toolbar">
+        <span class="pip-toolbar-brand">퉁공대</span>
+        <div class="pip-toolbar-actions">
+          <button type="button" class="pip-tb-btn pip-tb-play" data-pip-act="play" title="전체 재개">▶</button>
+          <button type="button" class="pip-tb-btn pip-tb-pause" data-pip-act="pause-all" title="전체 일시정지">⏸</button>
+          <button type="button" class="pip-tb-btn pip-tb-reset" data-pip-act="reset-all" title="전체 설정 시간으로">↺</button>
+          <button type="button" class="pip-tb-btn pip-tb-mute${pipUi.muted ? ' is-muted' : ''}" data-pip-act="mute" title="알림음">${pipUi.muted ? '🔇' : '🔊'}</button>
+        </div>
+      </header>
+    `;
+  }
+
+  function pipTileHtml(slot) {
+    const icon = slot.icon
+      ? `<img class="pip-tile-icon" src="${assetUrl(slot.icon)}" alt="">`
+      : '<span class="pip-tile-icon pip-tile-icon--ph" aria-hidden="true"></span>';
+    return `
+      <article class="pip-tile" data-slot-id="${slot.id}">
+        <div class="pip-tile-top">
+          <button type="button" class="pip-corner-btn pip-corner-loop" data-pip-act="noop" tabindex="-1" aria-hidden="true">⟲</button>
+          <button type="button" class="pip-corner-btn pip-corner-sound" data-pip-act="noop" tabindex="-1" aria-hidden="true">🔊</button>
+        </div>
+        <div class="pip-tile-head">${icon}<span class="pip-tile-name">${slot.label}</span></div>
+        <div class="pip-tile-time">00:00</div>
+        <div class="pip-tile-foot">
+          <button type="button" class="pip-btn-pause" data-pip-act="slot-pause" title="일시정지">⏸</button>
+          <button type="button" class="pip-btn-reset" data-pip-act="slot-reset" title="설정 시간으로">↺</button>
+        </div>
+      </article>
+    `;
+  }
+
+  function pipHuntViewHtml() {
+    const n = enabledSlots().length;
+    const cols = n <= 1 ? 1 : 2;
+    return `
+      <div class="pip-hunt">
+        ${pipToolbarHtml()}
+        <div class="pip-grid pip-grid--${cols}" id="pipGrid" style="--pip-cols:${cols}">
+          ${enabledSlots().map((s) => pipTileHtml(s)).join('')}
+        </div>
+        <button type="button" class="pip-cta pip-cta-end" data-pip-act="hunt-end">사냥 종료</button>
+      </div>
+    `;
+  }
+
+  function pipSetupViewHtml() {
     const preset = getActivePreset();
-    const hunt = partyTimer().runtime.huntActive;
-    preset.slots.forEach((slot) => {
-      const row = document.createElement('div');
-      row.className = 'pt-slot-row';
-      const iconHtml = slot.icon ? `<img class="pt-slot-icon" src="${slot.icon}" alt="">` : '';
-      row.innerHTML = `
-        ${iconHtml}
-        <span class="pt-slot-label">${slot.label}</span>
-        <input type="number" min="1" max="86400" step="1" data-slot-id="${slot.id}" value="${slot.durationSec}" ${hunt ? 'disabled' : ''}>
-        <label class="pt-slot-enable"><input type="checkbox" data-enable-id="${slot.id}" ${slot.enabled ? 'checked' : ''} ${hunt ? 'disabled' : ''}> 사용</label>
+    const slotRows = preset.slots.map((slot) => {
+      const icon = slot.icon ? `<img class="pip-setup-icon" src="${assetUrl(slot.icon)}" alt="">` : '';
+      return `
+        <div class="pip-setup-slot" data-slot-id="${slot.id}">
+          ${icon}
+          <span class="pip-setup-slot-name">${slot.label}</span>
+          <input type="number" class="pip-setup-sec" min="1" max="86400" value="${slot.durationSec}" data-pip-field="sec">
+          <label class="pip-setup-use"><input type="checkbox" data-pip-field="enabled" ${slot.enabled ? 'checked' : ''}> 사용</label>
+        </div>
       `;
-      list.appendChild(row);
-    });
-    list.querySelectorAll('input[type=number]').forEach((inp) => {
-      inp.addEventListener('change', () => {
-        const id = inp.dataset.slotId;
-        const sec = Math.max(1, Math.round(Number(inp.value) || 60));
-        const s = getActivePreset().slots.find((x) => x.id === id);
-        if (!s) return;
-        s.durationSec = sec;
-        inp.value = String(sec);
-        if (!partyTimer().runtime.huntActive) partyTimer().runtime.slotRemaining[id] = sec * 1000;
-        bumpRuntimeRev();
-        scheduleSave();
-        rebuildPipTiles();
-        updatePipDisplay();
-      });
-    });
-    list.querySelectorAll('input[type=checkbox]').forEach((cb) => {
-      cb.addEventListener('change', () => {
-        const id = cb.dataset.enableId;
-        const s = getActivePreset().slots.find((x) => x.id === id);
-        if (s) s.enabled = cb.checked;
-        bumpRuntimeRev();
-        scheduleSave();
-        rebuildPipTiles();
-        updatePipDisplay();
-      });
-    });
+    }).join('');
+
+    return `
+      <div class="pip-setup">
+        <div class="pip-setup-title">퉁공대 타이머</div>
+        <p class="pip-setup-sub">방 ${getRoomId()}${getRealtimeReady() && getStorageMode() === 'cloud' ? ' · 실시간' : ''}</p>
+        <div class="pip-setup-block">
+          <div class="pip-setup-label">사냥터</div>
+          <div class="pip-setup-presets">
+            <select id="pipPresetSelect" data-pip-field="preset"></select>
+            <input type="text" id="pipPresetName" value="${preset.name}" placeholder="이름" data-pip-field="preset-name">
+            <button type="button" class="pip-setup-mini" data-pip-act="preset-save">저장</button>
+            <button type="button" class="pip-setup-mini" data-pip-act="preset-add">+</button>
+            <button type="button" class="pip-setup-mini" data-pip-act="preset-del">삭제</button>
+          </div>
+        </div>
+        <div class="pip-setup-block">
+          <div class="pip-setup-label">버프 · 초</div>
+          <div class="pip-setup-slots">${slotRows}</div>
+        </div>
+        <button type="button" class="pip-cta pip-cta-start" data-pip-act="hunt-start">사냥 시작</button>
+      </div>
+    `;
   }
 
-  function renderAll() {
-    if (!modalOpen) return;
-    renderPresetSelect();
-    renderSlotList();
-    updateStatusUi();
-    rebuildPipTiles();
-    updatePipDisplay();
+  function renderPipView() {
+    if (!pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
+    const app = doc.getElementById('pipApp');
+    if (!app) return;
+    const hunt = partyTimer().runtime.huntActive;
+    app.className = 'pip-app' + (hunt ? ' pip-app--hunt' : ' pip-app--setup');
+    app.innerHTML = hunt ? pipHuntViewHtml() : pipSetupViewHtml();
+
+    const sel = doc.getElementById('pipPresetSelect');
+    if (sel) {
+      sel.innerHTML = '';
+      partyTimer().presets.forEach((p) => {
+        const opt = doc.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (p.id === partyTimer().activePresetId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    bindPipEvents(app);
+    if (hunt) updatePipDisplay();
+    fitPipWindowSize();
+    syncPipTick();
+  }
+
+  function bindPipEvents(app) {
+    if (!pipClickBound) {
+      pipClickBound = true;
+    }
+    app.onclick = (e) => {
+      const btn = e.target.closest('[data-pip-act]');
+      if (btn && btn.dataset.pipAct !== 'noop') {
+        handlePipAction(btn.dataset.pipAct, btn.closest('.pip-tile')?.dataset.slotId);
+        return;
+      }
+    };
+    app.onchange = (e) => {
+      const t = e.target;
+      if (t.id === 'pipPresetSelect' || t.dataset.pipField === 'preset') {
+        partyTimer().activePresetId = t.value;
+        if (!partyTimer().runtime.huntActive) {
+          getActivePreset().slots.forEach((s) => {
+            partyTimer().runtime.slotRemaining[s.id] = s.durationSec * 1000;
+          });
+        }
+        bumpRuntimeRev();
+        scheduleSave();
+        renderPipView();
+        return;
+      }
+      const row = t.closest('.pip-setup-slot');
+      if (!row) return;
+      const slotId = row.dataset.slotId;
+      const slot = findSlot(slotId);
+      if (!slot) return;
+      if (t.dataset.pipField === 'sec') {
+        const sec = Math.max(1, Math.round(Number(t.value) || 60));
+        slot.durationSec = sec;
+        t.value = String(sec);
+        if (!partyTimer().runtime.huntActive) partyTimer().runtime.slotRemaining[slotId] = sec * 1000;
+      } else if (t.dataset.pipField === 'enabled') {
+        slot.enabled = t.checked;
+      }
+      bumpRuntimeRev();
+      scheduleSave();
+      fitPipWindowSize();
+    };
+  }
+
+  function handlePipAction(act, slotId) {
+    if (act === 'hunt-start') huntStart();
+    else if (act === 'hunt-end') huntEnd();
+    else if (act === 'play') pipGlobalPlay();
+    else if (act === 'pause-all') pipGlobalPauseAll();
+    else if (act === 'reset-all') pipResetAllSlots();
+    else if (act === 'mute') {
+      pipUi.muted = !pipUi.muted;
+      renderPipView();
+    } else if (act === 'preset-save') {
+      const doc = pipWindow.document;
+      const name = doc.getElementById('pipPresetName')?.value?.trim() || '사냥터';
+      getActivePreset().name = name;
+      bumpRuntimeRev();
+      scheduleSave();
+      renderPipView();
+    } else if (act === 'preset-add') {
+      const id = genId();
+      const slots = defaultSlots().map((s) => ({ ...s, id: genId() }));
+      const pt = partyTimer();
+      pt.presets.push({ id, name: '새 사냥터', slots });
+      pt.activePresetId = id;
+      if (!pt.runtime.huntActive) {
+        slots.forEach((s) => { pt.runtime.slotRemaining[s.id] = s.durationSec * 1000; });
+      }
+      bumpRuntimeRev();
+      scheduleSave();
+      renderPipView();
+    } else if (act === 'preset-del') {
+      const pt = partyTimer();
+      if (pt.presets.length <= 1) return;
+      if (!global.confirm('이 사냥터 프리셋을 삭제할까요?')) return;
+      pt.presets = pt.presets.filter((p) => p.id !== pt.activePresetId);
+      pt.activePresetId = pt.presets[0].id;
+      if (!pt.runtime.huntActive) {
+        getActivePreset().slots.forEach((s) => {
+          pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
+        });
+      }
+      bumpRuntimeRev();
+      scheduleSave();
+      renderPipView();
+    } else if (act === 'slot-pause' && slotId) toggleSlotPause(slotId);
+    else if (act === 'slot-reset' && slotId) resetSlot(slotId);
+  }
+
+  function updatePipDisplay() {
+    if (!pipWindow || pipWindow.closed || !partyTimer().runtime.huntActive) return;
+    const doc = pipWindow.document;
+    const now = Date.now();
+    const rt = partyTimer().runtime;
+    enabledSlots().forEach((slot) => {
+      const tile = doc.querySelector(`.pip-tile[data-slot-id="${slot.id}"]`);
+      if (!tile) return;
+      const rem = slotRemainingMs(slot, now);
+      const timeEl = tile.querySelector('.pip-tile-time');
+      if (timeEl) {
+        timeEl.textContent = formatMs(rem);
+        timeEl.classList.toggle('is-zero', rem <= 0);
+      }
+      tile.classList.toggle('is-paused', !!rt.slotPaused[slot.id]);
+      tile.classList.toggle('is-urgent', rem > 0 && rem <= 3000);
+      const pauseBtn = tile.querySelector('.pip-btn-pause');
+      if (pauseBtn) {
+        const paused = !!rt.slotPaused[slot.id];
+        pauseBtn.textContent = paused ? '▶' : '⏸';
+        pauseBtn.classList.toggle('is-play', paused);
+        pauseBtn.title = paused ? '재개' : '일시정지';
+      }
+    });
   }
 
   function playPipAlarm() {
@@ -235,163 +400,12 @@
       gain.connect(ctx.destination);
       osc.start();
       setTimeout(() => { osc.stop(); ctx.close(); }, 280);
-      setTimeout(() => {
-        if (pipUi.muted) return;
-        const ctx2 = new (pipWindow.AudioContext || pipWindow.webkitAudioContext)();
-        const o2 = ctx2.createOscillator();
-        const g2 = ctx2.createGain();
-        o2.frequency.value = 660;
-        g2.gain.value = 0.15;
-        o2.connect(g2);
-        g2.connect(ctx2.destination);
-        o2.start();
-        setTimeout(() => { o2.stop(); ctx2.close(); }, 280);
-      }, 320);
     } catch (e) { /* ignore */ }
-  }
-
-  function injectPipStyles(doc) {
-    if (pipStyleEl) {
-      doc.head.appendChild(pipStyleEl.cloneNode(true));
-      return;
-    }
-    document.querySelectorAll('style').forEach((st) => {
-      if (st.textContent && st.textContent.includes('pip-app')) {
-        doc.head.appendChild(st.cloneNode(true));
-      }
-    });
-  }
-
-  function applyPipZoom(doc) {
-    const app = doc.getElementById('pipApp');
-    if (app) app.style.setProperty('--pip-zoom', String(pipUi.zoom / 100));
-    const zoomLabel = doc.getElementById('pipZoomLabel');
-    if (zoomLabel) zoomLabel.textContent = `${pipUi.zoom}%`;
-  }
-
-  function pipToolbarHtml() {
-    return `
-      <header class="pip-toolbar">
-        <span class="pip-toolbar-brand">퉁공대</span>
-        <div class="pip-toolbar-actions">
-          <button type="button" class="pip-tb-btn pip-tb-play" data-pip-act="play" title="전체 재개">▶</button>
-          <button type="button" class="pip-tb-btn pip-tb-pause" data-pip-act="pause-all" title="전체 일시정지">⏸</button>
-          <button type="button" class="pip-tb-btn pip-tb-reset" data-pip-act="reset-all" title="전체 설정 시간으로">↺</button>
-          <button type="button" class="pip-tb-btn pip-tb-mute" data-pip-act="mute" title="알림음">🔊</button>
-          <span class="pip-zoom-wrap">
-            <button type="button" class="pip-tb-btn pip-tb-zoom" data-pip-act="zoom-out">−</button>
-            <span class="pip-zoom-label" id="pipZoomLabel">${pipUi.zoom}%</span>
-            <button type="button" class="pip-tb-btn pip-tb-zoom" data-pip-act="zoom-in">+</button>
-          </span>
-        </div>
-      </header>
-    `;
-  }
-
-  function pipTileHtml(slot) {
-    const icon = slot.icon
-      ? `<img class="pip-tile-icon" src="${slot.icon}" alt="">`
-      : '<span class="pip-tile-icon pip-tile-icon--ph"></span>';
-    return `
-      <div class="pip-tile" data-slot-id="${slot.id}">
-        <div class="pip-tile-top">
-          <span class="pip-tile-spacer"></span>
-          <button type="button" class="pip-mini-btn pip-slot-mute" data-pip-act="slot-mute" title="이 버프 알림 (준비)" disabled aria-hidden="true">🔈</button>
-        </div>
-        <div class="pip-tile-head">${icon}<span class="pip-tile-name">${slot.label}</span></div>
-        <div class="pip-tile-time">00:00</div>
-        <div class="pip-tile-foot">
-          <button type="button" class="pip-btn-pause" data-pip-act="slot-pause" title="일시정지">⏸</button>
-          <button type="button" class="pip-btn-reset" data-pip-act="slot-reset" title="설정 시간으로">↺</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function ensurePipShell() {
-    if (!pipWindow || pipWindow.closed) return;
-    const doc = pipWindow.document;
-    if (pipShellReady && doc.getElementById('pipApp')) return;
-
-    doc.body.innerHTML = '';
-    doc.body.className = 'pip-root';
-    const app = doc.createElement('div');
-    app.id = 'pipApp';
-    app.className = 'pip-app';
-    app.innerHTML = pipToolbarHtml() + '<div class="pip-grid" id="pipGrid"></div>';
-    doc.body.appendChild(app);
-
-    app.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-pip-act]');
-      if (!btn) return;
-      const act = btn.dataset.pipAct;
-      const tile = btn.closest('.pip-tile');
-      const slotId = tile ? tile.dataset.slotId : null;
-      if (act === 'play') pipGlobalPlay();
-      else if (act === 'pause-all') pipGlobalPauseAll();
-      else if (act === 'reset-all') pipResetAllSlots();
-      else if (act === 'mute') {
-        pipUi.muted = !pipUi.muted;
-        btn.textContent = pipUi.muted ? '🔇' : '🔊';
-        btn.classList.toggle('is-muted', pipUi.muted);
-      } else if (act === 'zoom-in') {
-        pipUi.zoom = Math.min(140, pipUi.zoom + 10);
-        applyPipZoom(doc);
-      } else if (act === 'zoom-out') {
-        pipUi.zoom = Math.max(70, pipUi.zoom - 10);
-        applyPipZoom(doc);
-      } else if (act === 'slot-pause' && slotId) toggleSlotPause(slotId);
-      else if (act === 'slot-reset' && slotId) resetSlot(slotId);
-    });
-
-    pipShellReady = true;
-    rebuildPipTiles();
-    applyPipZoom(doc);
-  }
-
-  function rebuildPipTiles() {
-    if (!pipWindow || pipWindow.closed) return;
-    ensurePipShell();
-    const grid = pipWindow.document.getElementById('pipGrid');
-    if (!grid) return;
-    const slots = getActivePreset().slots.filter((s) => s.enabled);
-    grid.innerHTML = slots.map((s) => pipTileHtml(s)).join('');
-  }
-
-  function updatePipDisplay() {
-    if (!pipWindow || pipWindow.closed) return;
-    ensurePipShell();
-    const doc = pipWindow.document;
-    const now = Date.now();
-    const rt = partyTimer().runtime;
-    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
-      const tile = doc.querySelector(`.pip-tile[data-slot-id="${slot.id}"]`);
-      if (!tile) return;
-      const rem = slotRemainingMs(slot, now);
-      const timeEl = tile.querySelector('.pip-tile-time');
-      if (timeEl) {
-        timeEl.textContent = formatMs(rem);
-        timeEl.classList.toggle('is-zero', rem <= 0);
-      }
-      tile.classList.toggle('is-paused', !!rt.slotPaused[slot.id]);
-      tile.classList.toggle('is-urgent', rem > 0 && rem <= 3000);
-      tile.classList.toggle('is-idle', !rt.huntActive);
-      const pauseBtn = tile.querySelector('.pip-btn-pause');
-      if (pauseBtn) {
-        pauseBtn.textContent = rt.slotPaused[slot.id] ? '▶' : '⏸';
-        pauseBtn.title = rt.slotPaused[slot.id] ? '재개' : '일시정지';
-      }
-    });
-    const muteBtn = doc.querySelector('[data-pip-act="mute"]');
-    if (muteBtn) {
-      muteBtn.textContent = pipUi.muted ? '🔇' : '🔊';
-      muteBtn.classList.toggle('is-muted', pipUi.muted);
-    }
   }
 
   function checkPipAlarms(now) {
     if (!pipWindow || pipWindow.closed || !partyTimer().runtime.huntActive) return;
-    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+    enabledSlots().forEach((slot) => {
       if (partyTimer().runtime.slotPaused[slot.id]) return;
       const rem = slotRemainingMs(slot, now);
       if (rem > 0) {
@@ -416,17 +430,16 @@
     }
   }
 
-  function startPipTick() {
+  function syncPipTick() {
     stopPipTick();
+    if (!pipWindow || pipWindow.closed || !partyTimer().runtime.huntActive) return;
     pipTickId = setInterval(() => {
       if (!pipWindow || pipWindow.closed) {
         stopPipTick();
-        pipShellReady = false;
-        updateStatusUi();
         return;
       }
       const now = Date.now();
-      if (partyTimer().runtime.huntActive) syncRuntimeRemainingFromEndsAt(now);
+      syncRuntimeRemainingFromEndsAt(now);
       updatePipDisplay();
       checkPipAlarms(now);
     }, 200);
@@ -434,30 +447,39 @@
 
   async function openPip() {
     if (!('documentPictureInPicture' in global)) {
-      setPipBannerMessage('PIP는 Chrome·Edge(데스크톱)에서 지원됩니다. 설정은 이 창에서 계속할 수 있어요.', false);
+      alert('PIP는 Chrome·Edge(데스크톱)에서 지원됩니다.');
       return false;
     }
+    ensurePartyTimerState();
     if (pipWindow && !pipWindow.closed) {
       pipWindow.focus();
+      renderPipView();
       return true;
     }
     try {
-      pipWindow = await global.documentPictureInPicture.requestWindow({ width: 400, height: 440 });
-      pipShellReady = false;
+      const hunt = partyTimer().runtime.huntActive;
+      const n = enabledSlots().length;
+      const cols = n <= 1 ? 1 : 2;
+      const rows = Math.max(1, Math.ceil(n / cols));
+      const initW = cols === 1 ? 220 : 400;
+      const initH = hunt ? 120 + rows * 168 + 52 : 340;
+      pipWindow = await global.documentPictureInPicture.requestWindow({
+        width: initW,
+        height: Math.min(initH, 720),
+      });
+      pipClickBound = false;
       injectPipStyles(pipWindow.document);
       pipWindow.document.title = '퉁공대 타이머';
+      pipWindow.document.body.className = 'pip-root';
+      pipWindow.document.body.innerHTML = '<div id="pipApp" class="pip-app"></div>';
       pipWindow.addEventListener('pagehide', () => {
         pipWindow = null;
-        pipShellReady = false;
         stopPipTick();
-        updateStatusUi();
       });
-      ensurePipShell();
-      startPipTick();
-      updateStatusUi();
+      renderPipView();
       return true;
     } catch (e) {
-      setPipBannerMessage('PIP를 열지 못했어요. 주소창 자물쇠/권한에서 Picture-in-Picture를 허용한 뒤 「PIP 열기」를 다시 눌러 주세요.', false);
+      alert('PIP를 열지 못했어요. 주소창 옆 권한에서 Picture-in-Picture를 허용해 주세요.');
       return false;
     }
   }
@@ -499,14 +521,14 @@
   }
 
   function pipResetAllSlots() {
-    getActivePreset().slots.filter((s) => s.enabled).forEach((s) => resetSlot(s.id));
+    enabledSlots().forEach((s) => resetSlot(s.id));
   }
 
   function pipGlobalPauseAll() {
     const rt = partyTimer().runtime;
     if (!rt.huntActive) return;
     const now = Date.now();
-    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+    enabledSlots().forEach((slot) => {
       if (rt.slotPaused[slot.id]) return;
       if (rt.slotEndsAt[slot.id] != null) {
         rt.slotRemaining[slot.id] = Math.max(0, rt.slotEndsAt[slot.id] - now);
@@ -521,12 +543,9 @@
 
   function pipGlobalPlay() {
     const rt = partyTimer().runtime;
-    if (!rt.huntActive) {
-      huntStart();
-      return;
-    }
+    if (!rt.huntActive) return;
     const now = Date.now();
-    getActivePreset().slots.filter((s) => s.enabled).forEach((slot) => {
+    enabledSlots().forEach((slot) => {
       if (!rt.slotPaused[slot.id]) return;
       delete rt.slotPaused[slot.id];
       const rem = Math.max(0, Number(rt.slotRemaining[slot.id]) || slot.durationSec * 1000);
@@ -551,8 +570,7 @@
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     scheduleSave();
-    renderAll();
-    updatePipDisplay();
+    renderPipView();
   }
 
   function huntEnd() {
@@ -568,109 +586,16 @@
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     scheduleSave();
-    renderAll();
-    updatePipDisplay();
-  }
-
-  function closeModal() {
-    modalOpen = false;
-    const modal = $('partyTimerModal');
-    if (modal) modal.hidden = true;
-    stopPipTick();
-    if (pipWindow && !pipWindow.closed) {
-      try { pipWindow.close(); } catch (err) { /* ignore */ }
-    }
-    pipWindow = null;
-    pipShellReady = false;
-  }
-
-  function openModal() {
-    ensurePartyTimerState();
-    modalOpen = true;
-    const modal = $('partyTimerModal');
-    if (modal) modal.hidden = false;
-    renderAll();
+    renderPipView();
   }
 
   function openFromUserGesture() {
-    openModal();
     void openPip();
   }
 
   function onRemoteStateApplied() {
     ensurePartyTimerState();
-    if (modalOpen) renderAll();
-    else if (pipWindow && !pipWindow.closed) {
-      rebuildPipTiles();
-      updatePipDisplay();
-    }
-  }
-
-  function bindUiOnce() {
-    if (bindUiOnce.done) return;
-    bindUiOnce.done = true;
-
-    $('ptPresetSelect')?.addEventListener('change', () => {
-      const pt = partyTimer();
-      pt.activePresetId = $('ptPresetSelect').value;
-      if (!pt.runtime.huntActive) {
-        getActivePreset().slots.forEach((s) => {
-          pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
-        });
-      }
-      bumpRuntimeRev();
-      scheduleSave();
-      renderAll();
-    });
-
-    $('ptPresetSaveBtn')?.addEventListener('click', () => {
-      getActivePreset().name = ($('ptPresetNameInput').value || '').trim() || '사냥터';
-      bumpRuntimeRev();
-      scheduleSave();
-      renderPresetSelect();
-    });
-
-    $('ptPresetAddBtn')?.addEventListener('click', () => {
-      const id = genId();
-      const slots = defaultSlots().map((s) => ({ ...s, id: genId() }));
-      const pt = partyTimer();
-      pt.presets.push({ id, name: '새 사냥터', slots });
-      pt.activePresetId = id;
-      if (!pt.runtime.huntActive) {
-        slots.forEach((s) => { pt.runtime.slotRemaining[s.id] = s.durationSec * 1000; });
-      }
-      bumpRuntimeRev();
-      scheduleSave();
-      renderAll();
-    });
-
-    $('ptPresetDeleteBtn')?.addEventListener('click', () => {
-      const pt = partyTimer();
-      if (pt.presets.length <= 1) {
-        setPipBannerMessage('마지막 프리셋은 삭제할 수 없어요.', false);
-        return;
-      }
-      if (!global.confirm('이 사냥터 프리셋을 삭제할까요?')) return;
-      pt.presets = pt.presets.filter((p) => p.id !== pt.activePresetId);
-      pt.activePresetId = pt.presets[0].id;
-      if (!pt.runtime.huntActive) {
-        getActivePreset().slots.forEach((s) => {
-          pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
-        });
-      }
-      bumpRuntimeRev();
-      scheduleSave();
-      renderAll();
-    });
-
-    $('ptHuntStartBtn')?.addEventListener('click', huntStart);
-    $('ptHuntEndBtn')?.addEventListener('click', huntEnd);
-    $('ptPipOpenBtn')?.addEventListener('click', () => { void openPip(); });
-    $('ptLeaveBtn')?.addEventListener('click', closeModal);
-    $('ptTimerCloseBtn')?.addEventListener('click', closeModal);
-    $('partyTimerModal')?.addEventListener('click', (e) => {
-      if (e.target.id === 'partyTimerModal') closeModal();
-    });
+    if (pipWindow && !pipWindow.closed) renderPipView();
   }
 
   function init(options) {
@@ -682,7 +607,6 @@
     getStorageMode = options.getStorageMode || getStorageMode;
     getRoomId = options.getRoomId || getRoomId;
     pipStyleEl = $('partyTimerPipStyles');
-    bindUiOnce();
   }
 
   global.PartyTimerApp = {
@@ -690,10 +614,8 @@
     ensurePartyTimerState,
     normalizePartyTimer,
     openFromUserGesture,
-    openModal,
     openPip,
-    closeModal,
     onRemoteStateApplied,
-    isModalOpen: () => modalOpen,
+    isPipOpen: () => pipWindow && !pipWindow.closed,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
