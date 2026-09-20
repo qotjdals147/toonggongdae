@@ -67,7 +67,7 @@ exclusiveTitleMeta{} // 고유 훈장 UI 오버라이드 · id → description, 
 challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전 자동완성 · 집계 매칭
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
-partyTimer?  // 타이머 전용 · presets[] + runtime(huntActive, slotRemaining, slotEndsAt, rev) · party-timer.html만 편집(merge save)
+partyTimer?  // 타이머 · presets[] + runtime(huntActive, slotRemaining, slotEndsAt, slotPaused, rev) · **`party-timer-app.js`** + `index.html` PiP CSS(`#partyTimerPipStyles`)
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -123,7 +123,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **동기화:** `runtime.slotEndsAt` + `huntActive` · 사냥 종료 → 각 슬롯 `durationSec`으로 `slotRemaining` 초기화.
 - **PIP:** Chrome/Edge Document PiP · **2×2 컴팩트 타일**(아이콘+이름+시간+슬롯 ⏸/↺) · 상단 전체 ▶⏸↺·음소거·줌 · **3초 이하 urgent 배경** · 0초 alarm.
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
-- **프리셋:** `presets[{ name, slots[{ label, durationSec, icon?, enabled }] }]` · 버프/아이콘 확장 예정.
+- **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글(`durationUnit`) · **삭제=확인 없이 즉시** · 마지막 1개는 `setPipSetupNotice`로만 차단.
+- **알람:** 0초 `is-alarm` 플래시 · **소리/전역 🔊** 등은 maple-atelier 대비 **미완·placeholder** 가능 — 다음 작업 시 `party-timer-app.js` 확인.
 
 ---
 
@@ -139,7 +140,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `.app-toolbar-categories` — **참고**·**운영** 카테고리 박스(라벨+버튼) · 기존 컬러 버튼·풀 라벨 |
+| 상단 헤더 | `.app-toolbar-categories` > `.app-toolbar-group` — **참고**(수수료) · **운영**(창고캐·타이머·핫이슈·통계·훈장·마스터·로그아웃) · 라벨 **위**·버튼 **아래** 박스 · **컬러 버튼·풀 라벨 유지** |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -281,11 +282,13 @@ legacySummaryOnly (옛 회차 요약만)
 | **“해줘”, “구현”, “적용”** 등 명시 | 구현 → **§13 전체** (HANDOFF 포함) → push |
 | **commit만 요청** | user rule git protocol 따름 |
 | **과도한 기능** (풀 DB, 자동 마이그레이션 등) | 먼저 범위 확인 |
+| **UI “정리”** 등 모호한 요청 | **카테고리/구조 vs 색·라벨 통일** 구분 · **소유자 의도 확인 후** 변경 (2026-09-21: 헤더를 임의 outline 통일했다가 **롤백** — 원하는 건 **참고/운영 카테고리별 묶음**) |
 
 ---
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — HANDOFF **§11.1~11.3 · §14** 인수인계 · §9 UI 의도 확인 · `partyTimer` 편집 위치 정정
 - **2026-09-21** — 상단 헤더 **카테고리 박스**(참고·운영 · 라벨 위·버튼 아래) · 잘못된 outline 통일 롤백
 - **2026-09-21** — PiP **프리셋 삭제** 즉시 (확인창 없음 · 마지막 1개만 차단)
 - **2026-09-21** — PiP 설정 **2열·초/분 단위** · 상단 제목 제거 · resize 여유↑
@@ -368,6 +371,19 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 11. 다음에 손대기 쉬운 개선 (요청 시만)
 
+### 11.1 퉁공대 타이머 (진행 중 · 2026-09-21)
+
+- [ ] PiP 슬롯 **버프 아이콘/이름** — 소유자가 `image/`·카탈로그 PNG 제공 예정 · `defaultSlots()` / `CATALOG_ITEM_ICON_BY_CANONICAL` 연동
+- [ ] **알람 소리** · PIP 열렸을 때만 재생 등 maple-atelier parity — 현재 UI만 있을 수 있음
+- [ ] (선택) 사냥 툴바 **줌 ±** · 슬롯별 음소거 · 0초 전 pre-alert
+- [ ] (선택) Realtime **참여자 표시** (동시 편집자)
+
+### 11.2 상단 헤더
+
+- [ ] **카테고리 더 나눌지** (예: 운영 → 공대 / 장부 / 계정) — **소유자와 합의 후만** · 임의로 라벨 줄이거나 색 통일 **금지**
+
+### 11.3 기타
+
 - [ ] 핫이슈 이미지 Supabase Storage 분리 (JSON 용량)
 - [ ] closed cycle `entryTotal`에 메이커 반영 여부 정리
 - [ ] 획득 저장 시 **카탈로그 미등록 이름** 경고/차단 (현재는 자유 입력 + AC만 카탈로그)
@@ -379,11 +395,29 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 12. 에이전트 **시작** 체크리스트
 
-1. Read **`HANDOFF.md`** (this file)
-2. Read **`.cursor/rules/*.mdc`**
-3. 큰 변경 전 **`index.html`만** 편집, mirror sync
-4. 금액 로직 변경 시 §4 regression mentally check
-5. 질문-only 턴인지 확인 (§9)
+1. Read **`HANDOFF.md`** (this file) — **§14 진행 중** 먼저
+2. Read **`.cursor/rules/*.mdc`** (질문-only · mirror · §13 push)
+3. Read **`.cursor/rules/toonggongdae-workflow.mdc`** — user rule과 충돌 시 **워크스페이스 규칙**: 구현 턴은 HANDOFF+push; user rule “commit만 요청 시”는 **commit 명시** 턴에만 해당
+4. 큰 변경 전 **`index.html`만** 편집, mirror sync · 타이머 로직은 **`party-timer-app.js`**
+5. 금액 로직 변경 시 §4 regression mentally check
+6. 질문-only 턴인지 확인 (§9)
+
+---
+
+## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-09-21)
+
+**최근 main:** `564eedd` (헤더 참고·운영 카테고리 박스) · 직전 타이머: `68b07d2` (PiP 프리셋 삭제 즉시) · **피해야 할 커밋 의도:** `c98dc9c` (카테고리 제거·outline 통일 — **소유자 거부**, `564eedd`에서 복구)
+
+| 영역 | 상태 |
+|------|------|
+| **타이머** | 장부 **`#partyTimerBtn` → PIP만** · `party-timer-app.js` · 설정↔사냥 · 2×2 타일 · 프리셋 삭제 무confirm |
+| **헤더** | **참고 / 운영** 2카테고리 박스 · 운영에 로그인 후 훈장·마스터·로그아웃 포함 |
+| **획득 모달** | 잡장비·카탈로그 아이콘 (`d965b59` 근처) |
+| **미커밋 asset** | `image/훈장아이콘/중급샤프아이즈.png` · `image/이펙트/샤프아이즈_훈장/` — repo에 **untracked** · 연동·commit은 **소유자 요청 시** |
+
+**로컬 검증:** Chrome/Edge · Ctrl+F5 · `?room=tongtongi` 로그인 → 타이머 PIP · 헤더 카테고리 박스.
+
+**다음 작업 후보 (우선순위는 소유자 지시):** §11.1 타이머 아이콘/소리 · §11.2 헤더 카테고리 세분(합의 후) · untracked 훈장 이미지 반영.
 
 ---
 
@@ -422,4 +456,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (헤더 참고·운영 카테고리 박스)*
+*Last updated: 2026-09-21 (§14 다음 세션 인수인계 · 타이머/헤더 스냅샷)*
