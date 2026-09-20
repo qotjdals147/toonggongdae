@@ -255,6 +255,50 @@
     box-shadow: 0 1px 0 rgba(0,0,0,0.06);
   }
   .btn-timer:hover { background: #0d9488 !important; color: #fff !important; }
+  .modal-party-timer .modal { max-width: min(920px, 96vw); max-height: min(92vh, 820px); overflow-y: auto; }
+  .pt-pip-banner {
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.45;
+    background: #ecfdf5; border: 1px solid #86efac; color: #14532d; margin-bottom: 12px;
+  }
+  .pt-pip-banner.off { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+  .pt-timer-status { font-size: 13px; color: var(--ink-soft); margin: 0 0 10px; }
+  .pt-btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .pt-btn-hunt { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .pt-btn-hunt:disabled { opacity: 0.45; cursor: not-allowed; }
+  .pt-btn-hunt-end { background: #64748b; color: #fff; border: none; border-radius: 8px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .pt-btn-hunt-end:disabled { opacity: 0.45; cursor: not-allowed; }
+  .pt-preset-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .pt-preset-row select, .pt-preset-row input[type=text] {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-family: inherit; font-size: 14px;
+  }
+  .pt-slot-list { display: flex; flex-direction: column; gap: 8px; }
+  .pt-slot-row {
+    display: grid; grid-template-columns: auto 1fr 96px auto; gap: 8px; align-items: center;
+    padding: 8px 10px; background: var(--surface-muted); border-radius: 8px; border: 1px solid var(--line);
+  }
+  .pt-slot-icon { width: 28px; height: 28px; object-fit: contain; }
+  .pt-slot-label { font-weight: 600; font-size: 14px; }
+  .pt-slot-row input[type=number] { width: 100%; padding: 7px; border-radius: 7px; border: 1px solid var(--line); text-align: center; font-family: inherit; }
+  .pt-slot-enable { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+  .pip-root { padding: 10px; background: #0a0e14; min-height: 100%; margin: 0; }
+  .pip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .pip-card {
+    background: #1e293b; border-radius: 12px; padding: 12px 10px; text-align: center;
+    border: 2px solid transparent;
+  }
+  .pip-card.is-alarm {
+    animation: pip-flash 0.45s ease-in-out 5;
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.65);
+  }
+  @keyframes pip-flash {
+    0%, 100% { background: #1e293b; color: #f8fafc; }
+    50% { background: #7f1d1d; color: #fecaca; }
+  }
+  .pip-card-icon { width: 40px; height: 40px; object-fit: contain; margin-bottom: 6px; }
+  .pip-card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pip-card-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pip-card-time.is-zero { color: #f87171; }
   .btn-stats:hover {
     background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
     color: #fff !important;
@@ -3081,6 +3125,49 @@
   </div>
 </div>
 
+<div class="modal-backdrop modal-party-timer" id="partyTimerModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="partyTimerModalTitle">
+    <h3 id="partyTimerModalTitle">퉁공대 타이머</h3>
+    <p class="pt-timer-status" id="ptTimerStatus"></p>
+    <div class="pt-pip-banner off" id="ptPipBanner"></div>
+    <div class="pt-btn-row">
+      <button type="button" class="pt-btn-hunt" id="ptHuntStartBtn">사냥 시작</button>
+      <button type="button" class="pt-btn-hunt-end" id="ptHuntEndBtn">사냥 종료</button>
+      <button type="button" class="btn-light btn-sm" id="ptPipOpenBtn">PIP 열기</button>
+      <button type="button" class="btn-ghost btn-sm" id="ptLeaveBtn">닫기</button>
+    </div>
+    <p class="takeover-hint" style="margin:0 0 12px;">장부 페이지는 그대로 두고 설정합니다. 알림음은 PIP 창이 켜진 경우에만 재생됩니다.</p>
+    <div class="modal-section">
+      <div class="modal-section-head"><span>사냥터 프리셋</span></div>
+      <div class="pt-preset-row">
+        <select id="ptPresetSelect" aria-label="사냥터"></select>
+        <input type="text" id="ptPresetNameInput" placeholder="사냥터 이름">
+        <button type="button" class="btn-light btn-sm" id="ptPresetSaveBtn">저장</button>
+        <button type="button" class="btn-light btn-sm" id="ptPresetAddBtn">+ 추가</button>
+        <button type="button" class="btn-light btn-sm" id="ptPresetDeleteBtn">삭제</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-head"><span>버프 · 타이머 (초)</span></div>
+      <div class="pt-slot-list" id="ptSlotList"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="ptTimerCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+<style id="partyTimerPipStyles" media="not all">
+  .pip-root { padding: 10px; background: #0a0e14; min-height: 100%; }
+  .pip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .pip-card { background: #1e293b; border-radius: 12px; padding: 12px 10px; text-align: center; border: 2px solid transparent; }
+  .pip-card.is-alarm { animation: pip-flash 0.45s ease-in-out 5; border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,.65); }
+  @keyframes pip-flash { 0%,100%{background:#1e293b} 50%{background:#7f1d1d;color:#fecaca} }
+  .pip-card-icon { width: 40px; height: 40px; object-fit: contain; margin-bottom: 6px; }
+  .pip-card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+  .pip-card-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pip-card-time.is-zero { color: #f87171; }
+</style>
+
 <div class="hot-lightbox" id="hotIssueLightbox" hidden role="dialog" aria-modal="true" aria-label="사진 크게 보기">
   <button type="button" class="hot-lightbox-close" id="hotIssueLightboxClose" aria-label="닫기">×</button>
   <div class="hot-lightbox-inner" id="hotIssueLightboxInner">
@@ -3090,6 +3177,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="party-timer-app.js"></script>
 <script>
 (function () {
   // ── 웹 공유 설정 (Supabase 프로젝트 만든 뒤 아래 두 값을 채우세요) ──
@@ -4414,7 +4502,8 @@
       || !$('accountModal').hidden
       || !$('challengeModal').hidden
       || !$('challengeAdminModal').hidden
-      || !$('makerEditModal').hidden;
+      || !$('makerEditModal').hidden
+      || ($('partyTimerModal') && !$('partyTimerModal').hidden);
   }
 
   function parcelFeeRateForAmount(amount) {
@@ -4910,6 +4999,10 @@
     }
     if (needsResave || gemNamesMigrated) scheduleSave();
     runGamificationAfterStateLoad();
+    if (window.PartyTimerApp) {
+      PartyTimerApp.ensurePartyTimerState();
+      PartyTimerApp.onRemoteStateApplied();
+    }
     render();
     if (!$('warehouseModal').hidden) renderWarehouseList();
     if (!$('hotIssueModal').hidden) renderHotIssueFeed();
@@ -9308,10 +9401,11 @@
 
   $('warehouseBtn').addEventListener('click', () => openWarehouseModal());
   $('partyTimerBtn').addEventListener('click', () => {
-    sessionStorage.setItem('timerAutoPip', '1');
-    const base = location.pathname.replace(/[^/]+$/, '');
-    const timerPath = base + 'party-timer.html';
-    location.href = `${timerPath}?room=${encodeURIComponent(ROOM_ID)}`;
+    if (storageMode !== 'cloud' || !authSession) {
+      alert('클라우드 로그인 후 퉁공대 타이머를 사용할 수 있어요.');
+      return;
+    }
+    if (window.PartyTimerApp) PartyTimerApp.openFromUserGesture();
   });
   $('hotIssueBtn').addEventListener('click', () => openHotIssueModal());
   $('hotIssueCloseBtn').addEventListener('click', closeHotIssueModal);
@@ -9435,6 +9529,18 @@
     render();
   });
 
+  if (window.PartyTimerApp) {
+    PartyTimerApp.init({
+      $,
+      genId,
+      getState: () => state,
+      scheduleSave,
+      getRealtimeReady: () => realtimeReady,
+      getStorageMode: () => storageMode,
+      getRoomId: () => ROOM_ID,
+    });
+  }
+
   async function bootApp() {
     initStorageBackend();
     if (storageMode !== 'cloud') {
@@ -9459,6 +9565,13 @@
       if (today !== hotIssueBadgeWatchDate) updateHotIssueTodayBadge();
     }, 60000);
     installOverlayScrollLock();
+    const openTimer = new URLSearchParams(location.search).get('openTimer');
+    if (openTimer === '1' && storageMode === 'cloud' && authSession && window.PartyTimerApp) {
+      PartyTimerApp.openFromUserGesture();
+      const url = new URL(location.href);
+      url.searchParams.delete('openTimer');
+      history.replaceState(null, '', url.toString());
+    }
   }
 
   $('authSubmitBtn').addEventListener('click', async () => {
