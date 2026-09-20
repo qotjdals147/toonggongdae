@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>퉁공대 타이머</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --surface: #1a2332;
+    --surface2: #243044;
+    --line: #334155;
+    --ink: #e2e8f0;
+    --ink-soft: #94a3b8;
+    --accent: #22c55e;
+    --accent-hover: #16a34a;
+    --warn: #ef4444;
+    --blue: #3b82f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .auth-gate {
+    max-width: 360px; margin: 48px auto; padding: 24px;
+    background: var(--surface); border-radius: 12px; border: 1px solid var(--line);
+  }
+  .auth-gate input { width: 100%; padding: 10px; margin: 8px 0 12px; border-radius: 8px; border: 1px solid var(--line); background: #0f172a; color: var(--ink); }
+  .auth-gate-error { color: var(--warn); font-size: 13px; min-height: 1.2em; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+  header h1 { font-size: 22px; margin: 0; }
+  .status { font-size: 13px; color: var(--ink-soft); flex: 1; min-width: 200px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    font-family: inherit; cursor: pointer; border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: 14px; font-weight: 600;
+  }
+  .btn-primary { background: var(--accent); color: #052e16; }
+  .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-hunt { background: #2563eb; color: #fff; }
+  .btn-hunt-end { background: #64748b; color: #fff; }
+  .btn-ghost { background: var(--surface2); color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { background: #334155; }
+  .btn-leave { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; color: var(--ink-soft); font-weight: 600; }
+  .preset-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .preset-row select, .preset-row input[type=text] {
+    padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: #0f172a; color: var(--ink); font-family: inherit; font-size: 14px;
+  }
+  .preset-row select { min-width: 160px; }
+  .preset-row input[type=text] { flex: 1; min-width: 120px; }
+  .slot-list { display: flex; flex-direction: column; gap: 10px; }
+  .slot-row {
+    display: grid; grid-template-columns: auto 1fr 100px auto; gap: 10px; align-items: center;
+    padding: 10px; background: var(--surface2); border-radius: 10px;
+  }
+  @media (max-width: 560px) {
+    .slot-row { grid-template-columns: 1fr 1fr; }
+    .slot-row .slot-label { grid-column: 1 / -1; }
+  }
+  .slot-icon { width: 32px; height: 32px; object-fit: contain; }
+  .slot-label { font-weight: 600; font-size: 14px; }
+  .slot-row input[type=number] {
+    width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: #0f172a; color: var(--ink); font-size: 15px; text-align: center;
+  }
+  .slot-row input:disabled { opacity: 0.55; }
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin: 0; }
+  .pip-banner {
+    padding: 12px; border-radius: 10px; background: #14532d; border: 1px solid #22c55e;
+    font-size: 13px; margin-bottom: 14px;
+  }
+  .pip-banner.off { background: #422006; border-color: #f59e0b; }
+  a.back { color: var(--blue); font-size: 14px; text-decoration: none; }
+  a.back:hover { text-decoration: underline; }
+
+  /* PiP document styles (injected into pip window too) */
+  .pip-root { padding: 10px; background: #0a0e14; min-height: 100%; }
+  .pip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .pip-card {
+    background: #1e293b; border-radius: 12px; padding: 12px 10px; text-align: center;
+    border: 2px solid transparent; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .pip-card.is-alarm {
+    animation: pip-flash 0.45s ease-in-out 5;
+    border-color: var(--warn);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.65);
+  }
+  @keyframes pip-flash {
+    0%, 100% { background: #1e293b; color: #f8fafc; }
+    50% { background: #7f1d1d; color: #fecaca; }
+  }
+  .pip-card-icon { width: 40px; height: 40px; object-fit: contain; margin-bottom: 6px; }
+  .pip-card-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pip-card-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+  .pip-card-time.is-zero { color: #f87171; }
+</style>
+</head>
+<body>
+<div id="authGate" class="auth-gate" hidden>
+  <h2>퉁공대 로그인</h2>
+  <p>타이머는 공대 계정으로만 사용할 수 있어요.<br>방 <strong id="authGateRoom"></strong></p>
+  <label for="authLoginId">아이디</label>
+  <input id="authLoginId" type="text" autocomplete="username" autocapitalize="off">
+  <label for="authPassword">비밀번호</label>
+  <input id="authPassword" type="password" autocomplete="current-password">
+  <div class="auth-gate-error" id="authGateError"></div>
+  <button type="button" class="btn-primary" id="authSubmitBtn" style="width:100%;margin-top:8px;">로그인</button>
+</div>
+
+<div class="wrap" id="appRoot" hidden>
+  <header>
+    <h1>퉁공대 타이머</h1>
+    <div class="status" id="statusText">불러오는 중…</div>
+    <a class="back" id="backLedgerLink" href="#">← 장부로</a>
+  </header>
+
+  <div class="pip-banner off" id="pipBanner">PIP 창이 꺼져 있어요. 알림음은 PIP가 켜진 기기에서만 재생됩니다.</div>
+
+  <div class="card">
+    <h2>사냥 제어</h2>
+    <div class="btn-row">
+      <button type="button" class="btn-hunt" id="huntStartBtn">사냥 시작</button>
+      <button type="button" class="btn-hunt-end" id="huntEndBtn">사냥 종료</button>
+      <button type="button" class="btn-ghost" id="pipOpenBtn">PIP 다시 열기</button>
+      <button type="button" class="btn-leave" id="leaveBtn">퇴장</button>
+    </div>
+    <p class="hint" style="margin-top:10px;">사냥 시작 중에는 타이머가 동기화되어 감소합니다. 사냥 종료 시 모든 타이머가 아래에 입력한 초 값으로 초기화됩니다.</p>
+  </div>
+
+  <div class="card">
+    <h2>사냥터 프리셋</h2>
+    <div class="preset-row">
+      <select id="presetSelect" aria-label="사냥터 선택"></select>
+      <input type="text" id="presetNameInput" placeholder="사냥터 이름">
+      <button type="button" class="btn-ghost" id="presetSaveBtn">저장</button>
+      <button type="button" class="btn-ghost" id="presetAddBtn">+ 추가</button>
+      <button type="button" class="btn-ghost" id="presetDeleteBtn">삭제</button>
+    </div>
+    <p class="hint">프리셋마다 버프 이름·초·(나중에) 아이콘을 저장해 두었다가 불러올 수 있어요.</p>
+  </div>
+
+  <div class="card">
+    <h2>버프 · 타이머 설정</h2>
+    <div class="slot-list" id="slotList"></div>
+    <p class="hint" style="margin-top:12px;">아이콘·버프 종류는 이후 PIP 설정에서 추가할 예정입니다. 지금은 이름과 초만 편집합니다.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function () {
+  const CLOUD_CONFIG = {
+    supabaseUrl: 'https://rpktsgrbwnxolnmgvdos.supabase.co',
+    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwa3RzZ3Jid254b2xubWd2ZG9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTU4OTYsImV4cCI6MjEwNTA5MTg5Nn0.vOEKRy7G3nkrQEIe34J0WnHsNZAoq0pWm2CANrk3UJ8'
+  };
+  const ROOM_ID = (() => {
+    const q = new URLSearchParams(location.search).get('room');
+    return q && /^[a-zA-Z0-9_-]{3,48}$/.test(q) ? q : 'tongtongi';
+  })();
+  const STORAGE_KEY = 'tongtongi-party-ledger-v2';
+  const LOGIN_ID_SLUG = { '순퉁': 'suntung', '지퉁': 'jitung', '배퉁': 'baetung' };
+  const LOGIN_ID_TO_MEMBER_IDX = { '순퉁': 0, '지퉁': 1, '배퉁': 2 };
+
+  const $ = (id) => document.getElementById(id);
+  const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  let supabaseClient = null;
+  let storageMode = 'local';
+  let authSession = null;
+  let ledgerState = null;
+  let partyTimer = null;
+  let saveTimeout = null;
+  let suppressRemoteUntil = 0;
+  let realtimeReady = false;
+  let pipWindow = null;
+  let pipTickId = null;
+  let joined = false;
+  const slotAlarmFired = {};
+
+  function defaultSlots() {
+    return [
+      { id: 'slot-holy', label: '홀리심볼', durationSec: 180, icon: null, enabled: true },
+      { id: 'slot-session', label: '한타임', durationSec: 1200, icon: null, enabled: true },
+      { id: 'slot-buff1', label: '버프 1', durationSec: 90, icon: null, enabled: true },
+      { id: 'slot-consume', label: '소모품', durationSec: 600, icon: null, enabled: true },
+    ];
+  }
+
+  function defaultPartyTimer() {
+    const slots = defaultSlots();
+    const presetId = 'preset-default';
+    const slotRemaining = {};
+    slots.forEach((s) => { slotRemaining[s.id] = s.durationSec * 1000; });
+    return {
+      schema: 1,
+      activePresetId: presetId,
+      presets: [{ id: presetId, name: '기본', slots: slots.map((s) => ({ ...s })) }],
+      runtime: { huntActive: false, rev: 0, slotRemaining, slotEndsAt: {} },
+    };
+  }
+
+  function normalizePartyTimer(raw) {
+    const base = defaultPartyTimer();
+    if (!raw || typeof raw !== 'object') return base;
+    const pt = { ...base, ...raw };
+    if (!Array.isArray(pt.presets) || !pt.presets.length) pt.presets = base.presets;
+    pt.presets = pt.presets.map((p) => ({
+      id: p.id || genId(),
+      name: String(p.name || '사냥터').trim() || '사냥터',
+      slots: (Array.isArray(p.slots) && p.slots.length ? p.slots : defaultSlots()).map((s, i) => ({
+        id: s.id || `slot-${i}`,
+        label: String(s.label || `버프 ${i + 1}`),
+        durationSec: Math.max(1, Math.round(Number(s.durationSec) || 60)),
+        icon: s.icon || null,
+        enabled: s.enabled !== false,
+      })),
+    }));
+    if (!pt.activePresetId || !pt.presets.some((p) => p.id === pt.activePresetId)) {
+      pt.activePresetId = pt.presets[0].id;
+    }
+    const preset = pt.presets.find((p) => p.id === pt.activePresetId) || pt.presets[0];
+    const rt = pt.runtime && typeof pt.runtime === 'object' ? pt.runtime : {};
+    pt.runtime = {
+      huntActive: !!rt.huntActive,
+      rev: Number(rt.rev) || 0,
+      slotRemaining: rt.slotRemaining && typeof rt.slotRemaining === 'object' ? { ...rt.slotRemaining } : {},
+      slotEndsAt: rt.slotEndsAt && typeof rt.slotEndsAt === 'object' ? { ...rt.slotEndsAt } : {},
+    };
+    preset.slots.forEach((s) => {
+      if (pt.runtime.slotRemaining[s.id] == null) pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
+    });
+    return pt;
+  }
+
+  function getActivePreset() {
+    return partyTimer.presets.find((p) => p.id === partyTimer.activePresetId) || partyTimer.presets[0];
+  }
+
+  function authEmailForLoginId(loginId) {
+    const slug = LOGIN_ID_SLUG[loginId] || String(loginId).replace(/[^\w.-]/g, '');
+    return `party+${slug}@${ROOM_ID}.toonggongdae.app`;
+  }
+
+  function authSessionFromAccessRow(user, row) {
+    if (!user || !row || row.room_id !== ROOM_ID) return null;
+    const loginId = String(row.login_id || '').trim();
+    const memberIdx = LOGIN_ID_TO_MEMBER_IDX[loginId] != null ? LOGIN_ID_TO_MEMBER_IDX[loginId] : Number(row.member_idx);
+    if (memberIdx < 0 || memberIdx > 2) return null;
+    return { userId: user.id, loginId, memberIdx };
+  }
+
+  async function fetchAccessRow(userId) {
+    const { data, error } = await supabaseClient.from('party_room_access').select('*').eq('user_id', userId).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async function refreshAuthSession() {
+    if (!supabaseClient) { authSession = null; return false; }
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session || !session.user) { authSession = null; showAuthGate(); return false; }
+    let accessRow;
+    try { accessRow = await fetchAccessRow(session.user.id); } catch (e) { authSession = null; showAuthGate('접속 정보를 불러오지 못했어요.'); return false; }
+    const resolved = authSessionFromAccessRow(session.user, accessRow);
+    if (!resolved) { authSession = null; await supabaseClient.auth.signOut(); showAuthGate('이 방에 등록되지 않은 계정이에요.'); return false; }
+    authSession = resolved;
+    $('authGate').hidden = true;
+    $('appRoot').hidden = false;
+    return true;
+  }
+
+  function showAuthGate(msg) {
+    $('appRoot').hidden = true;
+    $('authGate').hidden = false;
+    $('authGateRoom').textContent = ROOM_ID;
+    if (msg) $('authGateError').textContent = msg;
+  }
+
+  async function signInWithPartyAccount(loginId, password) {
+    $('authGateError').textContent = '';
+    const id = String(loginId || '').trim();
+    if (!id || !password) { $('authGateError').textContent = '아이디와 비밀번호를 입력해 주세요.'; return false; }
+    const email = authEmailForLoginId(id);
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { $('authGateError').textContent = '로그인에 실패했어요.'; return false; }
+    return refreshAuthSession();
+  }
+
+  function initStorageBackend() {
+    if (CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey && window.supabase) {
+      supabaseClient = window.supabase.createClient(CLOUD_CONFIG.supabaseUrl, CLOUD_CONFIG.supabaseAnonKey, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      });
+      storageMode = 'cloud';
+      return;
+    }
+    storageMode = 'local';
+  }
+
+  function ledgerPageUrl() {
+    const base = location.pathname.replace(/party-timer\.html$/i, 'index.html');
+    const path = base.includes('index.html') ? base : 'index.html';
+    return `${location.origin}${location.pathname.replace(/[^/]+$/, '')}${path}?room=${encodeURIComponent(ROOM_ID)}`;
+  }
+
+  function applyLedgerPayload(data) {
+    ledgerState = data && typeof data === 'object' ? data : {};
+    partyTimer = normalizePartyTimer(ledgerState.partyTimer);
+    ledgerState.partyTimer = partyTimer;
+  }
+
+  async function loadLedger() {
+    if (storageMode === 'cloud' && supabaseClient) {
+      const { data, error } = await supabaseClient.from('party_ledgers').select('data').eq('room_id', ROOM_ID).maybeSingle();
+      if (error) throw error;
+      applyLedgerPayload(data && data.data ? data.data : {});
+      return;
+    }
+    const local = localStorage.getItem(STORAGE_KEY + ':' + ROOM_ID);
+    applyLedgerPayload(local ? JSON.parse(local) : {});
+  }
+
+  async function fetchLedgerPayload() {
+    if (storageMode === 'cloud' && supabaseClient) {
+      const { data, error } = await supabaseClient.from('party_ledgers').select('data').eq('room_id', ROOM_ID).maybeSingle();
+      if (error) throw error;
+      return data && data.data && typeof data.data === 'object' ? data.data : {};
+    }
+    const local = localStorage.getItem(STORAGE_KEY + ':' + ROOM_ID);
+    return local ? JSON.parse(local) : {};
+  }
+
+  async function saveLedger() {
+    suppressRemoteUntil = Date.now() + 1500;
+    const base = await fetchLedgerPayload();
+    base.partyTimer = partyTimer;
+    ledgerState = base;
+    const payload = JSON.parse(JSON.stringify(base));
+    delete payload.viewCycleId;
+    if (storageMode === 'cloud' && supabaseClient) {
+      const { error } = await supabaseClient.from('party_ledgers').upsert(
+        { room_id: ROOM_ID, data: payload, updated_at: new Date().toISOString() },
+        { onConflict: 'room_id' }
+      );
+      if (error) throw error;
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY + ':' + ROOM_ID, JSON.stringify(payload));
+  }
+
+  function scheduleSave() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      try {
+        $('statusText').textContent = '저장 중…';
+        await saveLedger();
+        updateStatusUi();
+      } catch (e) {
+        $('statusText').textContent = '저장 실패 · 다시 시도해 주세요';
+      }
+    }, 400);
+  }
+
+  function bumpRuntimeRev() {
+    partyTimer.runtime.rev = (Number(partyTimer.runtime.rev) || 0) + 1;
+  }
+
+  function slotRemainingMs(slot, now) {
+    const rt = partyTimer.runtime;
+    if (rt.huntActive && rt.slotEndsAt[slot.id] != null) {
+      return Math.max(0, Math.round(rt.slotEndsAt[slot.id] - now));
+    }
+    return Math.max(0, Math.round(Number(rt.slotRemaining[slot.id]) || slot.durationSec * 1000));
+  }
+
+  function formatMs(ms) {
+    const sec = Math.ceil(ms / 1000);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function syncRuntimeRemainingFromEndsAt(now) {
+    const rt = partyTimer.runtime;
+    if (!rt.huntActive) return;
+    const preset = getActivePreset();
+    preset.slots.filter((s) => s.enabled).forEach((s) => {
+      if (rt.slotEndsAt[s.id] != null) rt.slotRemaining[s.id] = Math.max(0, rt.slotEndsAt[s.id] - now);
+    });
+  }
+
+  function huntStart() {
+    if (partyTimer.runtime.huntActive) return;
+    const now = Date.now();
+    const preset = getActivePreset();
+    partyTimer.runtime.huntActive = true;
+    preset.slots.filter((s) => s.enabled).forEach((s) => {
+      const rem = Math.max(0, Number(partyTimer.runtime.slotRemaining[s.id]) || s.durationSec * 1000);
+      partyTimer.runtime.slotEndsAt[s.id] = now + rem;
+    });
+    bumpRuntimeRev();
+    Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
+    scheduleSave();
+    renderAll();
+    renderPipTimers();
+  }
+
+  function huntEnd() {
+    if (!partyTimer.runtime.huntActive) return;
+    const preset = getActivePreset();
+    partyTimer.runtime.huntActive = false;
+    partyTimer.runtime.slotEndsAt = {};
+    preset.slots.forEach((s) => {
+      partyTimer.runtime.slotRemaining[s.id] = s.durationSec * 1000;
+    });
+    bumpRuntimeRev();
+    Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
+    scheduleSave();
+    renderAll();
+    renderPipTimers();
+  }
+
+  function enterSession() {
+    joined = true;
+    updateStatusUi();
+  }
+
+  function leaveSession() {
+    stopPipTick();
+    if (pipWindow && !pipWindow.closed) {
+      try { pipWindow.close(); } catch (e) { /* ignore */ }
+    }
+    pipWindow = null;
+    joined = false;
+    location.href = ledgerPageUrl();
+  }
+
+  function updateStatusUi() {
+    const live = storageMode === 'cloud' && realtimeReady;
+    const hunt = partyTimer && partyTimer.runtime.huntActive;
+    $('statusText').textContent = joined
+      ? `${live ? '실시간 동기화 · ' : ''}방 ${ROOM_ID}${hunt ? ' · 사냥 중' : ' · 대기'}`
+      : '입장 대기';
+    const banner = $('pipBanner');
+    if (pipWindow && !pipWindow.closed) {
+      banner.classList.remove('off');
+      banner.textContent = 'PIP 활성 — 이 창에서만 알림음이 재생됩니다. PIP 크기는 모서리를 드래그해 조절할 수 있어요.';
+    } else {
+      banner.classList.add('off');
+      banner.textContent = 'PIP 창이 꺼져 있어요. 알림음은 PIP가 켜진 기기에서만 재생됩니다.';
+    }
+    $('huntStartBtn').disabled = hunt;
+    $('huntEndBtn').disabled = !hunt;
+  }
+
+  function renderPresetSelect() {
+    const sel = $('presetSelect');
+    sel.innerHTML = '';
+    partyTimer.presets.forEach((p) => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      if (p.id === partyTimer.activePresetId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    $('presetNameInput').value = getActivePreset().name;
+  }
+
+  function renderSlotList() {
+    const list = $('slotList');
+    list.innerHTML = '';
+    const preset = getActivePreset();
+    const hunt = partyTimer.runtime.huntActive;
+    preset.slots.forEach((slot) => {
+      const row = document.createElement('div');
+      row.className = 'slot-row';
+      const iconHtml = slot.icon ? `<img class="slot-icon" src="${slot.icon}" alt="">` : '';
+      row.innerHTML = `
+        ${iconHtml}
+        <span class="slot-label">${slot.label}</span>
+        <input type="number" min="1" max="86400" step="1" data-slot-id="${slot.id}" value="${slot.durationSec}" ${hunt ? 'disabled' : ''}>
+        <label style="font-size:12px;color:var(--ink-soft);"><input type="checkbox" data-enable-id="${slot.id}" ${slot.enabled ? 'checked' : ''} ${hunt ? 'disabled' : ''}> 사용</label>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('input[type=number]').forEach((inp) => {
+      inp.addEventListener('change', () => {
+        const id = inp.dataset.slotId;
+        const sec = Math.max(1, Math.round(Number(inp.value) || 60));
+        const s = getActivePreset().slots.find((x) => x.id === id);
+        if (!s) return;
+        s.durationSec = sec;
+        inp.value = String(sec);
+        if (!partyTimer.runtime.huntActive) partyTimer.runtime.slotRemaining[id] = sec * 1000;
+        scheduleSave();
+        renderPipTimers();
+      });
+    });
+    list.querySelectorAll('input[type=checkbox]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        const id = cb.dataset.enableId;
+        const s = getActivePreset().slots.find((x) => x.id === id);
+        if (s) s.enabled = cb.checked;
+        scheduleSave();
+      });
+    });
+  }
+
+  function renderAll() {
+    renderPresetSelect();
+    renderSlotList();
+    updateStatusUi();
+  }
+
+  function playPipAlarm() {
+    if (!pipWindow || pipWindow.closed) return;
+    try {
+      const ctx = new (pipWindow.AudioContext || pipWindow.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.15;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => { osc.stop(); ctx.close(); }, 280);
+      setTimeout(() => {
+        const ctx2 = new (pipWindow.AudioContext || pipWindow.webkitAudioContext)();
+        const o2 = ctx2.createOscillator();
+        const g2 = ctx2.createGain();
+        o2.frequency.value = 660;
+        g2.gain.value = 0.15;
+        o2.connect(g2);
+        g2.connect(ctx2.destination);
+        o2.start();
+        setTimeout(() => { o2.stop(); ctx2.close(); }, 280);
+      }, 320);
+    } catch (e) { /* ignore */ }
+  }
+
+  function injectPipStyles(doc) {
+    document.querySelectorAll('style').forEach((st) => {
+      doc.head.appendChild(st.cloneNode(true));
+    });
+  }
+
+  function renderPipTimers() {
+    if (!pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
+    let root = doc.getElementById('pipRoot');
+    if (!root) {
+      doc.body.innerHTML = '';
+      doc.body.className = 'pip-root';
+      root = doc.createElement('div');
+      root.id = 'pipRoot';
+      root.className = 'pip-root';
+      doc.body.appendChild(root);
+    }
+    const preset = getActivePreset();
+    const now = Date.now();
+    const grid = doc.createElement('div');
+    grid.className = 'pip-grid';
+    preset.slots.filter((s) => s.enabled).forEach((slot) => {
+      const rem = slotRemainingMs(slot, now);
+      const card = doc.createElement('div');
+      card.className = 'pip-card';
+      card.dataset.slotId = slot.id;
+      const icon = slot.icon ? `<img class="pip-card-icon" src="${slot.icon}" alt="">` : '';
+      card.innerHTML = `${icon}<div class="pip-card-label">${slot.label}</div><div class="pip-card-time${rem <= 0 ? ' is-zero' : ''}">${formatMs(rem)}</div>`;
+      grid.appendChild(card);
+    });
+    root.innerHTML = '';
+    root.appendChild(grid);
+  }
+
+  function checkPipAlarms(now) {
+    if (!pipWindow || pipWindow.closed || !partyTimer.runtime.huntActive) return;
+    const preset = getActivePreset();
+    preset.slots.filter((s) => s.enabled).forEach((slot) => {
+      const rem = slotRemainingMs(slot, now);
+      if (rem > 0) {
+        delete slotAlarmFired[slot.id];
+        return;
+      }
+      if (slotAlarmFired[slot.id]) return;
+      slotAlarmFired[slot.id] = true;
+      playPipAlarm();
+      const doc = pipWindow.document;
+      const card = doc.querySelector(`.pip-card[data-slot-id="${slot.id}"]`);
+      if (card) {
+        card.classList.add('is-alarm');
+        setTimeout(() => card.classList.remove('is-alarm'), 2000);
+      }
+    });
+  }
+
+  function stopPipTick() {
+    if (pipTickId) {
+      clearInterval(pipTickId);
+      pipTickId = null;
+    }
+  }
+
+  function startPipTick() {
+    stopPipTick();
+    pipTickId = setInterval(() => {
+      if (!pipWindow || pipWindow.closed) {
+        stopPipTick();
+        updateStatusUi();
+        return;
+      }
+      const now = Date.now();
+      if (partyTimer.runtime.huntActive) syncRuntimeRemainingFromEndsAt(now);
+      renderPipTimers();
+      checkPipAlarms(now);
+    }, 200);
+  }
+
+  async function openPip() {
+    if (!('documentPictureInPicture' in window)) {
+      alert('PIP는 Chrome·Edge(데스크톱)에서 지원됩니다. 타이머는 이 페이지에서 계속 사용할 수 있어요.');
+      return;
+    }
+    if (pipWindow && !pipWindow.closed) {
+      pipWindow.focus();
+      return;
+    }
+    try {
+      pipWindow = await documentPictureInPicture.requestWindow({
+        width: 480,
+        height: 320,
+      });
+      injectPipStyles(pipWindow.document);
+      pipWindow.document.title = '퉁공대 타이머';
+      pipWindow.addEventListener('pagehide', () => {
+        pipWindow = null;
+        stopPipTick();
+        updateStatusUi();
+      });
+      renderPipTimers();
+      startPipTick();
+      updateStatusUi();
+    } catch (e) {
+      alert('PIP를 열지 못했어요. 주소창 옆 권한 또는 팝업/PIP 차단을 확인해 주세요.');
+    }
+  }
+
+  function subscribeCloudRealtime() {
+    if (!supabaseClient || storageMode !== 'cloud') return;
+    supabaseClient
+      .channel('party-timer-' + ROOM_ID)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'party_ledgers',
+        filter: 'room_id=eq.' + ROOM_ID,
+      }, async (payload) => {
+        if (Date.now() < suppressRemoteUntil) return;
+        const row = payload.new;
+        if (!row || !row.data) return;
+        const remote = normalizePartyTimer(row.data.partyTimer);
+        const localRev = Number(partyTimer.runtime.rev) || 0;
+        const remoteRev = Number(remote.runtime.rev) || 0;
+        if (remoteRev >= localRev) {
+          partyTimer = remote;
+          ledgerState.partyTimer = partyTimer;
+          renderAll();
+          renderPipTimers();
+        }
+      })
+      .subscribe((status) => {
+        realtimeReady = status === 'SUBSCRIBED';
+        updateStatusUi();
+      });
+  }
+
+  $('presetSelect').addEventListener('change', () => {
+    partyTimer.activePresetId = $('presetSelect').value;
+    const preset = getActivePreset();
+    if (!partyTimer.runtime.huntActive) {
+      preset.slots.forEach((s) => {
+        partyTimer.runtime.slotRemaining[s.id] = s.durationSec * 1000;
+      });
+    }
+    bumpRuntimeRev();
+    scheduleSave();
+    renderAll();
+    renderPipTimers();
+  });
+
+  $('presetSaveBtn').addEventListener('click', () => {
+    const name = $('presetNameInput').value.trim() || '사냥터';
+    getActivePreset().name = name;
+    bumpRuntimeRev();
+    scheduleSave();
+    renderPresetSelect();
+  });
+
+  $('presetAddBtn').addEventListener('click', () => {
+    const id = genId();
+    const slots = defaultSlots().map((s) => ({ ...s, id: genId() }));
+    partyTimer.presets.push({ id, name: '새 사냥터', slots });
+    partyTimer.activePresetId = id;
+    if (!partyTimer.runtime.huntActive) {
+      slots.forEach((s) => { partyTimer.runtime.slotRemaining[s.id] = s.durationSec * 1000; });
+    }
+    bumpRuntimeRev();
+    scheduleSave();
+    renderAll();
+  });
+
+  $('presetDeleteBtn').addEventListener('click', () => {
+    if (partyTimer.presets.length <= 1) {
+      alert('마지막 프리셋은 삭제할 수 없어요.');
+      return;
+    }
+    if (!confirm('이 사냥터 프리셋을 삭제할까요?')) return;
+    partyTimer.presets = partyTimer.presets.filter((p) => p.id !== partyTimer.activePresetId);
+    partyTimer.activePresetId = partyTimer.presets[0].id;
+    if (!partyTimer.runtime.huntActive) {
+      getActivePreset().slots.forEach((s) => {
+        partyTimer.runtime.slotRemaining[s.id] = s.durationSec * 1000;
+      });
+    }
+    bumpRuntimeRev();
+    scheduleSave();
+    renderAll();
+  });
+
+  $('huntStartBtn').addEventListener('click', huntStart);
+  $('huntEndBtn').addEventListener('click', huntEnd);
+  $('leaveBtn').addEventListener('click', leaveSession);
+  $('pipOpenBtn').addEventListener('click', () => openPip());
+  $('backLedgerLink').href = ledgerPageUrl();
+
+  $('authSubmitBtn').addEventListener('click', async () => {
+    await signInWithPartyAccount($('authLoginId').value, $('authPassword').value);
+    if (authSession) await bootTimer();
+  });
+  $('authPassword').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('authSubmitBtn').click();
+  });
+
+  async function bootTimer() {
+    $('backLedgerLink').href = ledgerPageUrl();
+    try {
+      await loadLedger();
+    } catch (e) {
+      $('statusText').textContent = '장부 불러오기 실패';
+      partyTimer = defaultPartyTimer();
+    }
+    enterSession();
+    renderAll();
+    if (sessionStorage.getItem('timerAutoPip') === '1') {
+      sessionStorage.removeItem('timerAutoPip');
+      await openPip();
+    }
+  }
+
+  async function boot() {
+    initStorageBackend();
+    if (storageMode !== 'cloud') {
+      showAuthGate('Supabase 클라우드 설정 후 타이머를 사용할 수 있어요.');
+      return;
+    }
+    const ok = await refreshAuthSession();
+    if (ok) {
+      subscribeCloudRealtime();
+      await bootTimer();
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

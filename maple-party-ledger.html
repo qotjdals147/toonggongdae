@@ -250,6 +250,11 @@
     box-shadow: 0 1px 3px rgba(5, 150, 105, 0.35) !important;
     font-weight: 600;
   }
+  .btn-timer {
+    background: #0f766e; color: #fff; border: none;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+  .btn-timer:hover { background: #0d9488 !important; color: #fff !important; }
   .btn-stats:hover {
     background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
     color: #fff !important;
@@ -2497,6 +2502,7 @@
       <div class="app-toolbar-group">
         <span class="app-toolbar-label">운영</span>
         <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
+        <button type="button" class="btn-timer btn-sm" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">퉁공대 타이머</button>
         <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
           퉁공대 핫이슈
           <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
@@ -4871,6 +4877,9 @@
     if (rosterNorm) next.partyRoster = rosterNorm;
     else if (ROOM_ID === 'tongtongi') {
       next.partyRoster = DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
+    }
+    if (parsed.partyTimer && typeof parsed.partyTimer === 'object') {
+      next.partyTimer = parsed.partyTimer;
     }
     const priceMigrated = migrateEntryPriceBasisToListing(next, parsed);
     const needsRosterResave = ROOM_ID === 'tongtongi' && !parsed.partyRoster;
@@ -9298,6 +9307,12 @@
   });
 
   $('warehouseBtn').addEventListener('click', () => openWarehouseModal());
+  $('partyTimerBtn').addEventListener('click', () => {
+    sessionStorage.setItem('timerAutoPip', '1');
+    const base = location.pathname.replace(/[^/]+$/, '');
+    const timerPath = base + 'party-timer.html';
+    location.href = `${timerPath}?room=${encodeURIComponent(ROOM_ID)}`;
+  });
   $('hotIssueBtn').addEventListener('click', () => openHotIssueModal());
   $('hotIssueCloseBtn').addEventListener('click', closeHotIssueModal);
   $('hotIssueModal').addEventListener('click', (e) => {

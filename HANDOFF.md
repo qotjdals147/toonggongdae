@@ -25,6 +25,7 @@
 |------|------|
 | **`index.html`** | **유일한 실제 소스.** HTML + CSS + JS 한 파일. |
 | **`maple-party-ledger.html`** | **배포/미러용 복사본.** 변경 시 `index.html`과 **항상 동일**하게 유지 (`Copy-Item -Force`). |
+| **`party-timer.html`** | **퉁공대 타이머** — PIP·사냥 시작/종료 · `state.partyTimer`를 `party_ledgers`에 merge 저장. |
 | `image/아이콘/` | meso·섹션 아이콘 |
 | `image/훈장아이콘/` | 레벨·도전 칭호 PNG |
 | `image/주문서 아이콘/` | 10·60·100% 주문서 아이콘 (카탈로그·자동완성) |
@@ -65,6 +66,7 @@ exclusiveTitleMeta{} // 고유 훈장 UI 오버라이드 · id → description, 
 challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전 자동완성 · 집계 매칭
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
+partyTimer?  // 타이머 전용 · presets[] + runtime(huntActive, slotRemaining, slotEndsAt, rev) · party-timer.html만 편집(merge save)
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -111,6 +113,13 @@ legacySummaryOnly (옛 회차 요약만)
 
 - UI **수수료 표** — 거래소 5%와 교환/택배 구간 fee **별개**.
 
+### 4.6 퉁공대 타이머 (partyTimer)
+
+- **데이터:** `party_ledgers.data.partyTimer` · 타이머 페이지는 **read-merge-write** (장부 cycles 등 덮어쓰지 않음).
+- **동기화:** `runtime.slotEndsAt` + `huntActive` · 사냥 종료 → 각 슬롯 `durationSec`으로 `slotRemaining` 초기화.
+- **PIP:** Chrome/Edge Document PiP · **알림음·0초 번쩍은 PIP 창에서만** · PIP 닫으면 tick/사운드 중지.
+- **프리셋:** `presets[{ name, slots[{ label, durationSec, icon?, enabled }] }]` · 버프/아이콘 확장 예정.
+
 ---
 
 ## 5. UI 섹션 ↔ 함수
@@ -133,6 +142,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
 | 마스터 옵션(배퉁) | `#challengeAdminModal` · `#challengeAdminBtn` · `switchChAdminTab` · memberIdx **=== 2** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
+| 퉁공대 타이머 | `#partyTimerBtn` → `party-timer.html?room=` · Document PiP · Realtime `partyTimer` · **저장 시 장부 JSON merge** |
 | 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -271,6 +281,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — **`party-timer.html`** MVP · **`퉁공대 타이머`** 버튼 · PiP·사냥 시작/종료·프리셋 · `partyTimer` merge 저장
 - **2026-09-20** — 획득 모달 **카탈로그 아이콘** · **`잡장비` UI**(상점 판매 문구·함께 기여 전원 고정)
 - **2026-09-20** — 카탈로그 **소모품 6종**+아이콘 · **`잡장비` 거래소 수수료 면제** (`CATALOG_AH_FEE_EXEMPT`)
 - **2026-09-19** — 모바일 **`.table-scroll` 가로 스크롤** · 모달 **배경 scroll lock** + overscroll contain
@@ -399,4 +410,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-20 (획득 모달 잡장비·카탈로그 아이콘)*
+*Last updated: 2026-09-21 (퉁공대 타이머 MVP)*
