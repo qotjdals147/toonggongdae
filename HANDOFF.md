@@ -87,6 +87,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **실수령** `entryNetReceived` = 등록가 − 5%.
 - **보유(`computeHeld`)** = 판매자에게 **실수령**만 가산.
 - **몫(`computeFairShare`)** = 등록가×분배율 − **(수수료÷3)** per member (`applySoldEntryFairShare`).
+- **예외 — `잡장비`:** NPC 상점 일괄 판매 · **`CATALOG_AH_FEE_EXEMPT`** · `entrySkipsAhSaleFee` → 수수료 0 · 등록가=실수령 · fair share에서 ⅓ 차감 없음.
 - **버그 주의:** `parseStoredState`에서 `entryPriceBasis` / `entryPriceNetUpgraded` **반드시 parsed에서 복원**. 없으면 불러올 때마다 `÷0.95` 반복되어 등록가가 **계속 증가** (`migrateEntryPriceBasisToListing`).
 
 ### 4.2 메이커 재련 — **재련 메소만**
@@ -177,7 +178,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 - **MapleStory.io 외부 자동완성 없음.**
 - **`challengeItemCatalog[]`:** `{ id, canonical, aliases[], icon? }` — **마스터 옵션 → 아이템 추가** CRUD + 코드 **시드 merge** (`mergeBuiltinCatalogSeeds`, `SCROLL_CATALOG_BASES` × 10/60/100%).
-- **시드:** load/`ensureGamificationState`마다 **canonical norm 중복 없이** 주문서·`시간의 조각`(별칭 `시조`)·**메이커 보석 48종**(`MAKER_GEM_CATALOG_NAMES`) 보충 · 신규 추가 시 `scheduleSave`.
+- **시드:** load/`ensureGamificationState`마다 **canonical norm 중복 없이** 주문서·`시간의 조각`(별칭 `시조`)·**소모품 6종**(`BUILTIN_MISC_ITEM_CATALOG`: 엘릭서·파워 엘릭서·이슬·순록의 우유·**잡장비**)·**메이커 보석 48종** 보충 · 아이콘 `CATALOG_ITEM_ICON_BY_CANONICAL` · 신규 추가 시 `scheduleSave`.
 - **아이콘:** `inferCatalogIconForCanonical` — 주문서 `%` → `image/주문서 아이콘/` · `시간의 조각` → `image/아이템아이콘/` · 보석 → `image/메이커보석아이콘/{공식명}.png` (`makerGemIconPath`). **앞으로 아이콘 추가 시** PNG 넣고 `MAKER_GEM_CATALOG_NAMES` 또는 `CATALOG_ITEM_ICON_BY_CANONICAL`에 등록 · **자동완성·장부 획득명·메이커 표·마스터 카탈로그** (`catalogItemDisplayHtml`, `bindItemNameAutocomplete` — 획득·메이커 보석명).
 - **미출시 자동완성 숨김:** `catalogEntryHiddenByReleasePolicy` — **명중률 주문서** 전종 · **방패 주문서 중 방어력 제외** · 기본 **순퉁·지퉁 검색 불가** · **배퉁(memberIdx 2)만** 검색 가능. 출시 후 **마스터 옵션 → 아이템 추가** 상단 체크(`catalogSearchFlags`)로 전원 공개 — 소유자 “출시됐다”고 하면 토글 또는 HANDOFF에 따라 `accuracyScrolls` / `shieldScrollsExtra` 켜기.
 - **자동완성:** `filterItemNameSuggestions` → **카탈로그만** · query **공백 제거 후 1자 이상** · 드롭다운 **아이콘+canonical** (`catalogAssetUrl` — 경로 `%`·공백 인코딩) · 별칭은 **검색용** (`itemNameMatchesQuery`).
@@ -268,6 +269,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-20** — 카탈로그 **소모품 6종**+아이콘 · **`잡장비` 거래소 수수료 면제** (`CATALOG_AH_FEE_EXEMPT`)
 - **2026-09-19** — 모바일 **`.table-scroll` 가로 스크롤** · 모달 **배경 scroll lock** + overscroll contain
 - **2026-09-19** — HANDOFF **§3 부트/hydrate · §5.2 공대원 카드 · §6.3 badgeEffect** 인수인계 보강
 - **2026-09-19** — 공대원 칸 **하단 정렬**(EXP 바닥) · 마이페이지 상단 · 로드 전 닉 깜빡임 방지
@@ -394,4 +396,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-19 (모바일 표·모달 스크롤)*
+*Last updated: 2026-09-20 (잡장비·소모품 카탈로그)*

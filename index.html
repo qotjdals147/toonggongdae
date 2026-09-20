@@ -3144,7 +3144,23 @@
   };
   const CATALOG_ITEM_ICON_BY_CANONICAL = {
     '시간의 조각': 'image/아이템아이콘/시간의조각아이콘.png',
+    '엘릭서': 'image/아이템아이콘/엘릭서.png',
+    '파워 엘릭서': 'image/아이템아이콘/파워 엘릭서.png',
+    '황혼의 이슬': 'image/아이템아이콘/황혼의 이슬.png',
+    '새벽의 이슬': 'image/아이템아이콘/새벽의 이슬.png',
+    '순록의 우유': 'image/아이템아이콘/순록의 우유.png',
+    '잡장비': 'image/아이템아이콘/잡장비.png',
   };
+  /** NPC 일괄 판매 등 · 거래소 5% 없음 · 등록가=실수령 */
+  const CATALOG_AH_FEE_EXEMPT = new Set(['잡장비']);
+  const BUILTIN_MISC_ITEM_CATALOG = [
+    '엘릭서',
+    '파워 엘릭서',
+    '황혼의 이슬',
+    '새벽의 이슬',
+    '순록의 우유',
+    '잡장비',
+  ];
   const MAKER_GEM_ICON_DIR = 'image/메이커보석아이콘';
   /** 파일명(확장자 제외) = 카탈로그 공식명 · `image/메이커보석아이콘/{name}.png` */
   const MAKER_GEM_CATALOG_NAMES = [
@@ -4022,13 +4038,26 @@
     return Math.max(0, Math.round(Number(entry.price) || 0));
   }
 
-  function entryAhSaleFee(listPrice) {
+  function entryItemCanonical(entry) {
+    if (!entry) return '';
+    const raw = String(entry.item || '').trim();
+    if (!raw) return '';
+    return resolveCatalogItemInput(raw) || raw;
+  }
+
+  function entrySkipsAhSaleFee(entry) {
+    const canonical = entryItemCanonical(entry);
+    return !!canonical && CATALOG_AH_FEE_EXEMPT.has(canonical);
+  }
+
+  function entryAhSaleFee(listPrice, entry) {
+    if (entry && entrySkipsAhSaleFee(entry)) return 0;
     return Math.round(listPrice * AH_SALE_FEE_RATE);
   }
 
   function entryNetReceived(entry) {
     const list = entryListPrice(entry);
-    return list - entryAhSaleFee(list);
+    return list - entryAhSaleFee(list, entry);
   }
 
   function soldEntriesNetTotal(entries) {
@@ -4040,7 +4069,7 @@
   }
 
   function soldEntriesAhFeeTotal(entries) {
-    return (entries || []).filter(isSoldEntry).reduce((s, e) => s + entryAhSaleFee(entryListPrice(e)), 0);
+    return (entries || []).filter(isSoldEntry).reduce((s, e) => s + entryAhSaleFee(entryListPrice(e), e), 0);
   }
 
   function computeMakerMesoPaidByMember() {
@@ -4066,7 +4095,7 @@
   function applySoldEntryFairShare(fair, entry) {
     if (!isSoldEntry(entry)) return;
     const list = entryListPrice(entry);
-    const feeShare = entryAhSaleFee(list) / state.members.length;
+    const feeShare = entryAhSaleFee(list, entry) / state.members.length;
     const split = (entry.split && entry.split.length === 3) ? entry.split : [...DEFAULT_SPLIT];
     split.forEach((p, i) => {
       fair[i] += list * (Number(p) / 100) - feeShare;
@@ -4092,7 +4121,7 @@
     (root.cycles || []).forEach((c) => {
       (c.entries || []).forEach((e) => {
         const net = Math.round(Number(e.price) || 0);
-        if (net > 0 && isSoldEntry(e)) {
+        if (net > 0 && isSoldEntry(e) && !entrySkipsAhSaleFee(e)) {
           e.price = Math.round(net / (1 - AH_SALE_FEE_RATE));
           touched = true;
         }
@@ -4111,9 +4140,14 @@
       el.textContent = '등록가를 입력하면 거래소 5% 수수료를 빼 실수령·1인당 수수료 부담(⅓)을 미리 볼 수 있어요.';
       return;
     }
-    const fee = entryAhSaleFee(list);
+    const draftEntry = { item: $('eEditItem').value.trim() };
+    const fee = entryAhSaleFee(list, draftEntry);
     const net = list - fee;
     const feeShare = Math.round(fee / state.members.length);
+    if (entrySkipsAhSaleFee(draftEntry)) {
+      el.innerHTML = `<strong>잡장비</strong> · NPC 일괄 판매 — <strong>${fmtNum(list)}</strong> 전액 수령 (거래소 5%·1인당 ⅓ 부담 없음)`;
+      return;
+    }
     el.innerHTML = `등록가 <strong>${fmtNum(list)}</strong> → 실수령 <strong>${fmtNum(net)}</strong> (수수료 ${fmtNum(fee)}) · 1인당 수수료 부담 ≈ ${fmtNum(feeShare)}`;
   }
 
@@ -5027,6 +5061,12 @@
       canonical: '시간의 조각',
       aliases: ['시조'],
       icon: CATALOG_ITEM_ICON_BY_CANONICAL['시간의 조각'],
+    });
+    BUILTIN_MISC_ITEM_CATALOG.forEach((name) => {
+      rows.push({
+        canonical: name,
+        icon: CATALOG_ITEM_ICON_BY_CANONICAL[name] || inferCatalogIconForCanonical(name),
+      });
     });
     MAKER_GEM_CATALOG_NAMES.forEach((name) => {
       rows.push({
@@ -7543,7 +7583,9 @@
       const unsold = entryStatus(entry) === 'unsold';
       const priceCell = unsold
         ? '—'
-        : `${fmt(entryListPrice(entry))}<span class="maker-col-hint">실수령 ${fmtNum(entryNetReceived(entry))}</span>`;
+        : entrySkipsAhSaleFee(entry)
+          ? `${fmt(entryListPrice(entry))}<span class="maker-col-hint">NPC·수수료 없음</span>`
+          : `${fmt(entryListPrice(entry))}<span class="maker-col-hint">실수령 ${fmtNum(entryNetReceived(entry))}</span>`;
       const statusBadge = unsold
         ? '<span class="sale-badge unsold">미판매</span>'
         : '<span class="sale-badge sold">판매완료</span>';
@@ -9234,6 +9276,8 @@
   bindMoneyInput('eEditPrice');
   $('eEditPrice').addEventListener('input', updateEntryPricePreview);
   $('eEditPrice').addEventListener('change', updateEntryPricePreview);
+  $('eEditItem').addEventListener('input', updateEntryPricePreview);
+  $('eEditItem').addEventListener('change', updateEntryPricePreview);
   bindMoneyInput('xEditAmount');
   bindMoneyInput('chAdminThreshold');
 
