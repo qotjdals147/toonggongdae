@@ -19,10 +19,10 @@
 
   function defaultSlots() {
     return [
-      { id: 'slot-holy', label: '홀리심볼', durationSec: 180, icon: null, enabled: true },
-      { id: 'slot-session', label: '한타임', durationSec: 1200, icon: null, enabled: true },
-      { id: 'slot-buff1', label: '버프 1', durationSec: 90, icon: null, enabled: true },
-      { id: 'slot-consume', label: '소모품', durationSec: 600, icon: null, enabled: true },
+      { id: 'slot-holy', label: '홀리심볼', durationSec: 180, durationUnit: 'sec', icon: null, enabled: true },
+      { id: 'slot-session', label: '한타임', durationSec: 1200, durationUnit: 'min', icon: null, enabled: true },
+      { id: 'slot-buff1', label: '버프 1', durationSec: 90, durationUnit: 'sec', icon: null, enabled: true },
+      { id: 'slot-consume', label: '소모품', durationSec: 600, durationUnit: 'min', icon: null, enabled: true },
     ];
   }
 
@@ -51,6 +51,7 @@
         id: s.id || `slot-${pi}-${i}`,
         label: String(s.label || `버프 ${i + 1}`),
         durationSec: Math.max(1, Math.round(Number(s.durationSec) || 60)),
+        durationUnit: s.durationUnit === 'min' ? 'min' : 'sec',
         icon: s.icon || null,
         enabled: s.enabled !== false,
       })),
@@ -139,6 +140,27 @@
     return getActivePreset().slots.filter((s) => s.enabled);
   }
 
+  function slotDurationUnit(slot) {
+    return slot && slot.durationUnit === 'min' ? 'min' : 'sec';
+  }
+
+  function slotInputValue(slot) {
+    if (slotDurationUnit(slot) === 'min') {
+      return Math.max(1, Math.round(slot.durationSec / 60));
+    }
+    return slot.durationSec;
+  }
+
+  function slotInputMax(slot) {
+    return slotDurationUnit(slot) === 'min' ? 1440 : 86400;
+  }
+
+  function applySlotDurationInput(slot, rawVal) {
+    const n = Math.max(1, Math.round(Number(rawVal) || 1));
+    if (slotDurationUnit(slot) === 'min') slot.durationSec = n * 60;
+    else slot.durationSec = n;
+  }
+
   function injectPipStyles(doc) {
     const el = pipStyleEl || document.getElementById('partyTimerPipStyles');
     const css = el && el.textContent ? el.textContent.trim() : '';
@@ -161,9 +183,10 @@
     const PAD_Y = 36;
     const hunt = partyTimer().runtime.huntActive;
     if (!hunt) {
-      const slotRows = getActivePreset().slots.length;
-      const w = 320 + PAD_X;
-      const h = PAD_Y + 38 + 78 + slotRows * 44 + 52;
+      const n = getActivePreset().slots.length;
+      const gridRows = Math.max(1, Math.ceil(n / 2));
+      const w = 368 + PAD_X;
+      const h = PAD_Y + 52 + 58 + gridRows * 82 + 56;
       return { w, h };
     }
     const n = Math.max(1, enabledSlots().length);
@@ -173,7 +196,7 @@
     const gridH = rows * TILE_H + (rows - 1) * GAP;
     return {
       w: gridW + PAD_X,
-      h: PAD_Y + 38 + gridH + 48,
+      h: PAD_Y + 38 + gridH + 62,
     };
   }
 
@@ -196,8 +219,8 @@
           doc.documentElement.scrollHeight,
           doc.body.scrollHeight
         ));
-        const w = Math.min(620, Math.max(280, measuredW + 12));
-        const h = Math.min(900, Math.max(200, measuredH + 16));
+        const w = Math.min(620, Math.max(280, measuredW + 16));
+        const h = Math.min(920, Math.max(200, measuredH + 32));
         try {
           if (typeof pipWindow.resizeTo === 'function') {
             pipWindow.resizeTo(w, h);
@@ -257,36 +280,48 @@
     `;
   }
 
+  function pipSetupSlotHtml(slot) {
+    const icon = slot.icon ? `<img class="pip-setup-icon" src="${assetUrl(slot.icon)}" alt="">` : '';
+    const unit = slotDurationUnit(slot);
+    return `
+      <div class="pip-setup-slot" data-slot-id="${slot.id}">
+        <div class="pip-setup-slot-head">
+          <span class="pip-setup-slot-title">${icon}<span class="pip-setup-slot-name">${slot.label}</span></span>
+          <label class="pip-setup-use"><input type="checkbox" data-pip-field="enabled" ${slot.enabled ? 'checked' : ''}><span>사용</span></label>
+        </div>
+        <div class="pip-setup-slot-time">
+          <input type="number" class="pip-setup-dur" min="1" max="${slotInputMax(slot)}" value="${slotInputValue(slot)}" data-pip-field="dur">
+          <span class="pip-unit-toggle" role="group" aria-label="시간 단위">
+            <button type="button" class="pip-unit-btn${unit === 'sec' ? ' is-on' : ''}" data-pip-act="unit-sec">초</button>
+            <button type="button" class="pip-unit-btn${unit === 'min' ? ' is-on' : ''}" data-pip-act="unit-min">분</button>
+          </span>
+        </div>
+      </div>
+    `;
+  }
+
   function pipSetupViewHtml() {
     const preset = getActivePreset();
-    const slotRows = preset.slots.map((slot) => {
-      const icon = slot.icon ? `<img class="pip-setup-icon" src="${assetUrl(slot.icon)}" alt="">` : '';
-      return `
-        <div class="pip-setup-slot" data-slot-id="${slot.id}">
-          ${icon}
-          <span class="pip-setup-slot-name">${slot.label}</span>
-          <input type="number" class="pip-setup-sec" min="1" max="86400" value="${slot.durationSec}" data-pip-field="sec">
-          <label class="pip-setup-use"><input type="checkbox" data-pip-field="enabled" ${slot.enabled ? 'checked' : ''}> 사용</label>
-        </div>
-      `;
-    }).join('');
+    const slotRows = preset.slots.map((slot) => pipSetupSlotHtml(slot)).join('');
 
     return `
       <div class="pip-setup">
-        <div class="pip-setup-title">퉁공대 타이머</div>
-        <p class="pip-setup-sub">방 ${getRoomId()}${getRealtimeReady() && getStorageMode() === 'cloud' ? ' · 실시간' : ''}</p>
         <div class="pip-setup-block">
           <div class="pip-setup-label">사냥터</div>
           <div class="pip-setup-presets">
-            <select id="pipPresetSelect" data-pip-field="preset"></select>
-            <input type="text" id="pipPresetName" value="${preset.name}" placeholder="이름" data-pip-field="preset-name">
-            <button type="button" class="pip-setup-mini" data-pip-act="preset-save">저장</button>
-            <button type="button" class="pip-setup-mini" data-pip-act="preset-add">+</button>
-            <button type="button" class="pip-setup-mini" data-pip-act="preset-del">삭제</button>
+            <div class="pip-preset-row">
+              <select id="pipPresetSelect" data-pip-field="preset" aria-label="프리셋"></select>
+              <input type="text" id="pipPresetName" value="${preset.name}" placeholder="사냥터 이름" data-pip-field="preset-name">
+            </div>
+            <div class="pip-preset-actions">
+              <button type="button" class="pip-setup-mini" data-pip-act="preset-save">저장</button>
+              <button type="button" class="pip-setup-mini" data-pip-act="preset-add">추가</button>
+              <button type="button" class="pip-setup-mini pip-setup-mini--danger" data-pip-act="preset-del">삭제</button>
+            </div>
           </div>
         </div>
         <div class="pip-setup-block">
-          <div class="pip-setup-label">버프 · 초</div>
+          <div class="pip-setup-label">버프 · 시간</div>
           <div class="pip-setup-slots">${slotRows}</div>
         </div>
         <button type="button" class="pip-cta pip-cta-start" data-pip-act="hunt-start">사냥 시작</button>
@@ -329,7 +364,11 @@
     app.onclick = (e) => {
       const btn = e.target.closest('[data-pip-act]');
       if (btn && btn.dataset.pipAct !== 'noop') {
-        handlePipAction(btn.dataset.pipAct, btn.closest('.pip-tile')?.dataset.slotId);
+        const setupSlot = btn.closest('.pip-setup-slot');
+        const slotId = btn.closest('.pip-tile')?.dataset.slotId
+          || setupSlot?.dataset.slotId
+          || null;
+        handlePipAction(btn.dataset.pipAct, slotId);
         return;
       }
     };
@@ -352,13 +391,16 @@
       const slotId = row.dataset.slotId;
       const slot = findSlot(slotId);
       if (!slot) return;
-      if (t.dataset.pipField === 'sec') {
-        const sec = Math.max(1, Math.round(Number(t.value) || 60));
-        slot.durationSec = sec;
-        t.value = String(sec);
-        if (!partyTimer().runtime.huntActive) partyTimer().runtime.slotRemaining[slotId] = sec * 1000;
+      if (t.dataset.pipField === 'dur') {
+        applySlotDurationInput(slot, t.value);
+        t.value = String(slotInputValue(slot));
+        if (!partyTimer().runtime.huntActive) {
+          partyTimer().runtime.slotRemaining[slotId] = slot.durationSec * 1000;
+        }
       } else if (t.dataset.pipField === 'enabled') {
         slot.enabled = t.checked;
+        if (!partyTimer().runtime.huntActive) renderPipView();
+        return;
       }
       bumpRuntimeRev();
       scheduleSave();
@@ -405,6 +447,20 @@
           pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
         });
       }
+      bumpRuntimeRev();
+      scheduleSave();
+      renderPipView();
+    } else if (act === 'unit-sec' && slotId) {
+      const slot = findSlot(slotId);
+      if (!slot) return;
+      slot.durationUnit = 'sec';
+      bumpRuntimeRev();
+      scheduleSave();
+      renderPipView();
+    } else if (act === 'unit-min' && slotId) {
+      const slot = findSlot(slotId);
+      if (!slot) return;
+      slot.durationUnit = 'min';
       bumpRuntimeRev();
       scheduleSave();
       renderPipView();
