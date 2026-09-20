@@ -88,6 +88,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **보유(`computeHeld`)** = 판매자에게 **실수령**만 가산.
 - **몫(`computeFairShare`)** = 등록가×분배율 − **(수수료÷3)** per member (`applySoldEntryFairShare`).
 - **예외 — `잡장비`:** NPC 상점 일괄 판매 · **`CATALOG_AH_FEE_EXEMPT`** · `entrySkipsAhSaleFee` → 수수료 0 · 등록가=실수령 · fair share에서 ⅓ 차감 없음.
+- **획득 수정 모달 — `잡장비`:** 라벨 **상점 판매 총금액** · placeholder **판매 금액** · **함께 기여** 획득자 제외 전원 **체크+비활성** (`syncEntryEditJunkGearUi`) · 잡장비 해제·아이템 비우면 **거래소 등록가/올린 금액·기여 초기**로 복귀.
+- **획득 수정 모달 — 카탈로그 매칭:** `#eEditItemIcon` — 카탈로그에 resolve되면 입력 **왼쪽 아이콘** (`syncEntryEditItemIcon`).
 - **버그 주의:** `parseStoredState`에서 `entryPriceBasis` / `entryPriceNetUpgraded` **반드시 parsed에서 복원**. 없으면 불러올 때마다 `÷0.95` 반복되어 등록가가 **계속 증가** (`migrateEntryPriceBasisToListing`).
 
 ### 4.2 메이커 재련 — **재련 메소만**
@@ -130,7 +132,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
 | 마스터 옵션(배퉁) | `#challengeAdminModal` · `#challengeAdminBtn` · `switchChAdminTab` · memberIdx **=== 2** |
-| 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` · `bindItemNameAutocomplete` |
+| 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -269,6 +271,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-20** — 획득 모달 **카탈로그 아이콘** · **`잡장비` UI**(상점 판매 문구·함께 기여 전원 고정)
 - **2026-09-20** — 카탈로그 **소모품 6종**+아이콘 · **`잡장비` 거래소 수수료 면제** (`CATALOG_AH_FEE_EXEMPT`)
 - **2026-09-19** — 모바일 **`.table-scroll` 가로 스크롤** · 모달 **배경 scroll lock** + overscroll contain
 - **2026-09-19** — HANDOFF **§3 부트/hydrate · §5.2 공대원 카드 · §6.3 badgeEffect** 인수인계 보강
@@ -396,4 +399,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-20 (잡장비·소모품 카탈로그)*
+*Last updated: 2026-09-20 (획득 모달 잡장비·카탈로그 아이콘)*

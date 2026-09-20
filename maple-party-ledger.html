@@ -1003,6 +1003,22 @@
   .challenge-meta { font-size: 12px; color: var(--ink-soft); line-height: 1.45; }
   .challenge-meta.done { color: var(--forest); font-weight: 600; }
   .item-ac-wrap { position: relative; }
+  .item-ac-wrap--field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .item-ac-wrap--field > input { flex: 1; min-width: 0; }
+  .item-ac-field-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .item-ac-field-icon[hidden] { display: none !important; }
+  .item-ac-wrap--field .item-ac-dropdown { left: 0; right: 0; }
   .item-ac-dropdown {
     position: absolute;
     left: 0;
@@ -2849,12 +2865,13 @@
     <div class="modal-grid">
       <div class="field" style="grid-column:1/-1;">
         <span>아이템명</span>
-        <div class="item-ac-wrap">
+        <div class="item-ac-wrap item-ac-wrap--field">
+          <span class="item-ac-field-icon" id="eEditItemIcon" hidden aria-hidden="true"></span>
           <input id="eEditItem" type="text" autocomplete="off" placeholder="글자 입력 → 카탈로그에서 선택 (풀네임으로 저장)">
           <div class="item-ac-dropdown" id="eEditItemDropdown" hidden></div>
         </div>
       </div>
-      <div class="field"><span>거래소 등록가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="올린 금액"></div>
+      <div class="field"><span id="eEditPriceLabel">거래소 등록가</span><input id="eEditPrice" class="money-input" type="text" inputmode="numeric" autocomplete="off" placeholder="올린 금액"></div>
       <p class="takeover-hint" id="eEditAhPreview" style="grid-column:1/-1;margin:0;"></p>
       <div class="field"><span>획득자</span><select id="eEditOwner"></select></div>
       <div class="field"><span>날짜</span><input id="eEditDate" type="date"></div>
@@ -4132,15 +4149,88 @@
     return touched;
   }
 
+  let entryEditJunkUiActive = false;
+
+  function entryEditDraftFromForm() {
+    return { item: $('eEditItem').value.trim() };
+  }
+
+  function isEntryEditJunkGearMode() {
+    return entrySkipsAhSaleFee(entryEditDraftFromForm());
+  }
+
+  function syncEntryEditItemIcon() {
+    const slot = $('eEditItemIcon');
+    if (!slot) return;
+    const raw = $('eEditItem').value.trim();
+    if (!raw) {
+      slot.hidden = true;
+      slot.innerHTML = '';
+      return;
+    }
+    const byLabel = findCatalogEntryByAnyLabel(raw);
+    const canonical = byLabel ? byLabel.canonical : (resolveCatalogItemInput(raw) || '');
+    const catalogEntry = byLabel || findCatalogEntryByCanonicalName(canonical);
+    if (!catalogEntry) {
+      slot.hidden = true;
+      slot.innerHTML = '';
+      return;
+    }
+    const icon = catalogEntry.icon || inferCatalogIconForCanonical(catalogEntry.canonical);
+    if (!icon) {
+      slot.hidden = true;
+      slot.innerHTML = '';
+      return;
+    }
+    slot.hidden = false;
+    slot.innerHTML = catalogIconMarkup(icon);
+  }
+
+  function syncEntryEditJunkGearUi() {
+    const junk = isEntryEditJunkGearMode();
+    const labelEl = $('eEditPriceLabel');
+    const priceInput = $('eEditPrice');
+    if (junk) {
+      if (labelEl) labelEl.textContent = '상점 판매 총금액';
+      if (priceInput) priceInput.placeholder = '판매 금액';
+      const holder = Number($('eEditOwner').value);
+      const allPicked = state.members.map((_, i) => i).filter((i) => i !== holder);
+      renderContributorPickers('eEditContributors', allPicked, null, holder);
+      $('eEditContributors').querySelectorAll('input[type=checkbox]').forEach((cb) => {
+        cb.checked = true;
+        cb.disabled = true;
+      });
+      entryEditJunkUiActive = true;
+    } else {
+      if (labelEl) labelEl.textContent = '거래소 등록가';
+      if (priceInput) priceInput.placeholder = '올린 금액';
+      $('eEditContributors').querySelectorAll('input[type=checkbox]').forEach((cb) => {
+        cb.disabled = false;
+      });
+      if (entryEditJunkUiActive) {
+        refreshEditContributors([]);
+        entryEditJunkUiActive = false;
+      }
+    }
+  }
+
+  function syncEntryEditFormForItem() {
+    syncEntryEditItemIcon();
+    syncEntryEditJunkGearUi();
+    updateEntryPricePreview();
+  }
+
   function updateEntryPricePreview() {
     const el = $('eEditAhPreview');
     if (!el) return;
     const list = parseMoneyInput($('eEditPrice').value);
+    const draftEntry = entryEditDraftFromForm();
     if (list <= 0) {
-      el.textContent = '등록가를 입력하면 거래소 5% 수수료를 빼 실수령·1인당 수수료 부담(⅓)을 미리 볼 수 있어요.';
+      el.textContent = entrySkipsAhSaleFee(draftEntry)
+        ? '상점 판매 총금액을 입력하면 전액 수령(수수료 없음)을 미리 볼 수 있어요.'
+        : '등록가를 입력하면 거래소 5% 수수료를 빼 실수령·1인당 수수료 부담(⅓)을 미리 볼 수 있어요.';
       return;
     }
-    const draftEntry = { item: $('eEditItem').value.trim() };
     const fee = entryAhSaleFee(list, draftEntry);
     const net = list - fee;
     const feeShare = Math.round(fee / state.members.length);
@@ -7184,9 +7274,12 @@
     });
   }
 
-  function bindItemNameAutocomplete(input, drop) {
+  function bindItemNameAutocomplete(input, drop, hooks) {
     if (!input || !drop) return;
     let focusIdx = -1;
+    const afterPick = () => {
+      if (hooks && typeof hooks.onPick === 'function') hooks.onPick();
+    };
     const renderDrop = () => {
       const list = filterItemNameSuggestions(input.value);
       if (!list.length) { drop.hidden = true; return; }
@@ -7208,6 +7301,7 @@
           e.preventDefault();
           input.value = label;
           drop.hidden = true;
+          afterPick();
         });
         drop.appendChild(btn);
       });
@@ -7232,6 +7326,7 @@
         e.preventDefault();
         input.value = opts[focusIdx].dataset.canonical || opts[focusIdx].querySelector('.item-ac-option-label')?.textContent || '';
         drop.hidden = true;
+        afterPick();
       }
     };
   }
@@ -8438,6 +8533,7 @@
       return;
     }
     editingEntryId = null;
+    entryEditJunkUiActive = false;
     editingField = true;
     $('entryEditTitle').textContent = '획득 추가';
     $('eEditItem').value = '';
@@ -8451,7 +8547,7 @@
     $('eEditDate').value = todayStr();
     editEntrySplit = splitForAcquirer(0);
     renderEditEntrySplitFields();
-    updateEntryPricePreview();
+    syncEntryEditFormForItem();
     $('entryEditModal').hidden = false;
     $('eEditItem').focus();
   }
@@ -8460,6 +8556,7 @@
     const entry = viewEntries().find((x) => x.id === id);
     if (!entry) return;
     editingEntryId = id;
+    entryEditJunkUiActive = false;
     editingField = true;
     $('entryEditTitle').textContent = '획득 기록 수정';
     const unsold = entryStatus(entry) === 'unsold';
@@ -8475,12 +8572,13 @@
     $('eEditDate').value = entry.date || todayStr();
     editEntrySplit = [...((entry.split && entry.split.length === 3) ? entry.split : DEFAULT_SPLIT)];
     renderEditEntrySplitFields();
-    updateEntryPricePreview();
+    syncEntryEditFormForItem();
     $('entryEditModal').hidden = false;
   }
 
   function closeEntryEdit() {
     editingEntryId = null;
+    entryEditJunkUiActive = false;
     editingField = false;
     $('entryEditModal').hidden = true;
   }
@@ -9090,6 +9188,7 @@
     renderEditEntrySplitFields();
     refreshEditContributors();
     syncSellerFieldVisibility('eEditDifferentSeller', 'eEditSellerField', 'eEditSeller', 'eEditOwner');
+    syncEntryEditFormForItem();
   });
 
   $('expAddBtn').addEventListener('click', () => {
@@ -9276,8 +9375,8 @@
   bindMoneyInput('eEditPrice');
   $('eEditPrice').addEventListener('input', updateEntryPricePreview);
   $('eEditPrice').addEventListener('change', updateEntryPricePreview);
-  $('eEditItem').addEventListener('input', updateEntryPricePreview);
-  $('eEditItem').addEventListener('change', updateEntryPricePreview);
+  $('eEditItem').addEventListener('input', syncEntryEditFormForItem);
+  $('eEditItem').addEventListener('change', syncEntryEditFormForItem);
   bindMoneyInput('xEditAmount');
   bindMoneyInput('chAdminThreshold');
 
@@ -9430,7 +9529,9 @@
   $('chAdminType').addEventListener('change', syncChallengeAdminTypeFields);
   $('chAdminAddBtn').addEventListener('click', addChallengeFromAdminForm);
   bindChallengeAdminItemAutocomplete();
-  bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'));
+  bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'), {
+    onPick: () => syncEntryEditFormForItem()
+  });
   bindItemNameAutocomplete($('fMakerGem'), $('fMakerGemDropdown'));
   bindItemNameAutocomplete($('mEditGem'), $('mEditGemDropdown'));
   bootApp();
