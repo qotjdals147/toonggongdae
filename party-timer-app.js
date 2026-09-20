@@ -15,7 +15,26 @@
   let slotAlarmFired = {};
   let pipStyleEl = null;
   let pipClickBound = false;
-  const pipUi = { muted: false };
+  const pipUi = { muted: false, notice: '' };
+
+  function pipConfirm(message) {
+    try {
+      if (global.opener && !global.opener.closed && typeof global.opener.confirm === 'function') {
+        return global.opener.confirm(message);
+      }
+    } catch (e) { /* ignore */ }
+    return global.confirm(message);
+  }
+
+  function setPipSetupNotice(text) {
+    pipUi.notice = text || '';
+    if (!pipWindow || pipWindow.closed) return;
+    const el = pipWindow.document.getElementById('pipSetupNotice');
+    if (el) {
+      el.textContent = pipUi.notice;
+      el.hidden = !pipUi.notice;
+    }
+  }
 
   function defaultSlots() {
     return [
@@ -306,6 +325,7 @@
 
     return `
       <div class="pip-setup">
+        <p class="pip-setup-notice" id="pipSetupNotice" hidden></p>
         <div class="pip-setup-block">
           <div class="pip-setup-label">사냥터</div>
           <div class="pip-setup-presets">
@@ -352,6 +372,7 @@
     }
 
     bindPipEvents(app);
+    if (!hunt) setPipSetupNotice(pipUi.notice);
     if (hunt) updatePipDisplay();
     applyPipWindowSize();
     syncPipTick();
@@ -438,8 +459,12 @@
       renderPipView();
     } else if (act === 'preset-del') {
       const pt = partyTimer();
-      if (pt.presets.length <= 1) return;
-      if (!global.confirm('이 사냥터 프리셋을 삭제할까요?')) return;
+      if (pt.presets.length <= 1) {
+        setPipSetupNotice('마지막 사냥터는 삭제할 수 없어요.');
+        return;
+      }
+      setPipSetupNotice('');
+      if (!pipConfirm('이 사냥터 프리셋을 삭제할까요?')) return;
       pt.presets = pt.presets.filter((p) => p.id !== pt.activePresetId);
       pt.activePresetId = pt.presets[0].id;
       if (!pt.runtime.huntActive) {
