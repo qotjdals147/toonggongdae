@@ -140,22 +140,71 @@
   }
 
   function injectPipStyles(doc) {
-    if (pipStyleEl) doc.head.appendChild(pipStyleEl.cloneNode(true));
+    const el = pipStyleEl || document.getElementById('partyTimerPipStyles');
+    const css = el && el.textContent ? el.textContent.trim() : '';
+    if (!css) return;
+    let st = doc.getElementById('pipStylesInjected');
+    if (!st) {
+      st = doc.createElement('style');
+      st.id = 'pipStylesInjected';
+      doc.head.appendChild(st);
+    }
+    st.textContent = css;
   }
 
-  function fitPipWindowSize() {
+  /** PiP 창 크기 — 타일 172×156 · 2열 · 설정 화면 높이는 슬롯 줄 수 기준 */
+  function computePipTargetSize() {
+    const TILE_W = 172;
+    const TILE_H = 156;
+    const GAP = 10;
+    const PAD_X = 32;
+    const PAD_Y = 36;
+    const hunt = partyTimer().runtime.huntActive;
+    if (!hunt) {
+      const slotRows = getActivePreset().slots.length;
+      const w = 320 + PAD_X;
+      const h = PAD_Y + 38 + 78 + slotRows * 44 + 52;
+      return { w, h };
+    }
+    const n = Math.max(1, enabledSlots().length);
+    const cols = n <= 1 ? 1 : 2;
+    const rows = Math.ceil(n / cols);
+    const gridW = cols * TILE_W + (cols - 1) * GAP;
+    const gridH = rows * TILE_H + (rows - 1) * GAP;
+    return {
+      w: gridW + PAD_X,
+      h: PAD_Y + 38 + gridH + 48,
+    };
+  }
+
+  function applyPipWindowSize() {
     if (!pipWindow || pipWindow.closed) return;
     const doc = pipWindow.document;
-    const app = doc.getElementById('pipApp');
-    if (!app) return;
+    const target = computePipTargetSize();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const rect = app.getBoundingClientRect();
-        const w = Math.min(560, Math.max(300, Math.ceil(rect.width) + 20));
-        const h = Math.min(780, Math.max(160, Math.ceil(rect.height) + 24));
+        const app = doc.getElementById('pipApp');
+        const measuredW = Math.ceil(Math.max(
+          target.w,
+          app ? app.scrollWidth : 0,
+          doc.documentElement.scrollWidth,
+          doc.body.scrollWidth
+        ));
+        const measuredH = Math.ceil(Math.max(
+          target.h,
+          app ? app.scrollHeight : 0,
+          doc.documentElement.scrollHeight,
+          doc.body.scrollHeight
+        ));
+        const w = Math.min(620, Math.max(280, measuredW + 12));
+        const h = Math.min(900, Math.max(200, measuredH + 16));
         try {
-          if (typeof pipWindow.resizeTo === 'function') pipWindow.resizeTo(w, h);
+          if (typeof pipWindow.resizeTo === 'function') {
+            pipWindow.resizeTo(w, h);
+          }
         } catch (e) { /* ignore */ }
+        doc.documentElement.style.overflow = 'hidden';
+        doc.body.style.overflow = 'hidden';
       });
     });
   }
@@ -248,6 +297,7 @@
   function renderPipView() {
     if (!pipWindow || pipWindow.closed) return;
     const doc = pipWindow.document;
+    injectPipStyles(doc);
     const app = doc.getElementById('pipApp');
     if (!app) return;
     const hunt = partyTimer().runtime.huntActive;
@@ -268,7 +318,7 @@
 
     bindPipEvents(app);
     if (hunt) updatePipDisplay();
-    fitPipWindowSize();
+    applyPipWindowSize();
     syncPipTick();
   }
 
@@ -312,7 +362,7 @@
       }
       bumpRuntimeRev();
       scheduleSave();
-      fitPipWindowSize();
+      applyPipWindowSize();
     };
   }
 
@@ -457,17 +507,15 @@
       return true;
     }
     try {
-      const hunt = partyTimer().runtime.huntActive;
-      const n = enabledSlots().length;
-      const cols = n <= 1 ? 1 : 2;
-      const rows = Math.max(1, Math.ceil(n / cols));
-      const initW = cols === 1 ? 220 : 400;
-      const initH = hunt ? 120 + rows * 168 + 52 : 340;
+      const { w: initW, h: initH } = computePipTargetSize();
       pipWindow = await global.documentPictureInPicture.requestWindow({
-        width: initW,
-        height: Math.min(initH, 720),
+        width: Math.min(620, initW),
+        height: Math.min(900, initH),
       });
       pipClickBound = false;
+      if (!pipWindow.document.head) {
+        pipWindow.document.documentElement.insertBefore(pipWindow.document.createElement('head'), pipWindow.document.body);
+      }
       injectPipStyles(pipWindow.document);
       pipWindow.document.title = '퉁공대 타이머';
       pipWindow.document.body.className = 'pip-root';
