@@ -67,7 +67,7 @@ exclusiveTitleMeta{} // 고유 훈장 UI 오버라이드 · id → description, 
 challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전 자동완성 · 집계 매칭
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
-partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, repeatCount 1–20, fileName } · **`party-timer-app.js`**
+partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -125,8 +125,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
-- **알람:** 0초 `is-alarm` 플래시(~2s) · `processSlotTimerLoops` → `playPipAlarm()` + `flashPipTileAlarm()` · **소리는 PIP 창이 열려 있을 때만** (`playPipAlarm`이 `pipWindow.closed`면 return) · 사냥 tick은 PiP 닫아도 **`syncHuntRuntimeTick` 유지**(반복 카운트만 백그라운드).
-- **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount** · PiP **preload + 매 알람 새 `Audio` 인스턴스**(재사용 금지) · `setTimeout(endsAt)` · 파일 없으면 **880Hz 비프**.
+- **알람:** **0초** `is-alarm` 플래시만 · **소리는 2초 남음(00:02)** `ALARM_SOUND_BEFORE_END_MS` · `scheduleSlotAlarms` + tick 백업 · PIP 열림·음소거 아닐 때만.
+- **소리:** `soundProfiles` · **volume** · **사이클당 1회** · preload + 매번 새 `Audio` · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
 - **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
 
@@ -294,6 +294,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
 - **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
+- **2026-09-21** — 타이머 **반복 횟수 제거** · 알람음 **2초 전(00:02) 1회** · 0초는 플래시만
 - **2026-09-21** — 타이머 알람 **매회 새 Audio** · Web Audio 경로 제거(2회째 무음 fix)
 - **2026-09-21** — 타이머 0초 **`setTimeout(endsAt)`** 정밀 알람 + preload
 - **2026-09-21** — 타이머 0초 감지 **80ms tick** · 알람 mp3 **PIP preload** (재생 지연 완화)
@@ -521,4 +522,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (훈장 카드 정렬·타이머 알람 재생 fix)*
+*Last updated: 2026-09-21 (타이머 2초 전 알람·반복 제거)*

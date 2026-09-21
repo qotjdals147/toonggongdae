@@ -13,6 +13,8 @@
   let pipWindow = null;
   let huntRuntimeTickId = null;
   let slotAlarmFired = {};
+  /** endsAt cycleKey · 2초 전 알람 1회 */
+  let slotSoundFired = {};
   /** slotId → 재생 중 Audio (같은 슬롯만 정지 · 슬롯끼리 겹침 허용) */
   let slotActiveAudios = {};
   /** slotId → generation (stale 콜백 무시) */
@@ -20,8 +22,12 @@
   /** slotId → { src, audio } · PiP에서 preload만 (재생은 매회 새 Audio) */
   let slotAudioWarm = {};
   const HUNT_RUNTIME_TICK_MS = 80;
-  /** slotId → setTimeout id · endsAt 시각에 맞춰 0초 알람 */
+  /** 0초 직전이 아니라 **남은 2초(00:02)** 에 알람음 (HTML Audio 지연 보정) */
+  const ALARM_SOUND_BEFORE_END_MS = 2000;
+  /** slotId → setTimeout · endsAt(0초) */
   let slotEndTimers = {};
+  /** slotId → setTimeout · endsAt − 2s */
+  let slotSoundTimers = {};
   let pipStyleEl = null;
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
@@ -80,22 +86,20 @@
   function defaultSoundProfiles() {
     const profiles = {};
     TIMER_SOUND_SLOT_IDS.forEach((id) => {
-      profiles[id] = { src: null, volume: 1, repeatCount: 1, fileName: '' };
+      profiles[id] = { src: null, volume: 1, fileName: '' };
     });
     return profiles;
   }
 
   function normalizeSoundProfile(raw) {
-    const base = { src: null, volume: 1, repeatCount: 1, fileName: '' };
+    const base = { src: null, volume: 1, fileName: '' };
     if (!raw || typeof raw !== 'object') return { ...base };
     let volume = Number(raw.volume);
     if (!Number.isFinite(volume)) volume = 1;
     volume = Math.max(0, Math.min(1, volume));
-    let repeatCount = Math.round(Number(raw.repeatCount) || 1);
-    repeatCount = Math.max(1, Math.min(20, repeatCount));
     const src = typeof raw.src === 'string' && raw.src.trim() ? raw.src.trim() : null;
     const fileName = String(raw.fileName || '').trim().slice(0, 160);
-    return { src, volume, repeatCount, fileName };
+    return { src, volume, fileName };
   }
 
   function defaultPartyTimer() {
@@ -776,61 +780,20 @@
     }
   }
 
-  function runAlarmRepeatSequence(doc, slotId, profile, repeatCount, gen, onComplete) {
-    const repeat = Math.max(1, Math.min(20, Math.round(Number(repeatCount) || 1)));
-    const gapMs = 280;
-    let index = 0;
-
-    function isStale() {
-      return slotAlarmGen[slotId] !== gen
-        || pipUi.muted
-        || !pipWindow
-        || pipWindow.closed;
-    }
-
-    function next() {
-      if (isStale()) {
-        if (typeof onComplete === 'function') onComplete();
-        return;
-      }
-      if (index >= repeat) {
-        if (typeof onComplete === 'function') onComplete();
-        return;
-      }
-      index += 1;
-      playAlarmOneShot(doc, slotId, profile, profile.volume, () => {
-        if (isStale()) {
-          if (typeof onComplete === 'function') onComplete();
-          return;
-        }
-        if (index >= repeat) {
-          if (typeof onComplete === 'function') onComplete();
-          return;
-        }
-        setTimeout(next, gapMs);
-      });
-    }
-    next();
-  }
-
-  function playPipAlarmForSlot(slotId) {
+  function playPipAlarmSoundOnly(slotId) {
     if (pipUi.muted || !pipWindow || pipWindow.closed) return;
     stopSlotAudios(slotId);
     slotAlarmGen[slotId] = (slotAlarmGen[slotId] || 0) + 1;
-    const gen = slotAlarmGen[slotId];
     const profile = getSoundProfile(slotId);
-    const doc = pipWindow.document;
-    runAlarmRepeatSequence(doc, slotId, profile, profile.repeatCount, gen, () => {});
-    flashPipTileAlarm(slotId);
+    playAlarmOneShot(pipWindow.document, slotId, profile, profile.volume, () => {});
   }
 
   function previewAlarmSound(slotId, usePipWindow, patch) {
     const profile = normalizeSoundProfile({ ...getSoundProfile(slotId), ...(patch || {}) });
     const doc = usePipWindow && pipWindow && !pipWindow.closed ? pipWindow.document : document;
     const previewSlot = `preview-${slotId}`;
-    slotAlarmGen[previewSlot] = (slotAlarmGen[previewSlot] || 0) + 1;
-    const gen = slotAlarmGen[previewSlot];
-    runAlarmRepeatSequence(doc, previewSlot, profile, profile.repeatCount, gen, () => {});
+    stopSlotAudios(previewSlot);
+    playAlarmOneShot(doc, previewSlot, profile, profile.volume, () => {});
   }
 
   function flashPipTileAlarm(slotId) {
@@ -853,6 +816,52 @@
     Object.keys(slotEndTimers).forEach((id) => clearSlotEndTimer(id));
   }
 
+  function clearSlotSoundTimer(slotId) {
+    if (slotSoundTimers[slotId] != null) {
+      clearTimeout(slotSoundTimers[slotId]);
+      delete slotSoundTimers[slotId];
+    }
+  }
+
+  function clearAllSlotSoundTimers() {
+    Object.keys(slotSoundTimers).forEach((id) => clearSlotSoundTimer(id));
+  }
+
+  function tryPlaySlotAlarmSound(slotId) {
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) return;
+    const slot = findSlot(slotId);
+    if (!slot || !slot.enabled) return;
+    if (rt.slotPaused[slotId]) return;
+    const endsAt = rt.slotEndsAt[slotId];
+    if (endsAt == null) return;
+    const now = Date.now();
+    if (endsAt <= now) return;
+    const rem = endsAt - now;
+    if (rem > ALARM_SOUND_BEFORE_END_MS) return;
+    const cycleKey = String(endsAt);
+    if (slotSoundFired[slotId] === cycleKey) return;
+    slotSoundFired[slotId] = cycleKey;
+    playPipAlarmSoundOnly(slotId);
+  }
+
+  /** tick 백업 · 2초 전 알람 setTimeout 누락 시 */
+  function processSlotSoundLead(now) {
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) return;
+    enabledSlots().forEach((slot) => {
+      if (rt.slotPaused[slot.id]) return;
+      const endsAt = rt.slotEndsAt[slot.id];
+      if (endsAt == null) return;
+      if (endsAt <= now) return;
+      if (endsAt - now > ALARM_SOUND_BEFORE_END_MS) {
+        delete slotSoundFired[slot.id];
+        return;
+      }
+      tryPlaySlotAlarmSound(slot.id);
+    });
+  }
+
   function handleSlotExpired(slotId, now) {
     const rt = partyTimer().runtime;
     if (!rt.huntActive) return;
@@ -863,25 +872,26 @@
     if (endsAt == null) return;
     now = now != null ? now : Date.now();
     if (endsAt > now) {
-      scheduleSlotExpiryAlarm(slotId);
+      scheduleSlotAlarms(slotId);
       return;
     }
     const cycleKey = String(endsAt);
     if (slotAlarmFired[slotId] !== cycleKey) {
       slotAlarmFired[slotId] = cycleKey;
-      playPipAlarmForSlot(slotId);
+      flashPipTileAlarm(slotId);
     }
     const cycleMs = slotCycleMs(slot);
     rt.slotRemaining[slotId] = cycleMs;
     rt.slotEndsAt[slotId] = now + cycleMs;
     bumpRuntimeRev();
     scheduleSave();
-    scheduleSlotExpiryAlarm(slotId);
+    scheduleSlotAlarms(slotId);
     if (pipWindow && !pipWindow.closed) updatePipDisplay();
   }
 
-  function scheduleSlotExpiryAlarm(slotId) {
+  function scheduleSlotAlarms(slotId) {
     clearSlotEndTimer(slotId);
+    clearSlotSoundTimer(slotId);
     const rt = partyTimer().runtime;
     if (!rt.huntActive) return;
     const slot = findSlot(slotId);
@@ -889,21 +899,33 @@
     if (rt.slotPaused[slotId]) return;
     const endsAt = rt.slotEndsAt[slotId];
     if (endsAt == null) return;
-    const delay = endsAt - Date.now();
-    if (delay <= 0) {
-      handleSlotExpired(slotId, Date.now());
+    const now = Date.now();
+    const delayEnd = endsAt - now;
+    if (delayEnd <= 0) {
+      handleSlotExpired(slotId, now);
       return;
     }
     slotEndTimers[slotId] = setTimeout(() => {
       delete slotEndTimers[slotId];
       handleSlotExpired(slotId, Date.now());
-    }, delay);
+    }, delayEnd);
+    const soundAt = endsAt - ALARM_SOUND_BEFORE_END_MS;
+    const delaySound = soundAt - now;
+    if (delaySound <= 0) {
+      tryPlaySlotAlarmSound(slotId);
+    } else {
+      slotSoundTimers[slotId] = setTimeout(() => {
+        delete slotSoundTimers[slotId];
+        tryPlaySlotAlarmSound(slotId);
+      }, delaySound);
+    }
   }
 
-  function resyncAllSlotExpiryAlarms() {
+  function resyncAllSlotAlarms() {
     clearAllSlotEndTimers();
+    clearAllSlotSoundTimers();
     if (!partyTimer().runtime.huntActive) return;
-    enabledSlots().forEach((s) => scheduleSlotExpiryAlarm(s.id));
+    enabledSlots().forEach((s) => scheduleSlotAlarms(s.id));
   }
 
   /** tick 백업 · setTimeout 누락 시 */
@@ -935,6 +957,7 @@
       return;
     }
     const now = Date.now();
+    processSlotSoundLead(now);
     processSlotTimerLoops(now);
     syncRuntimeRemainingFromEndsAt(now);
     if (pipWindow && !pipWindow.closed) updatePipDisplay();
@@ -1001,7 +1024,7 @@
     }
     bumpRuntimeRev();
     scheduleSave();
-    resyncAllSlotExpiryAlarms();
+    resyncAllSlotAlarms();
     updatePipDisplay();
   }
 
@@ -1017,7 +1040,7 @@
     else delete rt.slotEndsAt[slotId];
     bumpRuntimeRev();
     scheduleSave();
-    if (rt.huntActive) scheduleSlotExpiryAlarm(slotId);
+    if (rt.huntActive) scheduleSlotAlarms(slotId);
     else clearSlotEndTimer(slotId);
     updatePipDisplay();
   }
@@ -1040,7 +1063,7 @@
     });
     bumpRuntimeRev();
     scheduleSave();
-    resyncAllSlotExpiryAlarms();
+    resyncAllSlotAlarms();
     updatePipDisplay();
   }
 
@@ -1056,7 +1079,7 @@
     });
     bumpRuntimeRev();
     scheduleSave();
-    resyncAllSlotExpiryAlarms();
+    resyncAllSlotAlarms();
     updatePipDisplay();
   }
 
@@ -1073,12 +1096,14 @@
     });
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
+    Object.keys(slotSoundFired).forEach((k) => delete slotSoundFired[k]);
     stopAllSlotAudios();
     clearSlotAudioWarm();
     clearAllSlotEndTimers();
+    clearAllSlotSoundTimers();
     scheduleSave();
     renderPipView();
-    resyncAllSlotExpiryAlarms();
+    resyncAllSlotAlarms();
   }
 
   function huntEnd() {
@@ -1093,9 +1118,11 @@
     });
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
+    Object.keys(slotSoundFired).forEach((k) => delete slotSoundFired[k]);
     stopAllSlotAudios();
     clearSlotAudioWarm();
     clearAllSlotEndTimers();
+    clearAllSlotSoundTimers();
     stopHuntRuntimeTick();
     scheduleSave();
     renderPipView();
@@ -1112,7 +1139,7 @@
       renderPipView();
       if (partyTimer().runtime.huntActive) {
         warmAllAlarmAudiosInPip();
-        resyncAllSlotExpiryAlarms();
+        resyncAllSlotAlarms();
       }
     }
   }

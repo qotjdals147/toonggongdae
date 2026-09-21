@@ -7355,17 +7355,10 @@
       volPct.textContent = `${volRange.value}%`;
       volRow.appendChild(volRange);
       volRow.appendChild(volPct);
-      const repRow = document.createElement('div');
-      repRow.className = 'ch-row-badge-color-wrap ch-row-xp-wrap';
-      repRow.innerHTML = '<span class="challenge-meta">0초당 반복</span>';
-      const repInp = document.createElement('input');
-      repInp.type = 'number';
-      repInp.min = '1';
-      repInp.max = '20';
-      repInp.step = '1';
-      repInp.className = 'ch-row-xp timer-sound-repeat';
-      repInp.value = String(profile.repeatCount || 1);
-      repRow.appendChild(repInp);
+      const hint = document.createElement('p');
+      hint.className = 'challenge-meta';
+      hint.style.margin = '0 0 8px';
+      hint.textContent = '알람음은 타이머 00:02(2초 남음)에 1회 재생 · 0초에는 타일만 번쩍';
       const fileRow = document.createElement('div');
       fileRow.className = 'timer-sound-file-row';
       const fileInp = document.createElement('input');
@@ -7415,7 +7408,6 @@
         PartyTimerApp.previewAlarmSound(def.id, false, {
           src: pendingSrc,
           volume: Number(volRange.value) / 100,
-          repeatCount: Number(repInp.value),
           fileName: pendingName,
         });
       });
@@ -7428,7 +7420,6 @@
         PartyTimerApp.updateSoundProfile(def.id, {
           src: pendingSrc,
           volume: Number(volRange.value) / 100,
-          repeatCount: Number(repInp.value),
           fileName: pendingName,
         });
         flashChAdminSaved(saveBtn);
@@ -7443,7 +7434,7 @@
       });
       btnRow.append(previewBtn, clearBtn, saveBtn);
       card.appendChild(volRow);
-      card.appendChild(repRow);
+      card.appendChild(hint);
       card.appendChild(fileRow);
       card.appendChild(btnRow);
       wrap.appendChild(card);
