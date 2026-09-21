@@ -123,7 +123,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **동기화:** `runtime.slotEndsAt` + `huntActive` · 사냥 종료 → 각 슬롯 `durationSec`으로 `slotRemaining` 초기화.
 - **PIP:** Chrome/Edge Document PiP · **2×2 컴팩트 타일**(아이콘+이름+시간+슬롯 ⏸/↺) · 상단 전체 ▶⏸↺·음소거·줌 · **3초 이하 urgent 배경** · 0초 alarm.
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
-- **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글(`durationUnit`) · **삭제=확인 없이 즉시** · 마지막 1개는 `setPipSetupNotice`로만 차단.
+- **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
+- **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
 - **알람:** 0초 `is-alarm` 플래시 · **소리/전역 🔊** 등은 maple-atelier 대비 **미완·placeholder** 가능 — 다음 작업 시 `party-timer-app.js` 확인.
 
 ---
@@ -288,6 +289,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 타이머 **기본 슬롯** 홀리 심볼·한타임·경쿠 아이콘 · **기타** 자유 이름 · PiP 설정 아이콘
 - **2026-09-21** — HANDOFF **§11.1~11.3 · §14** 인수인계 · §9 UI 의도 확인 · `partyTimer` 편집 위치 정정
 - **2026-09-21** — 상단 헤더 **카테고리 박스**(참고·운영 · 라벨 위·버튼 아래) · 잘못된 outline 통일 롤백
 - **2026-09-21** — PiP **프리셋 삭제** 즉시 (확인창 없음 · 마지막 1개만 차단)
@@ -373,7 +375,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 11.1 퉁공대 타이머 (진행 중 · 2026-09-21)
 
-- [ ] PiP 슬롯 **버프 아이콘/이름** — 소유자가 `image/`·카탈로그 PNG 제공 예정 · `defaultSlots()` / `CATALOG_ITEM_ICON_BY_CANONICAL` 연동
+- [x] PiP **기본 4슬롯** 이름·아이콘 · 기타 슬롯 자유 라벨 (`BUILTIN_SLOT_DEFAULTS`)
 - [ ] **알람 소리** · PIP 열렸을 때만 재생 등 maple-atelier parity — 현재 UI만 있을 수 있음
 - [ ] (선택) 사냥 툴바 **줌 ±** · 슬롯별 음소거 · 0초 전 pre-alert
 - [ ] (선택) Realtime **참여자 표시** (동시 편집자)
@@ -410,7 +412,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 | 영역 | 상태 |
 |------|------|
-| **타이머** | 장부 **`#partyTimerBtn` → PIP만** · `party-timer-app.js` · 설정↔사냥 · 2×2 타일 · 프리셋 삭제 무confirm |
+| **타이머** | PIP만 · 홀리 심볼/한타임/경쿠 아이콘+이름 · **기타** 슬롯 이름 편집 · `party-timer-app.js` |
 | **헤더** | **참고 / 운영** 2카테고리 박스 · 운영에 로그인 후 훈장·마스터·로그아웃 포함 |
 | **획득 모달** | 잡장비·카탈로그 아이콘 (`d965b59` 근처) |
 | **미커밋 asset** | `image/훈장아이콘/중급샤프아이즈.png` · `image/이펙트/샤프아이즈_훈장/` — repo에 **untracked** · 연동·commit은 **소유자 요청 시** |
@@ -456,4 +458,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (§14 다음 세션 인수인계 · 타이머/헤더 스냅샷)*
+*Last updated: 2026-09-21 (타이머 기본 슬롯 아이콘·기타)*

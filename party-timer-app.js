@@ -17,6 +17,37 @@
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
 
+  const BUILTIN_SLOT_DEFAULTS = {
+    'slot-holy': { label: '홀리 심볼', icon: 'image/스킬아이콘/홀리심볼.png' },
+    'slot-session': { label: '한타임', icon: 'image/스킬아이콘/한타임.png' },
+    'slot-buff1': { label: '경쿠', icon: 'image/아이템아이콘/경쿠.png' },
+    'slot-consume': { label: '기타', icon: null, freeLabel: true },
+  };
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str);
+  }
+
+  function applyBuiltinSlotDefaults(slot) {
+    const def = BUILTIN_SLOT_DEFAULTS[slot.id];
+    if (!def) return slot;
+    if (def.icon) slot.icon = def.icon;
+    if (def.freeLabel) {
+      if (slot.label === '소mo품' || slot.label === '소모품') slot.label = def.label;
+    } else {
+      slot.label = def.label;
+    }
+    return slot;
+  }
+
   function setPipSetupNotice(text) {
     pipUi.notice = text || '';
     if (!pipWindow || pipWindow.closed) return;
@@ -29,10 +60,10 @@
 
   function defaultSlots() {
     return [
-      { id: 'slot-holy', label: '홀리심볼', durationSec: 180, durationUnit: 'sec', icon: null, enabled: true },
-      { id: 'slot-session', label: '한타임', durationSec: 1200, durationUnit: 'min', icon: null, enabled: true },
-      { id: 'slot-buff1', label: '버프 1', durationSec: 90, durationUnit: 'sec', icon: null, enabled: true },
-      { id: 'slot-consume', label: '소모품', durationSec: 600, durationUnit: 'min', icon: null, enabled: true },
+      { id: 'slot-holy', label: '홀리 심볼', durationSec: 180, durationUnit: 'sec', icon: BUILTIN_SLOT_DEFAULTS['slot-holy'].icon, enabled: true },
+      { id: 'slot-session', label: '한타임', durationSec: 1200, durationUnit: 'min', icon: BUILTIN_SLOT_DEFAULTS['slot-session'].icon, enabled: true },
+      { id: 'slot-buff1', label: '경쿠', durationSec: 90, durationUnit: 'sec', icon: BUILTIN_SLOT_DEFAULTS['slot-buff1'].icon, enabled: true },
+      { id: 'slot-consume', label: '기타', durationSec: 600, durationUnit: 'min', icon: null, enabled: true },
     ];
   }
 
@@ -57,14 +88,17 @@
     pt.presets = pt.presets.map((p, pi) => ({
       id: p.id || genId(),
       name: String(p.name || '사냥터').trim() || '사냥터',
-      slots: (Array.isArray(p.slots) && p.slots.length ? p.slots : defaultSlots()).map((s, i) => ({
-        id: s.id || `slot-${pi}-${i}`,
-        label: String(s.label || `버프 ${i + 1}`),
-        durationSec: Math.max(1, Math.round(Number(s.durationSec) || 60)),
-        durationUnit: s.durationUnit === 'min' ? 'min' : 'sec',
-        icon: s.icon || null,
-        enabled: s.enabled !== false,
-      })),
+      slots: (Array.isArray(p.slots) && p.slots.length ? p.slots : defaultSlots()).map((s, i) => {
+        const slot = {
+          id: s.id || `slot-${pi}-${i}`,
+          label: String(s.label || `버프 ${i + 1}`),
+          durationSec: Math.max(1, Math.round(Number(s.durationSec) || 60)),
+          durationUnit: s.durationUnit === 'min' ? 'min' : 'sec',
+          icon: s.icon || null,
+          enabled: s.enabled !== false,
+        };
+        return applyBuiltinSlotDefaults(slot);
+      }),
     }));
     if (!pt.activePresetId || !pt.presets.some((p) => p.id === pt.activePresetId)) {
       pt.activePresetId = pt.presets[0].id;
@@ -291,12 +325,18 @@
   }
 
   function pipSetupSlotHtml(slot) {
-    const icon = slot.icon ? `<img class="pip-setup-icon" src="${assetUrl(slot.icon)}" alt="">` : '';
+    const icon = slot.icon
+      ? `<img class="pip-setup-icon" src="${assetUrl(slot.icon)}" alt="" draggable="false">`
+      : '';
+    const isFreeLabel = slot.id === 'slot-consume' || BUILTIN_SLOT_DEFAULTS[slot.id]?.freeLabel;
+    const nameHtml = isFreeLabel
+      ? `<input type="text" class="pip-setup-slot-name-input" value="${escapeAttr(slot.label)}" data-pip-field="label" maxlength="24" placeholder="기타" aria-label="슬롯 이름">`
+      : `<span class="pip-setup-slot-name">${escapeHtml(slot.label)}</span>`;
     const unit = slotDurationUnit(slot);
     return `
       <div class="pip-setup-slot" data-slot-id="${slot.id}">
         <div class="pip-setup-slot-head">
-          <span class="pip-setup-slot-title">${icon}<span class="pip-setup-slot-name">${slot.label}</span></span>
+          <span class="pip-setup-slot-title">${icon}${nameHtml}</span>
           <label class="pip-setup-use"><input type="checkbox" data-pip-field="enabled" ${slot.enabled ? 'checked' : ''}><span>사용</span></label>
         </div>
         <div class="pip-setup-slot-time">
@@ -413,6 +453,9 @@
         slot.enabled = t.checked;
         if (!partyTimer().runtime.huntActive) renderPipView();
         return;
+      } else if (t.dataset.pipField === 'label') {
+        slot.label = String(t.value || '').trim() || '기타';
+        t.value = slot.label;
       }
       bumpRuntimeRev();
       scheduleSave();

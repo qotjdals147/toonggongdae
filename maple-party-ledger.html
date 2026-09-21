@@ -3245,8 +3245,14 @@
   }
   .pip-setup-slot-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 22px; }
   .pip-setup-slot-title { display: inline-flex; align-items: center; gap: 4px; min-width: 0; flex: 1; }
-  .pip-setup-icon { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
-  .pip-setup-slot-name { font-size: 12px; font-weight: 700; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pip-setup-icon { width: 12px; height: 12px; object-fit: contain; flex-shrink: 0; display: block; }
+  .pip-setup-slot-name { font-size: 12px; font-weight: 700; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+  .pip-setup-slot-name-input {
+    flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: #e2e8f0; line-height: 1.2;
+    background: transparent; border: none; border-bottom: 1px solid #475569; padding: 0 0 1px; font-family: inherit;
+  }
+  .pip-setup-slot-name-input:focus { outline: none; border-bottom-color: #2563eb; }
+  .pip-setup-slot-name-input::placeholder { color: #64748b; font-weight: 600; }
   .pip-setup-use {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #94a3b8; cursor: pointer; flex-shrink: 0; user-select: none;
   }
