@@ -296,6 +296,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — fix: 처치 +1 후 **`syncMonsterKillChallengeUnlocksForMembers`** (좌/우붕 등 장착 목록) · `CHALLENGE_TITLE_ASSETS` 어싸만코
 - **2026-09-21** — fix: `incrementMonsterKillCounts` **stale bucket** (+1이 state에 안 쌓이던 버그) · 처치 모달 **확대**
 - **2026-09-21** — fix: 처치 **+1** · `monsterKillCounts` **원격 누락 시 유지** · 즉시 저장 · Realtime 차단
 - **2026-09-21** — 처치 기록 **공대원별 UI**(캐릭터 박스 · 보스명·아이콘·×횟수 · 0→1→2)

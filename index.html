@@ -3893,6 +3893,14 @@
       badgeEffect: 'sparkle-subtle',
       description: '시간의 조각을 꾸준히 모은 이에게 주어진다.',
     },
+    '좌붕어싸만코': {
+      icon: 'image/훈장아이콘/좌붕어싸만코.png',
+      description: '피아누스(좌붕) 처치 도전을 완료한 이에게 주어진다.',
+    },
+    '우붕어싸만코': {
+      icon: 'image/훈장아이콘/우붕어싸만코.png',
+      description: '피아누스(우붕) 처치 도전을 완료한 이에게 주어진다.',
+    },
   };
   /** 주문서·특수 아이템 카탈로그 시드 · load 시 중복 없이 merge (`mergeBuiltinCatalogSeeds`) */
   const SCROLL_CATALOG_RATES = [10, 60, 100];
@@ -7294,6 +7302,25 @@
     ensureGamificationState();
     const p = state.memberProfiles[memberIdx];
     if (!p.unlockedTitleIds.includes(ch.titleId)) p.unlockedTitleIds.push(ch.titleId);
+  }
+
+  /** 처치 기록 후 replay 없이 몬스터 도전 훈장 unlock · XP (마이페이지 장착 목록용) */
+  function syncMonsterKillChallengeUnlocksForMembers(memberIdxs) {
+    if (!gamificationActive()) return;
+    ensureGamificationState();
+    const idxs = [...new Set((memberIdxs || []).map(Number).filter((i) => i >= 0 && i <= 2))];
+    if (!idxs.length) return;
+    (state.challengeDefs || []).forEach((ch) => {
+      if (ch.type !== 'monster_kill') return;
+      idxs.forEach((memberIdx) => {
+        const prog = challengeProgressForMember(ch, memberIdx);
+        if (!prog.done) return;
+        unlockChallengeTitle(memberIdx, ch);
+        const xp = Math.max(0, Math.round(Number(ch.xpReward) || 0));
+        if (xp > 0) grantXp(memberIdx, xp, `ach:${ch.id}:${memberIdx}`);
+      });
+    });
+    rebuildAllXpLogs();
   }
 
   function stripReplayChallengeTitleUnlocks() {
