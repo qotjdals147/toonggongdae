@@ -201,10 +201,10 @@ legacySummaryOnly (옛 회차 요약만)
 - **MapleStory.io 외부 자동완성 없음.**
 - **`challengeItemCatalog[]`:** `{ id, canonical, aliases[], icon? }` — **마스터 옵션 → 아이템 추가** CRUD + 코드 **시드 merge** (`mergeBuiltinCatalogSeeds`, `SCROLL_CATALOG_BASES` × 10/60/100%).
 - **시드:** load/`ensureGamificationState`마다 **canonical norm 중복 없이** 주문서·`시간의 조각`(별칭 `시조`)·**소모품 6종**(`BUILTIN_MISC_ITEM_CATALOG`: 엘릭서·파워 엘릭서·이슬·순록의 우유·**잡장비**)·**메이커 보석 48종** 보충 · 아이콘 `CATALOG_ITEM_ICON_BY_CANONICAL` · 신규 추가 시 `scheduleSave`.
-- **아이콘:** `inferCatalogIconForCanonical` — 주문서 `%` → `image/주문서 아이콘/` · `시간의 조각` → `image/아이템아이콘/` · 보석 → `image/메이커보석아이콘/{공식명}.png` (`makerGemIconPath`). **앞으로 아이콘 추가 시** PNG 넣고 `MAKER_GEM_CATALOG_NAMES` 또는 `CATALOG_ITEM_ICON_BY_CANONICAL`에 등록 · **자동완성·장부 획득명·메이커 표·마스터 카탈로그** (`catalogItemDisplayHtml`, `bindItemNameAutocomplete` — 획득·메이커 보석명).
+- **아이콘:** `inferCatalogIconForCanonical` — 주문서 `%` → `image/주문서 아이콘/` · `시간의 조각` → `image/아이템아이콘/` · 보석 → `image/메이커보석아이콘/{공식명}.png` (`makerGemIconPath`). **자동완성:** 획득 `#eEditItem` · **메이커 `#fMakerGem`/`#mEditGem`은 `gemsOnly`** — `MAKER_GEM_CATALOG_NAMES`만 · 저장 시 `validateMakerRefineRow` 검증.
 - **미출시 자동완성 숨김:** `catalogEntryHiddenByReleasePolicy` — **명중률 주문서** 전종 · **방패 주문서 중 방어력 제외** · 기본 **순퉁·지퉁 검색 불가** · **배퉁(memberIdx 2)만** 검색 가능. 출시 후 **마스터 옵션 → 아이템 추가** 상단 체크(`catalogSearchFlags`)로 전원 공개 — 소유자 “출시됐다”고 하면 토글 또는 HANDOFF에 따라 `accuracyScrolls` / `shieldScrollsExtra` 켜기.
 - **자동완성:** `filterItemNameSuggestions` → **카탈로그만** · query **공백 제거 후 1자 이상** · 드롭다운 **아이콘+canonical** (`catalogAssetUrl` — 경로 `%`·공백 인코딩) · 별칭은 **검색용** (`itemNameMatchesQuery`).
-- **자동완성 정렬:** 주문서(`… 10|60|100%`)는 **같은 주문서 종류끼리** 성공률 **100 → 60 → 10** (`compareCatalogItemSuggestions`) · 보석·기타는 **가나다**(localeCompare).
+- **자동완성 정렬:** 주문서 — 종류별 **100 → 60 → 10** · 보석 — **기본 → 하급 → 중급 → 상급** (`compareMakerGemCatalogSuggestions`) · 기타 가나다 · 마스터 **아이템 추가** 목록도 동일 comparator.
 - **저장:** 획득 `saveEntryEdit` · 도전 추가 — `resolveCatalogItemInput`으로 canonical 치환(별칭 exact norm 일치) · 도전 `item_acquire`는 **카탈로그에 있는 이름만** 추가 가능.
 - **도전 매칭:** `itemTextMatchesChallenge` — 카탈로그 canonical+별칭 · `ch.itemMatchTokens` · `syncChallengeItemMatchFromCatalog(ch)`가 `item_acquire` 토큰 갱신.
 - **마이그:** `migrateChallengeItemCatalog` — parse/load 시 aliases 배열 보장.
@@ -292,6 +292,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 메이커 보석명 **gemsOnly** AC · 보석/주문서 **카탈로그 정렬** 보강
 - **2026-09-21** — 타이머 **슬롯별 사운드·볼륨·반복** · 배퉁 마스터 **타이머 사운드** 탭 · `soundProfiles` JSON
 - **2026-09-21** — HANDOFF **§11.1.1 타이머 알람 사운드** 인수인계 · §4.6 알람/tick 정확화
 - **2026-09-21** — 배너 제목 **세로·가로 중앙** (`.app-banner-core` absolute + flex)
@@ -513,4 +514,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (마스터 타이머 사운드·soundProfiles)*
+*Last updated: 2026-09-21 (메이커 보석 AC·카탈로그 정렬)*

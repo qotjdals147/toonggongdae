@@ -4212,7 +4212,10 @@
     const ownerId = formPrefix === 'fMaker' ? 'fMakerOwner' : 'mEditOwner';
     const rawGem = String($(gemId).value || '').trim();
     ensureGamificationState();
-    const gemName = resolveCatalogItemInput(rawGem) || rawGem;
+    const resolved = resolveCatalogItemInput(rawGem) || findCatalogEntryByAnyLabel(rawGem)?.canonical || '';
+    const gemName = isMakerGemCatalogName(resolved)
+      ? resolved
+      : (isMakerGemCatalogName(rawGem) ? rawGem : canonicalGemNameFromLegacy(rawGem));
     return normalizeMakerRefine({
       gemName,
       makerIdx: Number($(ownerId).value),
@@ -5655,13 +5658,15 @@
         icon: CATALOG_ITEM_ICON_BY_CANONICAL[name] || inferCatalogIconForCanonical(name),
       });
     });
-    MAKER_GEM_CATALOG_NAMES.forEach((name) => {
-      rows.push({
-        canonical: name,
-        icon: makerGemIconPath(name),
-        aliases: (MAKER_GEM_CATALOG_ALIASES[name] || []).slice(),
+    [...MAKER_GEM_CATALOG_NAMES]
+      .sort((a, b) => compareMakerGemCatalogSuggestions({ canonical: a }, { canonical: b }))
+      .forEach((name) => {
+        rows.push({
+          canonical: name,
+          icon: makerGemIconPath(name),
+          aliases: (MAKER_GEM_CATALOG_ALIASES[name] || []).slice(),
+        });
       });
-    });
     return rows;
   }
 
@@ -7766,10 +7771,41 @@
     return String(name).replace(/\s(10|60|100)%\s*$/, '');
   }
 
+  function makerGemTierRank(name) {
+    const s = String(name || '').trim();
+    if (/^상급 /.test(s)) return 3;
+    if (/^중급 /.test(s)) return 2;
+    if (/^하급 /.test(s)) return 1;
+    return 0;
+  }
+
+  function makerGemBaseKey(name) {
+    return String(name || '').trim().replace(/^(상급|중급|하급) /, '');
+  }
+
+  function isMakerGemCatalogName(name) {
+    return MAKER_GEM_CATALOG_NAME_SET.has(String(name || '').trim());
+  }
+
+  /** 보석: 기본 → 하급 → 중급 → 상급 · 같은 계열은 가나다 */
+  function compareMakerGemCatalogSuggestions(a, b) {
+    const ca = a.canonical;
+    const cb = b.canonical;
+    const ta = makerGemTierRank(ca);
+    const tb = makerGemTierRank(cb);
+    if (ta !== tb) return ta - tb;
+    const baseCmp = makerGemBaseKey(ca).localeCompare(makerGemBaseKey(cb), 'ko');
+    if (baseCmp !== 0) return baseCmp;
+    return ca.localeCompare(cb, 'ko');
+  }
+
   /** 주문서: 같은 종류 안에서는 100 → 60 → 10 · 그 외는 가나다 */
   function compareCatalogItemSuggestions(a, b) {
     const ca = a.canonical;
     const cb = b.canonical;
+    const ga = isMakerGemCatalogName(ca);
+    const gb = isMakerGemCatalogName(cb);
+    if (ga && gb) return compareMakerGemCatalogSuggestions(a, b);
     const ra = scrollSuccessRateFromCanonical(ca);
     const rb = scrollSuccessRateFromCanonical(cb);
     if (ra != null && rb != null) {
@@ -7777,10 +7813,13 @@
       if (baseCmp !== 0) return baseCmp;
       return rb - ra;
     }
+    if (ra != null && rb == null) return -1;
+    if (ra == null && rb != null) return 1;
     return ca.localeCompare(cb, 'ko');
   }
 
-  function filterItemNameSuggestions(query) {
+  function filterItemNameSuggestions(query, hooks) {
+    const gemsOnly = !!(hooks && hooks.gemsOnly);
     const q = normalizeGamificationText(String(query || '').trim());
     if (!q) return [];
     const seen = new Set();
@@ -7789,6 +7828,7 @@
       if (!catalogEntryVisibleInItemSearch(entry)) return;
       const canonical = String(entry.canonical || '').trim();
       if (!canonical) return;
+      if (gemsOnly && !isMakerGemCatalogName(canonical)) return;
       const labels = [canonical, ...(entry.aliases || [])];
       const hit = labels.some((label) => itemNameMatchesQuery(label, q));
       if (!hit) return;
@@ -7800,7 +7840,8 @@
         icon: entry.icon || inferCatalogIconForCanonical(canonical),
       });
     });
-    return out.sort(compareCatalogItemSuggestions).slice(0, 12);
+    const cmp = gemsOnly ? compareMakerGemCatalogSuggestions : compareCatalogItemSuggestions;
+    return out.sort(cmp).slice(0, 12);
   }
 
   function addMasterCatalogItem(canonical, aliasesRaw) {
@@ -7854,9 +7895,10 @@
     bindCatalogReleaseFlagInputs();
     syncCatalogReleaseFlagsUi();
     wrap.innerHTML = '';
-    const list = (state.challengeItemCatalog || []).slice().sort(
-      (a, b) => String(a.canonical).localeCompare(String(b.canonical), 'ko')
-    );
+    const list = (state.challengeItemCatalog || []).slice().sort((a, b) => compareCatalogItemSuggestions(
+      { canonical: String(a.canonical || '') },
+      { canonical: String(b.canonical || '') }
+    ));
     if (!list.length) {
       wrap.innerHTML = '<p class="challenge-meta">등록된 아이템이 없어요.</p>';
       return;
@@ -7908,7 +7950,7 @@
       if (hooks && typeof hooks.onPick === 'function') hooks.onPick();
     };
     const renderDrop = () => {
-      const list = filterItemNameSuggestions(input.value);
+      const list = filterItemNameSuggestions(input.value, hooks);
       if (!list.length) { drop.hidden = true; return; }
       drop.hidden = false;
       drop.innerHTML = '';
@@ -9047,6 +9089,9 @@
   function validateMakerRefineRow(r) {
     const row = normalizeMakerRefine(r);
     if (!row.gemName) return { ok: false, focus: 'gem', message: 'gem' };
+    if (!isMakerGemCatalogName(row.gemName)) {
+      return { ok: false, focus: 'gem', message: 'gemInvalid' };
+    }
     const refineSum = row.refineLow + row.refineMid + row.refineHigh;
     const yieldSum = row.yieldLow + row.yieldMid + row.yieldHigh;
     if (refineSum <= 0 && yieldSum <= 0) {
@@ -9133,6 +9178,11 @@
     const draft = readMakerDraftFromForm('mEdit');
     const v = validateMakerRefineRow(draft);
     if (!v.ok) {
+      if (v.message === 'gemInvalid') {
+        alert('보석 카탈로그에 있는 이름을 목록에서 선택해 주세요.');
+        $('mEditGem').focus();
+        return;
+      }
       if (v.focus === 'gem') $('mEditGem').focus();
       else if (v.focus === 'refine') $('mEditRefineLow').focus();
       else $('mEditRefineLow').focus();
@@ -9869,6 +9919,11 @@
     const draft = readMakerDraftFromForm('fMaker');
     const v = validateMakerRefineRow(draft);
     if (!v.ok) {
+      if (v.message === 'gemInvalid') {
+        alert('보석 카탈로그에 있는 이름을 목록에서 선택해 주세요.');
+        $('fMakerGem').focus();
+        return;
+      }
       if (v.focus === 'gem') { $('fMakerGem').focus(); return; }
       if (v.message === 'empty') {
         alert('재련 횟수 또는 획득 개수(하/중/상) 중 하나 이상을 입력해 주세요.');
@@ -10187,8 +10242,8 @@
   bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'), {
     onPick: () => syncEntryEditFormForItem()
   });
-  bindItemNameAutocomplete($('fMakerGem'), $('fMakerGemDropdown'));
-  bindItemNameAutocomplete($('mEditGem'), $('mEditGemDropdown'));
+  bindItemNameAutocomplete($('fMakerGem'), $('fMakerGemDropdown'), { gemsOnly: true });
+  bindItemNameAutocomplete($('mEditGem'), $('mEditGemDropdown'), { gemsOnly: true });
   bootApp();
 })();
 </script>
