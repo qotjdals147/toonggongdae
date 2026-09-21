@@ -120,13 +120,13 @@ legacySummaryOnly (옛 회차 요약만)
 - **UX:** **장부 팝업(모달) 없음 · PIP만** · `huntActive` false → PIP **설정 화면**(+ 사냥 시작) · true → **타일 그리드**(+ 사냥 종료, 설정/종료 버튼 없음).
 - **PIP CSS:** `#partyTimerPipStyles` **textContent**만 PiP `<head>`에 주입 — **`cloneNode`+`media="not all"` 금지**(스타일 미적용·흰 화면).
 - **PIP 크기:** `computePipTargetSize` + `measurePipContentSize`(CTA bottom 포함) + `resizeTo` · 전환 후 rAF·지연 재측정 · `overflow:hidden`에서 scrollHeight만 쓰면 **사냥 종료 잘림** 간헐 버그.
-- **동기화:** `runtime.slotEndsAt` + `huntActive` · 0초 → `processSlotTimerLoops`가 **알람 1세트(repeatCount)** 후 `slotCycleMs`로 재시작 · 만료 `endsAt`당 알람 1회(`slotAlarmFired` cycleKey) · PiP 닫아도 tick 유지.
+- **동기화:** `runtime.slotEndsAt` + `huntActive` · 0초 **`scheduleSlotExpiryAlarm`(setTimeout)** + tick 백업(`processSlotTimerLoops`) · 알람 후 `slotCycleMs` 재시작 · `slotAlarmFired` cycleKey · PiP 닫아도 tick 유지.
 - **PIP:** Chrome/Edge Document PiP · **2×2 타일** · 사냥 중 상단 **좌** ▶⏸↺🔊 · **우** **사냥 종료**(하단 CTA 없음 — 잘림 방지) · urgent·0초 alarm·반복.
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
 - **알람:** 0초 `is-alarm` 플래시(~2s) · `processSlotTimerLoops` → `playPipAlarm()` + `flashPipTileAlarm()` · **소리는 PIP 창이 열려 있을 때만** (`playPipAlarm`이 `pipWindow.closed`면 return) · 사냥 tick은 PiP 닫아도 **`syncHuntRuntimeTick` 유지**(반복 카운트만 백그라운드).
-- **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount**(0초마다, 기본 1) · `playPipAlarmForSlot` · 파일 없으면 **880Hz 비프**.
+- **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount** · PiP에서 **Web Audio 버퍼 preload**(`slotBufferWarm`) 우선 재생 · fallback HTML Audio · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
 - **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
 
@@ -293,6 +293,7 @@ legacySummaryOnly (옛 회차 요약만)
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
+- **2026-09-21** — 타이머 알람 **Web Audio 버퍼** 재생(0초 지연 완화)
 - **2026-09-21** — 타이머 0초 **`setTimeout(endsAt)`** 정밀 알람 + preload
 - **2026-09-21** — 타이머 0초 감지 **80ms tick** · 알람 mp3 **PIP preload** (재생 지연 완화)
 - **2026-09-21** — 타이머 알람 **파일 재생 후 비프 제거** · repeat 시퀀스 정리 · **슬롯 간 겹침** 허용
@@ -519,4 +520,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (메이커 보석 AC·카탈로그 정렬)*
+*Last updated: 2026-09-21 (Web Audio 알람·NPC 도구 박스)*
