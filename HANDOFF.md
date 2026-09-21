@@ -67,7 +67,7 @@ exclusiveTitleMeta{} // 고유 훈장 UI 오버라이드 · id → description, 
 challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전 자동완성 · 집계 매칭
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
 hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
-partyTimer?  // 타이머 · presets[] + runtime(huntActive, slotRemaining, slotEndsAt, slotPaused, rev) · **`party-timer-app.js`** + `index.html` PiP CSS(`#partyTimerPipStyles`)
+partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, repeatCount 1–20, fileName } · **`party-timer-app.js`**
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -126,8 +126,9 @@ legacySummaryOnly (옛 회차 요약만)
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
 - **알람:** 0초 `is-alarm` 플래시(~2s) · `processSlotTimerLoops` → `playPipAlarm()` + `flashPipTileAlarm()` · **소리는 PIP 창이 열려 있을 때만** (`playPipAlarm`이 `pipWindow.closed`면 return) · 사냥 tick은 PiP 닫아도 **`syncHuntRuntimeTick` 유지**(반복 카운트만 백그라운드).
-- **소리(현재):** Web Audio **880Hz 비프** 280ms · **에셋 파일 없음** · maple-atelier급 **실제 알람음 = 다음 작업** (§11.1.1).
-- **음소거:** 툴바 🔊/`data-pip-act="mute"` → `pipUi.muted` (**세션만**, `state` 비영속) · 타일 우상단 🔊·⟲는 **`noop` placeholder**.
+- **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount**(0초마다, 기본 1) · `playPipAlarmForSlot` · 파일 없으면 **880Hz 비프**.
+- **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
+- **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`**.
 
 ---
 
@@ -149,7 +150,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
-| 마스터 옵션(배퉁) | `#challengeAdminModal` · `#challengeAdminBtn` · `switchChAdminTab` · memberIdx **=== 2** |
+| 마스터 옵션(배퉁) | `#challengeAdminModal` · 탭 **타이머 사운드** · `PartyTimerApp.updateSoundProfile` · memberIdx **=== 2** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
 | 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
@@ -291,6 +292,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 타이머 **슬롯별 사운드·볼륨·반복** · 배퉁 마스터 **타이머 사운드** 탭 · `soundProfiles` JSON
 - **2026-09-21** — HANDOFF **§11.1.1 타이머 알람 사운드** 인수인계 · §4.6 알람/tick 정확화
 - **2026-09-21** — 배너 제목 **세로·가로 중앙** (`.app-banner-core` absolute + flex)
 - **2026-09-21** — 배너 **배경만** 표시(캐릭·보스·이펙트 레이어 제거) · `buildAppBannerStage()` 비움
@@ -390,11 +392,13 @@ legacySummaryOnly (옛 회차 요약만)
 ### 11.1 퉁공대 타이머 (진행 중 · 2026-09-21)
 
 - [x] PiP **기본 4슬롯** 이름·아이콘 · 기타 슬롯 자유 라벨 (`BUILTIN_SLOT_DEFAULTS`)
-- [ ] **알람 소리 (다음 작업 · 소유자 지시)** — §11.1.1
+- [x] **알람 소리** — `partyTimer.soundProfiles` · 마스터 **타이머 사운드** · PIP 전용 재생
 - [ ] (선택) 사냥 툴바 **줌 ±** · 슬롯별 음소거 · 0초 전 pre-alert
 - [ ] (선택) Realtime **참여자 표시** (동시 편집자)
 
-#### 11.1.1 타이머 **알람 사운드** — 구현 전 체크리스트 (에이전트용)
+#### 11.1.1 타이머 **알람 사운드** — 구현됨 (2026-09-21)
+
+<details><summary>에이전트 참고 (초기 설계 메모)</summary>
 
 **소유자 원래 요구 (유지):**
 
@@ -427,6 +431,8 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 **검증:** Chrome/Edge · 로그인 → **퉁공대 타이머** → PIP · 짧은 초(예: 5초) 슬롯 · 사냥 시작 → 0초 **번쩍+소리** · PiP 닫은 채 0초 지나도 **메인 탭에서 소리 없음** · 🔇 시 무음.
 
 **하지 말 것:** 장부 `index.html` IIFE에 타이머 로직 복붙 · PiP CSS `cloneNode`+`media="not all"`.
+
+</details>
 
 ### 11.2 상단 헤더 · 배너
 
@@ -461,14 +467,14 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 | 영역 | 상태 |
 |------|------|
-| **타이머** | PIP만 · 4슬롯 기본 · 0초 **반복** · 알람 **비프 placeholder** · **다음: 실제 사운드** §11.1.1 |
+| **타이머** | PIP · 0초 반복 · **soundProfiles**(마스터 탭) · mp3/wav data URL |
 | **헤더** | `배경.png` + 제목 바운스 · **참고 / 운영** 카테고리 |
 | **획득 모달** | 잡장비·카탈로그 아이콘 |
 | **미커밋 asset** | `image/훈장아이콘/중급샤프아이즈.png` · `image/이펙트/…` — **untracked** |
 
 **로컬 검증:** Chrome/Edge · Ctrl+F5 · `?room=tongtongi` 로그인 → **퉁공대 타이머** PIP.
 
-**다음 작업 (소유자 예고):** **퉁공대 타이머 사운드 적용** — `party-timer-app.js` · 에셋 경로 확정 후 §11.1.1 검증 시나리오.
+**다음 작업 후보:** 슬롯별 PiP mute · pre-alert · JSON 용량(짧은 알람 권장).
 
 ---
 
@@ -507,4 +513,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (§11.1.1 타이머 사운드 인수인계)*
+*Last updated: 2026-09-21 (마스터 타이머 사운드·soundProfiles)*

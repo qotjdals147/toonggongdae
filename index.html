@@ -3022,6 +3022,7 @@
       <button type="button" class="mypage-tab" id="chAdminTabLevel" data-ch-admin-tab="level">레벨 훈장</button>
       <button type="button" class="mypage-tab" id="chAdminTabList" data-ch-admin-tab="list">등록된 도전</button>
       <button type="button" class="mypage-tab" id="chAdminTabExclusive" data-ch-admin-tab="exclusive">고유 훈장</button>
+      <button type="button" class="mypage-tab" id="chAdminTabTimerSound" data-ch-admin-tab="timerSound">타이머 사운드</button>
     </div>
     <div class="ch-admin-tab-panel" id="chAdminPanelAdd">
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">조건·XP·훈장 정보를 입력한 뒤 아래 <strong>도전과제 추가</strong>로 등록해요.</p>
@@ -3098,6 +3099,10 @@
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelExclusive" hidden>
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">코드로 등록된 고유 훈장 · 대상·이름은 고정 · 설명·색·옵션만 <strong>저장</strong>.</p>
       <div class="challenge-list" id="exclusiveTitleAdminList" style="margin-top:0;"></div>
+    </div>
+    <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelTimerSound" hidden>
+      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">퉁공대 타이머 <strong>0초 알람</strong> · 슬롯별 mp3/wav · 볼륨·한 사이클 반복 횟수(기본 1) · PIP 열린 사람만 재생 · <strong>저장</strong> 후 공대 전체 JSON 동기화.</p>
+      <div class="challenge-list" id="timerSoundAdminList" style="margin-top:0;"></div>
     </div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="challengeAdminCloseBtn">닫기</button>
@@ -7231,6 +7236,134 @@
     }
   }
 
+  function renderTimerSoundAdmin() {
+    const wrap = $('timerSoundAdminList');
+    if (!wrap || !window.PartyTimerApp) return;
+    if (!authSession || authSession.memberIdx !== 2) {
+      wrap.innerHTML = '<p class="challenge-meta">배퉁 계정만 설정할 수 있어요.</p>';
+      return;
+    }
+    PartyTimerApp.ensurePartyTimerState();
+    wrap.innerHTML = '';
+    const maxBytes = PartyTimerApp.TIMER_SOUND_MAX_BYTES || 900 * 1024;
+    PartyTimerApp.getTimerSoundSlotDefs().forEach((def) => {
+      const profile = PartyTimerApp.getSoundProfile(def.id);
+      const card = document.createElement('div');
+      card.className = 'ch-level-admin-card timer-sound-admin-card';
+      const fileLabel = profile.src
+        ? escapeHtml(profile.fileName || '등록된 파일')
+        : '기본 비프음 (파일 없음)';
+      card.innerHTML = `<strong>${escapeHtml(def.label)}</strong>
+        <p class="challenge-meta timer-sound-file-label" style="margin:4px 0 8px;">${fileLabel}</p>`;
+      const volRow = document.createElement('div');
+      volRow.className = 'ch-row-badge-color-wrap';
+      volRow.innerHTML = '<span class="challenge-meta">볼륨</span>';
+      const volRange = document.createElement('input');
+      volRange.type = 'range';
+      volRange.min = '0';
+      volRange.max = '100';
+      volRange.value = String(Math.round((profile.volume ?? 1) * 100));
+      volRange.className = 'timer-sound-vol';
+      const volPct = document.createElement('span');
+      volPct.className = 'challenge-meta';
+      volPct.textContent = `${volRange.value}%`;
+      volRow.appendChild(volRange);
+      volRow.appendChild(volPct);
+      const repRow = document.createElement('div');
+      repRow.className = 'ch-row-badge-color-wrap ch-row-xp-wrap';
+      repRow.innerHTML = '<span class="challenge-meta">0초당 반복</span>';
+      const repInp = document.createElement('input');
+      repInp.type = 'number';
+      repInp.min = '1';
+      repInp.max = '20';
+      repInp.step = '1';
+      repInp.className = 'ch-row-xp timer-sound-repeat';
+      repInp.value = String(profile.repeatCount || 1);
+      repRow.appendChild(repInp);
+      const fileRow = document.createElement('div');
+      fileRow.className = 'timer-sound-file-row';
+      const fileInp = document.createElement('input');
+      fileInp.type = 'file';
+      fileInp.accept = 'audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4,audio/*';
+      fileInp.className = 'timer-sound-file';
+      fileInp.style.maxWidth = '100%';
+      let pendingSrc = profile.src;
+      let pendingName = profile.fileName || '';
+      const fileMeta = card.querySelector('.timer-sound-file-label');
+      fileInp.addEventListener('change', () => {
+        const file = fileInp.files && fileInp.files[0];
+        fileInp.value = '';
+        if (!file) return;
+        if (!/^audio\//i.test(file.type) && !/\.(mp3|wav|ogg|m4a)$/i.test(file.name)) {
+          alert('mp3·wav·ogg 등 오디오 파일만 등록할 수 있어요.');
+          return;
+        }
+        if (file.size > maxBytes) {
+          alert(`파일이 너무 커요 (최대 ${Math.round(maxBytes / 1024)}KB). 짧은 알람음을 권장해요.`);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          pendingSrc = typeof reader.result === 'string' ? reader.result : null;
+          pendingName = file.name;
+          if (fileMeta) fileMeta.textContent = pendingName;
+        };
+        reader.readAsDataURL(file);
+      });
+      fileRow.appendChild(fileInp);
+      const btnRow = document.createElement('div');
+      btnRow.className = 'ch-admin-save-row';
+      const previewBtn = document.createElement('button');
+      previewBtn.type = 'button';
+      previewBtn.className = 'btn-light btn-sm';
+      previewBtn.textContent = '미리듣기';
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'btn-light btn-sm';
+      clearBtn.textContent = '파일 제거';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn-settle btn-sm';
+      saveBtn.textContent = '저장';
+      previewBtn.addEventListener('click', () => {
+        PartyTimerApp.previewAlarmSound(def.id, false, {
+          src: pendingSrc,
+          volume: Number(volRange.value) / 100,
+          repeatCount: Number(repInp.value),
+          fileName: pendingName,
+        });
+      });
+      clearBtn.addEventListener('click', () => {
+        pendingSrc = null;
+        pendingName = '';
+        if (fileMeta) fileMeta.textContent = '기본 비프음 (파일 없음)';
+      });
+      saveBtn.addEventListener('click', () => {
+        PartyTimerApp.updateSoundProfile(def.id, {
+          src: pendingSrc,
+          volume: Number(volRange.value) / 100,
+          repeatCount: Number(repInp.value),
+          fileName: pendingName,
+        });
+        flashChAdminSaved(saveBtn);
+        if (fileMeta) {
+          fileMeta.textContent = pendingSrc
+            ? (pendingName || '등록된 파일')
+            : '기본 비프음 (파일 없음)';
+        }
+      });
+      volRange.addEventListener('input', () => {
+        volPct.textContent = `${volRange.value}%`;
+      });
+      btnRow.append(previewBtn, clearBtn, saveBtn);
+      card.appendChild(volRow);
+      card.appendChild(repRow);
+      card.appendChild(fileRow);
+      card.appendChild(btnRow);
+      wrap.appendChild(card);
+    });
+  }
+
   function switchChAdminTab(tab) {
     chAdminActiveTab = tab;
     const map = {
@@ -7239,6 +7372,7 @@
       level: ['chAdminTabLevel', 'chAdminPanelLevel'],
       list: ['chAdminTabList', 'chAdminPanelList'],
       exclusive: ['chAdminTabExclusive', 'chAdminPanelExclusive'],
+      timerSound: ['chAdminTabTimerSound', 'chAdminPanelTimerSound'],
     };
     Object.keys(map).forEach((t) => {
       const [tabId, panelId] = map[t];
@@ -7251,6 +7385,7 @@
     if (tab === 'list') renderChallengeAdminList();
     if (tab === 'items') renderMasterItemCatalogAdmin();
     if (tab === 'exclusive') renderExclusiveTitleAdmin();
+    if (tab === 'timerSound') renderTimerSoundAdmin();
     if (tab === 'add') {
       ensureChAdminBonusEditor();
       updateChAdminAddBadgePreview();
@@ -10029,6 +10164,7 @@
   $('chAdminTabLevel').addEventListener('click', () => switchChAdminTab('level'));
   $('chAdminTabList').addEventListener('click', () => switchChAdminTab('list'));
   $('chAdminTabExclusive').addEventListener('click', () => switchChAdminTab('exclusive'));
+  $('chAdminTabTimerSound').addEventListener('click', () => switchChAdminTab('timerSound'));
   $('masterItemAddBtn').addEventListener('click', () => {
     if (!authSession || authSession.memberIdx !== 2) return;
     const ok = addMasterCatalogItem($('masterItemCanonical').value, $('masterItemAliases').value);

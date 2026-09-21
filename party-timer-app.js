@@ -16,6 +16,7 @@
   let pipStyleEl = null;
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
+  const TIMER_SOUND_SLOT_IDS = ['slot-holy', 'slot-session', 'slot-buff1', 'slot-consume'];
 
   const BUILTIN_SLOT_DEFAULTS = {
     'slot-holy': { label: '홀리 심볼', icon: 'image/스킬아이콘/홀리심볼.png' },
@@ -67,6 +68,27 @@
     ];
   }
 
+  function defaultSoundProfiles() {
+    const profiles = {};
+    TIMER_SOUND_SLOT_IDS.forEach((id) => {
+      profiles[id] = { src: null, volume: 1, repeatCount: 1, fileName: '' };
+    });
+    return profiles;
+  }
+
+  function normalizeSoundProfile(raw) {
+    const base = { src: null, volume: 1, repeatCount: 1, fileName: '' };
+    if (!raw || typeof raw !== 'object') return { ...base };
+    let volume = Number(raw.volume);
+    if (!Number.isFinite(volume)) volume = 1;
+    volume = Math.max(0, Math.min(1, volume));
+    let repeatCount = Math.round(Number(raw.repeatCount) || 1);
+    repeatCount = Math.max(1, Math.min(20, repeatCount));
+    const src = typeof raw.src === 'string' && raw.src.trim() ? raw.src.trim() : null;
+    const fileName = String(raw.fileName || '').trim().slice(0, 160);
+    return { src, volume, repeatCount, fileName };
+  }
+
   function defaultPartyTimer() {
     const slots = defaultSlots();
     const presetId = 'preset-default';
@@ -76,6 +98,7 @@
       schema: 1,
       activePresetId: presetId,
       presets: [{ id: presetId, name: '기본', slots: slots.map((s) => ({ ...s })) }],
+      soundProfiles: defaultSoundProfiles(),
       runtime: { huntActive: false, rev: 0, slotRemaining, slotEndsAt: {}, slotPaused: {} },
     };
   }
@@ -115,7 +138,27 @@
     preset.slots.forEach((s) => {
       if (pt.runtime.slotRemaining[s.id] == null) pt.runtime.slotRemaining[s.id] = s.durationSec * 1000;
     });
+    const mergedSound = defaultSoundProfiles();
+    const rawSound = raw && raw.soundProfiles && typeof raw.soundProfiles === 'object' ? raw.soundProfiles : {};
+    TIMER_SOUND_SLOT_IDS.forEach((id) => {
+      mergedSound[id] = normalizeSoundProfile({ ...mergedSound[id], ...rawSound[id] });
+    });
+    pt.soundProfiles = mergedSound;
     return pt;
+  }
+
+  function getSoundProfile(slotId) {
+    ensurePartyTimerState();
+    const profiles = partyTimer().soundProfiles || defaultSoundProfiles();
+    return normalizeSoundProfile(profiles[slotId] || {});
+  }
+
+  function updateSoundProfile(slotId, patch) {
+    if (!TIMER_SOUND_SLOT_IDS.includes(slotId)) return;
+    ensurePartyTimerState();
+    const pt = partyTimer();
+    pt.soundProfiles[slotId] = normalizeSoundProfile({ ...pt.soundProfiles[slotId], ...patch });
+    scheduleSave();
   }
 
   function partyTimer() {
@@ -599,19 +642,81 @@
     });
   }
 
-  function playPipAlarm() {
-    if (pipUi.muted || !pipWindow || pipWindow.closed) return;
+  function playFallbackBeep(doc, volume, onDone) {
+    const done = typeof onDone === 'function' ? onDone : () => {};
     try {
-      const ctx = new (pipWindow.AudioContext || pipWindow.webkitAudioContext)();
+      const Ctx = doc.defaultView.AudioContext || doc.defaultView.webkitAudioContext;
+      if (!Ctx) { done(); return; }
+      const ctx = new Ctx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.frequency.value = 880;
-      gain.gain.value = 0.15;
+      gain.gain.value = 0.15 * Math.max(0, Math.min(1, volume));
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      setTimeout(() => { osc.stop(); ctx.close(); }, 280);
-    } catch (e) { /* ignore */ }
+      setTimeout(() => {
+        try { osc.stop(); ctx.close(); } catch (e) { /* ignore */ }
+        done();
+      }, 280);
+    } catch (e) {
+      done();
+    }
+  }
+
+  function playOneAlarmSound(doc, profile, volume, onDone) {
+    const done = typeof onDone === 'function' ? onDone : () => {};
+    if (profile && profile.src) {
+      try {
+        const audio = new doc.defaultView.Audio(profile.src);
+        audio.volume = Math.max(0, Math.min(1, volume));
+        audio.onended = () => done();
+        audio.onerror = () => playFallbackBeep(doc, volume, done);
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => playFallbackBeep(doc, volume, done));
+        return;
+      } catch (e) {
+        playFallbackBeep(doc, volume, done);
+        return;
+      }
+    }
+    playFallbackBeep(doc, volume, done);
+  }
+
+  function playPipAlarmForSlot(slotId) {
+    if (pipUi.muted || !pipWindow || pipWindow.closed) return;
+    const profile = getSoundProfile(slotId);
+    const volume = profile.volume;
+    const repeat = profile.repeatCount;
+    const doc = pipWindow.document;
+    flashPipTileAlarm(slotId);
+    let played = 0;
+    const gapMs = 200;
+    function step() {
+      if (pipUi.muted || !pipWindow || pipWindow.closed) return;
+      if (played >= repeat) return;
+      playOneAlarmSound(doc, profile, volume, () => {
+        played += 1;
+        if (played < repeat) setTimeout(step, gapMs);
+      });
+    }
+    step();
+  }
+
+  function previewAlarmSound(slotId, usePipWindow, patch) {
+    const profile = normalizeSoundProfile({ ...getSoundProfile(slotId), ...(patch || {}) });
+    const doc = usePipWindow && pipWindow && !pipWindow.closed ? pipWindow.document : document;
+    const repeat = profile.repeatCount;
+    let played = 0;
+    const gapMs = 200;
+    function step() {
+      if (played >= repeat) return;
+      playOneAlarmSound(doc, profile, profile.volume, () => {
+        played += 1;
+        if (played < repeat) setTimeout(step, gapMs);
+      });
+    }
+    step();
   }
 
   function flashPipTileAlarm(slotId) {
@@ -637,8 +742,7 @@
       }
       if (!slotAlarmFired[slot.id]) {
         slotAlarmFired[slot.id] = true;
-        playPipAlarm();
-        flashPipTileAlarm(slot.id);
+        playPipAlarmForSlot(slot.id);
       }
       const cycleMs = slot.durationSec * 1000;
       rt.slotRemaining[slot.id] = cycleMs;
@@ -839,6 +943,13 @@
     pipStyleEl = $('partyTimerPipStyles');
   }
 
+  function getTimerSoundSlotDefs() {
+    return TIMER_SOUND_SLOT_IDS.map((id) => ({
+      id,
+      label: (BUILTIN_SLOT_DEFAULTS[id] && BUILTIN_SLOT_DEFAULTS[id].label) || id,
+    }));
+  }
+
   global.PartyTimerApp = {
     init,
     ensurePartyTimerState,
@@ -847,5 +958,10 @@
     openPip,
     onRemoteStateApplied,
     isPipOpen: () => pipWindow && !pipWindow.closed,
+    getTimerSoundSlotDefs,
+    getSoundProfile,
+    updateSoundProfile,
+    previewAlarmSound,
+    TIMER_SOUND_MAX_BYTES: 900 * 1024,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
