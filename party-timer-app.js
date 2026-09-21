@@ -20,6 +20,8 @@
   /** slotId → { src, audio } · 0초 직전 decode (PiP 창 Audio) */
   let slotAudioWarm = {};
   const HUNT_RUNTIME_TICK_MS = 80;
+  /** slotId → setTimeout id · endsAt 시각에 맞춰 0초 알람 */
+  let slotEndTimers = {};
   let pipStyleEl = null;
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
@@ -811,8 +813,8 @@
     const gen = slotAlarmGen[slotId];
     const profile = getSoundProfile(slotId);
     const doc = pipWindow.document;
-    flashPipTileAlarm(slotId);
     runAlarmRepeatSequence(doc, slotId, profile, profile.repeatCount, gen, () => {});
+    flashPipTileAlarm(slotId);
   }
 
   function previewAlarmSound(slotId, usePipWindow, patch) {
@@ -833,11 +835,74 @@
     }
   }
 
-  /** 사냥 중 슬롯 0초 → 알람(설정 repeat) 1번만 · duration으로 **재시작** */
+  function clearSlotEndTimer(slotId) {
+    if (slotEndTimers[slotId] != null) {
+      clearTimeout(slotEndTimers[slotId]);
+      delete slotEndTimers[slotId];
+    }
+  }
+
+  function clearAllSlotEndTimers() {
+    Object.keys(slotEndTimers).forEach((id) => clearSlotEndTimer(id));
+  }
+
+  function handleSlotExpired(slotId, now) {
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) return;
+    const slot = findSlot(slotId);
+    if (!slot || !slot.enabled) return;
+    if (rt.slotPaused[slotId]) return;
+    const endsAt = rt.slotEndsAt[slotId];
+    if (endsAt == null) return;
+    now = now != null ? now : Date.now();
+    if (endsAt > now) {
+      scheduleSlotExpiryAlarm(slotId);
+      return;
+    }
+    const cycleKey = String(endsAt);
+    if (slotAlarmFired[slotId] !== cycleKey) {
+      slotAlarmFired[slotId] = cycleKey;
+      playPipAlarmForSlot(slotId);
+    }
+    const cycleMs = slotCycleMs(slot);
+    rt.slotRemaining[slotId] = cycleMs;
+    rt.slotEndsAt[slotId] = now + cycleMs;
+    bumpRuntimeRev();
+    scheduleSave();
+    scheduleSlotExpiryAlarm(slotId);
+    if (pipWindow && !pipWindow.closed) updatePipDisplay();
+  }
+
+  function scheduleSlotExpiryAlarm(slotId) {
+    clearSlotEndTimer(slotId);
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) return;
+    const slot = findSlot(slotId);
+    if (!slot || !slot.enabled) return;
+    if (rt.slotPaused[slotId]) return;
+    const endsAt = rt.slotEndsAt[slotId];
+    if (endsAt == null) return;
+    const delay = endsAt - Date.now();
+    if (delay <= 0) {
+      handleSlotExpired(slotId, Date.now());
+      return;
+    }
+    slotEndTimers[slotId] = setTimeout(() => {
+      delete slotEndTimers[slotId];
+      handleSlotExpired(slotId, Date.now());
+    }, delay);
+  }
+
+  function resyncAllSlotExpiryAlarms() {
+    clearAllSlotEndTimers();
+    if (!partyTimer().runtime.huntActive) return;
+    enabledSlots().forEach((s) => scheduleSlotExpiryAlarm(s.id));
+  }
+
+  /** tick 백업 · setTimeout 누락 시 */
   function processSlotTimerLoops(now) {
     const rt = partyTimer().runtime;
     if (!rt.huntActive) return;
-    let changed = false;
     enabledSlots().forEach((slot) => {
       if (rt.slotPaused[slot.id]) return;
       const endsAt = rt.slotEndsAt[slot.id];
@@ -846,20 +911,8 @@
         delete slotAlarmFired[slot.id];
         return;
       }
-      const cycleKey = String(endsAt);
-      if (slotAlarmFired[slot.id] !== cycleKey) {
-        slotAlarmFired[slot.id] = cycleKey;
-        playPipAlarmForSlot(slot.id);
-      }
-      const cycleMs = slotCycleMs(slot);
-      rt.slotRemaining[slot.id] = cycleMs;
-      rt.slotEndsAt[slot.id] = now + cycleMs;
-      changed = true;
+      handleSlotExpired(slot.id, now);
     });
-    if (changed) {
-      bumpRuntimeRev();
-      scheduleSave();
-    }
   }
 
   function stopHuntRuntimeTick() {
@@ -941,6 +994,7 @@
     }
     bumpRuntimeRev();
     scheduleSave();
+    resyncAllSlotExpiryAlarms();
     updatePipDisplay();
   }
 
@@ -956,6 +1010,8 @@
     else delete rt.slotEndsAt[slotId];
     bumpRuntimeRev();
     scheduleSave();
+    if (rt.huntActive) scheduleSlotExpiryAlarm(slotId);
+    else clearSlotEndTimer(slotId);
     updatePipDisplay();
   }
 
@@ -977,6 +1033,7 @@
     });
     bumpRuntimeRev();
     scheduleSave();
+    resyncAllSlotExpiryAlarms();
     updatePipDisplay();
   }
 
@@ -992,6 +1049,7 @@
     });
     bumpRuntimeRev();
     scheduleSave();
+    resyncAllSlotExpiryAlarms();
     updatePipDisplay();
   }
 
@@ -1010,8 +1068,10 @@
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     stopAllSlotAudios();
     clearSlotAudioWarm();
+    clearAllSlotEndTimers();
     scheduleSave();
     renderPipView();
+    resyncAllSlotExpiryAlarms();
   }
 
   function huntEnd() {
@@ -1028,6 +1088,7 @@
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     stopAllSlotAudios();
     clearSlotAudioWarm();
+    clearAllSlotEndTimers();
     stopHuntRuntimeTick();
     scheduleSave();
     renderPipView();
@@ -1042,7 +1103,10 @@
     syncHuntRuntimeTick();
     if (pipWindow && !pipWindow.closed) {
       renderPipView();
-      if (partyTimer().runtime.huntActive) warmAllAlarmAudiosInPip();
+      if (partyTimer().runtime.huntActive) {
+        warmAllAlarmAudiosInPip();
+        resyncAllSlotExpiryAlarms();
+      }
     }
   }
 

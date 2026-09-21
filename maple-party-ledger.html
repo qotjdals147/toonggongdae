@@ -310,26 +310,19 @@
   }
   .app-save-hint.is-error { color: var(--rust); font-weight: 600; }
   .app-save-hint[hidden] { display: none !important; }
-  .app-toolbar-fold {
+  .app-toolbar-shell {
     border-top: 1px solid var(--line);
-    padding-top: 8px;
+    padding-top: 10px;
     margin-top: 4px;
   }
-  .app-toolbar-fold > summary {
-    cursor: pointer;
-    list-style: none;
+  .app-toolbar-heading {
+    margin: 0 0 8px;
     text-align: center;
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--ink-soft);
-    padding: 6px 10px;
-    border-radius: 8px;
-    user-select: none;
+    letter-spacing: 0.02em;
   }
-  .app-toolbar-fold > summary::-webkit-details-marker { display: none; }
-  .app-toolbar-fold > summary::after { content: ' ▾'; font-size: 11px; opacity: 0.75; }
-  .app-toolbar-fold[open] > summary::after { content: ' ▴'; }
-  .app-toolbar-fold > summary:hover { background: var(--surface-muted); color: var(--ink); }
   .app-toolbar-categories {
     display: flex;
     flex-wrap: wrap;
@@ -357,16 +350,78 @@
     color: var(--ink-soft);
     line-height: 1.2;
   }
-  .app-toolbar-btns {
+  .app-tool-grid {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 5px;
+    align-items: stretch;
+    gap: 8px;
   }
-  .app-toolbar .btn-sm {
-    padding: 7px 11px;
-    font-size: 12px;
-    border-radius: 8px;
+  .app-tool-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 10px 10px 8px;
+    min-width: 84px;
+    max-width: 100px;
+    flex: 0 1 auto;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ink);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  }
+  .app-tool-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+    border-color: #94a3b8;
+  }
+  .app-tool-card:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
+  }
+  .app-tool-card:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+  .app-tool-card img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    object-position: bottom center;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    pointer-events: none;
+  }
+  .app-tool-card-avatar {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    line-height: 1;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .app-tool-card-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.25;
+    pointer-events: none;
+  }
+  .app-tool-card .hot-issue-badge {
+    top: 4px;
+    right: 4px;
+  }
+  .app-tool-card--logout {
+    border-color: #cbd5e1;
+    background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
   }
   .master-room-status {
     display: flex;
@@ -397,7 +452,7 @@
   @media (max-width: 640px) {
     .app-toolbar-categories { flex-direction: column; align-items: stretch; }
     .app-toolbar-group { align-items: center; }
-    .app-toolbar-btns { justify-content: center; }
+    .app-tool-grid { justify-content: center; }
   }
   .btn-hot-issue {
     position: relative;
@@ -2762,34 +2817,56 @@
       </div>
     </div>
     <p class="app-save-hint" id="saveStatusHint" hidden aria-live="polite"></p>
-    <details class="app-toolbar-fold">
-      <summary>공대 도구 · 참고 · 운영</summary>
+    <div class="app-toolbar-shell">
+      <p class="app-toolbar-heading">공대 도구 · 참고 · 운영</p>
       <nav class="app-toolbar" aria-label="공대 도구">
         <div class="app-toolbar-categories">
           <div class="app-toolbar-group">
             <span class="app-toolbar-label">참고</span>
-            <div class="app-toolbar-btns">
-              <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
+            <div class="app-tool-grid">
+              <button type="button" class="app-tool-card" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">
+                <img src="image/NPC/스크루지(수수료).png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">수수료</span>
+              </button>
             </div>
           </div>
           <div class="app-toolbar-group">
             <span class="app-toolbar-label">운영</span>
-            <div class="app-toolbar-btns">
-              <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
-              <button type="button" class="btn-timer btn-sm" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">퉁공대 타이머</button>
-              <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
-                퉁공대 핫이슈
+            <div class="app-tool-grid">
+              <button type="button" class="app-tool-card" id="warehouseBtn" title="창고캐 닉·보낼 아이템">
+                <img src="image/NPC/홍서방(창고).png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">창고캐</span>
+              </button>
+              <button type="button" class="app-tool-card" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">
+                <img src="image/NPC/시계(퉁공대타이머).png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">퉁공대 타이머</span>
+              </button>
+              <button type="button" class="app-tool-card" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
+                <img src="image/NPC/퉁공대핫이슈(고확).png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">퉁공대 핫이슈</span>
                 <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
               </button>
-              <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
-              <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
-              <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">마스터 옵션</button>
-              <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
+              <button type="button" class="app-tool-card" id="statsBtn" title="현재 장부 기준 통계">
+                <img src="image/NPC/랭킹모니터(통계).png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">통계</span>
+              </button>
+              <button type="button" class="app-tool-card" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">
+                <img src="image/NPC/달리어(훈장).png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">훈장</span>
+              </button>
+              <button type="button" class="app-tool-card" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">
+                <span class="app-tool-card-avatar" aria-hidden="true">⚙</span>
+                <span class="app-tool-card-label">마스터 옵션</span>
+              </button>
+              <button type="button" class="app-tool-card app-tool-card--logout" id="logoutBtn" style="display:none;" title="로그아웃">
+                <span class="app-tool-card-avatar" aria-hidden="true">⎋</span>
+                <span class="app-tool-card-label">로그아웃</span>
+              </button>
             </div>
           </div>
         </div>
       </nav>
-    </details>
+    </div>
   </header>
 
   <div class="cycle-strip" id="cycleStrip">

@@ -144,7 +144,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `#appHeaderBanner` · `BANNER_RES/배경.png` + 제목(`renderAppHeaderBanner`) · 스프라이트 스테이지 **비활성** · `<details>` **공대 도구** · **연결 상태=마스터 옵션만** |
+| 상단 헤더 | `#appHeaderBanner` · **공대 도구** 상시 노출 · `app-tool-card` + `image/NPC/*` · **연결 상태=마스터 옵션만** |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -292,6 +292,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
+- **2026-09-21** — 타이머 0초 **`setTimeout(endsAt)`** 정밀 알람 + preload
 - **2026-09-21** — 타이머 0초 감지 **80ms tick** · 알람 mp3 **PIP preload** (재생 지연 완화)
 - **2026-09-21** — 타이머 알람 **파일 재생 후 비프 제거** · repeat 시퀀스 정리 · **슬롯 간 겹침** 허용
 - **2026-09-21** — 타이머 0초 **알람·루프 버그** fix · `slotAlarmFired` 만료 키 · 사냥 종료 시 재생 중단
