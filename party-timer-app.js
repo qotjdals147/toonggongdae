@@ -17,6 +17,9 @@
   let slotActiveAudios = {};
   /** slotId → generation (stale 콜백 무시) */
   let slotAlarmGen = {};
+  /** slotId → { src, audio } · 0초 직전 decode (PiP 창 Audio) */
+  let slotAudioWarm = {};
+  const HUNT_RUNTIME_TICK_MS = 80;
   let pipStyleEl = null;
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
@@ -250,6 +253,32 @@
   function stopAllSlotAudios() {
     Object.keys(slotActiveAudios).forEach((id) => stopSlotAudios(id));
     slotAlarmGen = {};
+  }
+
+  function clearSlotAudioWarm() {
+    slotAudioWarm = {};
+  }
+
+  function ensureWarmAlarmAudio(doc, slotId, profile) {
+    if (!profile || !profile.src || !doc || !doc.defaultView) return null;
+    const src = profile.src;
+    let entry = slotAudioWarm[slotId];
+    if (!entry || entry.src !== src) {
+      const audio = new doc.defaultView.Audio(src);
+      audio.preload = 'auto';
+      try { audio.load(); } catch (e) { /* ignore */ }
+      entry = { src, audio };
+      slotAudioWarm[slotId] = entry;
+    }
+    return entry.audio;
+  }
+
+  function warmAllAlarmAudiosInPip() {
+    if (!pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
+    TIMER_SOUND_SLOT_IDS.forEach((id) => {
+      ensureWarmAlarmAudio(doc, id, getSoundProfile(id));
+    });
   }
 
   function slotDurationUnit(slot) {
@@ -518,7 +547,10 @@
 
     bindPipEvents(app);
     if (!hunt) setPipSetupNotice(pipUi.notice);
-    if (hunt) updatePipDisplay();
+    if (hunt) {
+      updatePipDisplay();
+      warmAllAlarmAudiosInPip();
+    }
     schedulePipResizeAfterImages(app);
     applyPipWindowSize();
     syncHuntRuntimeTick();
@@ -713,8 +745,13 @@
       return;
     }
     try {
-      const audio = new doc.defaultView.Audio(profile.src);
+      const audio = ensureWarmAlarmAudio(doc, slotId, profile)
+        || new doc.defaultView.Audio(profile.src);
       audio.volume = vol;
+      try {
+        audio.pause();
+      } catch (e) { /* ignore */ }
+      audio.currentTime = 0;
       trackSlotAudio(slotId, audio);
       const watchdog = setTimeout(finish, 45000);
       const wrapFinish = () => {
@@ -846,7 +883,7 @@
   function syncHuntRuntimeTick() {
     stopHuntRuntimeTick();
     if (!partyTimer().runtime.huntActive) return;
-    huntRuntimeTickId = setInterval(huntRuntimeTickStep, 200);
+    huntRuntimeTickId = setInterval(huntRuntimeTickStep, HUNT_RUNTIME_TICK_MS);
   }
 
   async function openPip() {
@@ -876,6 +913,7 @@
       pipWindow.document.body.innerHTML = '<div id="pipApp" class="pip-app"></div>';
       pipWindow.addEventListener('pagehide', () => {
         pipWindow = null;
+        clearSlotAudioWarm();
       });
       renderPipView();
       return true;
@@ -971,6 +1009,7 @@
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     stopAllSlotAudios();
+    clearSlotAudioWarm();
     scheduleSave();
     renderPipView();
   }
@@ -988,6 +1027,7 @@
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
     stopAllSlotAudios();
+    clearSlotAudioWarm();
     stopHuntRuntimeTick();
     scheduleSave();
     renderPipView();
@@ -1000,7 +1040,10 @@
   function onRemoteStateApplied() {
     ensurePartyTimerState();
     syncHuntRuntimeTick();
-    if (pipWindow && !pipWindow.closed) renderPipView();
+    if (pipWindow && !pipWindow.closed) {
+      renderPipView();
+      if (partyTimer().runtime.huntActive) warmAllAlarmAudiosInPip();
+    }
   }
 
   function init(options) {
