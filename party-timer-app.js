@@ -11,7 +11,7 @@
   let getRoomId = () => 'tongtongi';
 
   let pipWindow = null;
-  let pipTickId = null;
+  let huntRuntimeTickId = null;
   let slotAlarmFired = {};
   let pipStyleEl = null;
   let pipClickBound = false;
@@ -453,7 +453,7 @@
     if (hunt) updatePipDisplay();
     schedulePipResizeAfterImages(app);
     applyPipWindowSize();
-    syncPipTick();
+    syncHuntRuntimeTick();
   }
 
   function bindPipEvents(app) {
@@ -614,46 +614,66 @@
     } catch (e) { /* ignore */ }
   }
 
-  function checkPipAlarms(now) {
-    if (!pipWindow || pipWindow.closed || !partyTimer().runtime.huntActive) return;
-    enabledSlots().forEach((slot) => {
-      if (partyTimer().runtime.slotPaused[slot.id]) return;
-      const rem = slotRemainingMs(slot, now);
-      if (rem > 0) {
-        delete slotAlarmFired[slot.id];
-        return;
-      }
-      if (slotAlarmFired[slot.id]) return;
-      slotAlarmFired[slot.id] = true;
-      playPipAlarm();
-      const tile = pipWindow.document.querySelector(`.pip-tile[data-slot-id="${slot.id}"]`);
-      if (tile) {
-        tile.classList.add('is-alarm');
-        setTimeout(() => tile.classList.remove('is-alarm'), 2000);
-      }
-    });
-  }
-
-  function stopPipTick() {
-    if (pipTickId) {
-      clearInterval(pipTickId);
-      pipTickId = null;
+  function flashPipTileAlarm(slotId) {
+    if (!pipWindow || pipWindow.closed) return;
+    const tile = pipWindow.document.querySelector(`.pip-tile[data-slot-id="${slotId}"]`);
+    if (tile) {
+      tile.classList.add('is-alarm');
+      setTimeout(() => tile.classList.remove('is-alarm'), 2000);
     }
   }
 
-  function syncPipTick() {
-    stopPipTick();
-    if (!pipWindow || pipWindow.closed || !partyTimer().runtime.huntActive) return;
-    pipTickId = setInterval(() => {
-      if (!pipWindow || pipWindow.closed) {
-        stopPipTick();
+  /** 사냥 중 슬롯 시간 만료 → 알람(1회) 후 설정 duration으로 **반복** (사냥 종료 전까지) */
+  function processSlotTimerLoops(now) {
+    const rt = partyTimer().runtime;
+    if (!rt.huntActive) return;
+    let changed = false;
+    enabledSlots().forEach((slot) => {
+      if (rt.slotPaused[slot.id]) return;
+      if (rt.slotEndsAt[slot.id] == null) return;
+      if (rt.slotEndsAt[slot.id] > now) {
+        delete slotAlarmFired[slot.id];
         return;
       }
-      const now = Date.now();
-      syncRuntimeRemainingFromEndsAt(now);
-      updatePipDisplay();
-      checkPipAlarms(now);
-    }, 200);
+      if (!slotAlarmFired[slot.id]) {
+        slotAlarmFired[slot.id] = true;
+        playPipAlarm();
+        flashPipTileAlarm(slot.id);
+      }
+      const cycleMs = slot.durationSec * 1000;
+      rt.slotRemaining[slot.id] = cycleMs;
+      rt.slotEndsAt[slot.id] = now + cycleMs;
+      delete slotAlarmFired[slot.id];
+      changed = true;
+    });
+    if (changed) {
+      bumpRuntimeRev();
+      scheduleSave();
+    }
+  }
+
+  function stopHuntRuntimeTick() {
+    if (huntRuntimeTickId) {
+      clearInterval(huntRuntimeTickId);
+      huntRuntimeTickId = null;
+    }
+  }
+
+  function huntRuntimeTickStep() {
+    if (!partyTimer().runtime.huntActive) {
+      stopHuntRuntimeTick();
+      return;
+    }
+    const now = Date.now();
+    processSlotTimerLoops(now);
+    syncRuntimeRemainingFromEndsAt(now);
+    if (pipWindow && !pipWindow.closed) updatePipDisplay();
+  }
+
+  function syncHuntRuntimeTick() {
+    stopHuntRuntimeTick();
+    if (!partyTimer().runtime.huntActive) return;
+    huntRuntimeTickId = setInterval(huntRuntimeTickStep, 200);
   }
 
   async function openPip() {
@@ -683,7 +703,6 @@
       pipWindow.document.body.innerHTML = '<div id="pipApp" class="pip-app"></div>';
       pipWindow.addEventListener('pagehide', () => {
         pipWindow = null;
-        stopPipTick();
       });
       renderPipView();
       return true;
@@ -794,6 +813,7 @@
     });
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
+    stopHuntRuntimeTick();
     scheduleSave();
     renderPipView();
   }
@@ -804,6 +824,7 @@
 
   function onRemoteStateApplied() {
     ensurePartyTimerState();
+    syncHuntRuntimeTick();
     if (pipWindow && !pipWindow.closed) renderPipView();
   }
 
