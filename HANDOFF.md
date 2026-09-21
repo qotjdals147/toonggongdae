@@ -153,7 +153,8 @@ legacySummaryOnly (옛 회차 요약만)
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
-| 마스터 옵션(배퉁) | 공대원 **M** → 마스터 옵션 · 도구 **처치 기록** → kill 탭 · 몬스터 AC **아이콘** · 좌/우붕어싸만코 **flip** |
+| 처치 기록 | `#monsterKillModal` · **로그인 공대원 전원** · `#monsterKillLogToolBtn` · `monsterKillCounts` |
+| 마스터 옵션(배퉁) | 공대원 **M** → `#challengeAdminModal` · 몬스터 카탈로그(마스터) · monster AC **아이콘** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
 | 핫이슈 대상 | `#hotIssueTargetPicks` **복수 체크** · 대상마다 XP (`XP_HOT_ISSUE`) |
@@ -297,6 +298,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
 - **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
+- **2026-09-21** — **처치 기록** 공동 모달 분리(마스터 옵션 밖) · 로그인 전원 도구 노출
 - **2026-09-21** — 도구 **처치 기록** 카드 · **M=마스터 옵션** · 몬스터 입력 **아이콘** · 어싸만코 좌우 flip
 - **2026-09-21** — **처치 기록** 탭 · `monsterKillCounts` · 함께 처치 복수 · 배퉁 **M** 뱃지
 - **2026-09-21** — 핫이슈 **대상 복수** · 도전 **처치(monster_kill)** · **몬스터 카탈로그** · PNG 아이콘
@@ -528,4 +530,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (처치 기록·M 뱃지)*
+*Last updated: 2026-09-21 (처치 기록 공동 모달)*
