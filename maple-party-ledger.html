@@ -8333,7 +8333,7 @@
         loginIdForMemberIdx(memberIdx) ||
         rosterFallback ||
         `공대원 ${memberIdx + 1}`;
-      const charHtml = memberCharSpriteHtml(memberIdx);
+      const charHtml = memberCharSpriteHtml(memberIdx, { leaderCrown: false });
       const bossGrid = kills.length
         ? kills.map(({ entry, count, sortName }) => monsterKillBossCellHtml(entry || sortName, count)).join('')
         : '<p class="monster-kill-boss-empty">아직 처치 기록 없음</p>';
