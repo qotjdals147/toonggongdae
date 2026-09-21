@@ -238,41 +238,87 @@
     const rows = Math.ceil(n / cols);
     const gridW = cols * TILE_W + (cols - 1) * GAP;
     const gridH = rows * TILE_H + (rows - 1) * GAP;
+    const CTA_BLOCK = 56;
     return {
       w: gridW + PAD_X,
-      h: PAD_Y + 38 + gridH + 62,
+      h: PAD_Y + 38 + gridH + CTA_BLOCK + 20,
     };
+  }
+
+  /** overflow:hidden 상태에서 창이 이미 작으면 scrollHeight가 잘려 잡힘 → 내부 블록 rect로 측정 */
+  function measurePipContentSize(doc) {
+    const app = doc.getElementById('pipApp');
+    if (!app) return { w: 0, h: 0 };
+    const inner = app.querySelector('.pip-hunt') || app.querySelector('.pip-setup');
+    let w = 0;
+    let h = 0;
+    if (inner) {
+      const innerRect = inner.getBoundingClientRect();
+      const cs = pipWindow.getComputedStyle(app);
+      const pt = parseFloat(cs.paddingTop) || 0;
+      const pb = parseFloat(cs.paddingBottom) || 0;
+      const pl = parseFloat(cs.paddingLeft) || 0;
+      const pr = parseFloat(cs.paddingRight) || 0;
+      w = Math.ceil(innerRect.width + pl + pr);
+      h = Math.ceil(innerRect.height + pt + pb);
+    } else {
+      w = Math.ceil(app.offsetWidth);
+      h = Math.ceil(app.offsetHeight);
+    }
+    const cta = app.querySelector('.pip-cta');
+    if (cta) {
+      const ctaRect = cta.getBoundingClientRect();
+      const appTop = app.getBoundingClientRect().top;
+      const needH = Math.ceil(ctaRect.bottom - appTop + (parseFloat(pipWindow.getComputedStyle(app).paddingBottom) || 0));
+      h = Math.max(h, needH);
+    }
+    return { w, h };
+  }
+
+  function resizePipWindowToFit() {
+    if (!pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
+    const target = computePipTargetSize();
+    const app = doc.getElementById('pipApp');
+    const content = measurePipContentSize(doc);
+    const measuredW = Math.ceil(Math.max(
+      target.w,
+      content.w,
+      app ? app.scrollWidth : 0
+    ));
+    const measuredH = Math.ceil(Math.max(
+      target.h,
+      content.h,
+      app ? app.scrollHeight : 0
+    ));
+    const w = Math.min(620, Math.max(280, measuredW + 20));
+    const h = Math.min(920, Math.max(220, measuredH + 40));
+    try {
+      if (typeof pipWindow.resizeTo === 'function') {
+        pipWindow.resizeTo(w, h);
+      }
+    } catch (e) { /* ignore */ }
+    doc.documentElement.style.overflow = 'hidden';
+    doc.body.style.overflow = 'hidden';
   }
 
   function applyPipWindowSize() {
     if (!pipWindow || pipWindow.closed) return;
     const doc = pipWindow.document;
-    const target = computePipTargetSize();
+    const run = () => resizePipWindowToFit();
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const app = doc.getElementById('pipApp');
-        const measuredW = Math.ceil(Math.max(
-          target.w,
-          app ? app.scrollWidth : 0,
-          doc.documentElement.scrollWidth,
-          doc.body.scrollWidth
-        ));
-        const measuredH = Math.ceil(Math.max(
-          target.h,
-          app ? app.scrollHeight : 0,
-          doc.documentElement.scrollHeight,
-          doc.body.scrollHeight
-        ));
-        const w = Math.min(620, Math.max(280, measuredW + 16));
-        const h = Math.min(920, Math.max(200, measuredH + 32));
-        try {
-          if (typeof pipWindow.resizeTo === 'function') {
-            pipWindow.resizeTo(w, h);
-          }
-        } catch (e) { /* ignore */ }
-        doc.documentElement.style.overflow = 'hidden';
-        doc.body.style.overflow = 'hidden';
-      });
+      requestAnimationFrame(run);
+    });
+    setTimeout(run, 60);
+    setTimeout(run, 180);
+  }
+
+  function schedulePipResizeAfterImages(root) {
+    if (!root) return;
+    root.querySelectorAll('img').forEach((img) => {
+      if (img.complete) return;
+      img.addEventListener('load', () => applyPipWindowSize(), { once: true });
+      img.addEventListener('error', () => applyPipWindowSize(), { once: true });
     });
   }
 
@@ -405,6 +451,7 @@
     bindPipEvents(app);
     if (!hunt) setPipSetupNotice(pipUi.notice);
     if (hunt) updatePipDisplay();
+    schedulePipResizeAfterImages(app);
     applyPipWindowSize();
     syncPipTick();
   }

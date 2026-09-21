@@ -119,7 +119,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **데이터:** `state.partyTimer` → `party_ledgers.data` · 장부 **`scheduleSave`** 와 동일 JSON.
 - **UX:** **장부 팝업(모달) 없음 · PIP만** · `huntActive` false → PIP **설정 화면**(+ 사냥 시작) · true → **타일 그리드**(+ 사냥 종료, 설정/종료 버튼 없음).
 - **PIP CSS:** `#partyTimerPipStyles` **textContent**만 PiP `<head>`에 주입 — **`cloneNode`+`media="not all"` 금지**(스타일 미적용·흰 화면).
-- **PIP 크기:** `computePipTargetSize` + `resizeTo` · 설정↔사냥 전환마다 재계산.
+- **PIP 크기:** `computePipTargetSize` + `measurePipContentSize`(CTA bottom 포함) + `resizeTo` · 전환 후 rAF·지연 재측정 · `overflow:hidden`에서 scrollHeight만 쓰면 **사냥 종료 잘림** 간헐 버그.
 - **동기화:** `runtime.slotEndsAt` + `huntActive` · 사냥 종료 → 각 슬롯 `durationSec`으로 `slotRemaining` 초기화.
 - **PIP:** Chrome/Edge Document PiP · **2×2 컴팩트 타일**(아이콘+이름+시간+슬롯 ⏸/↺) · 상단 전체 ▶⏸↺·음소거·줌 · **3초 이하 urgent 배경** · 0초 alarm.
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
@@ -289,6 +289,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — PiP **사냥 종료 버튼 잘림** fix · 콘텐츠 rect 측정·재resize
 - **2026-09-21** — 타이머 **기본 슬롯** 홀리 심볼·한타임·경쿠 아이콘 · **기타** 자유 이름 · PiP 설정 아이콘
 - **2026-09-21** — HANDOFF **§11.1~11.3 · §14** 인수인계 · §9 UI 의도 확인 · `partyTimer` 편집 위치 정정
 - **2026-09-21** — 상단 헤더 **카테고리 박스**(참고·운영 · 라벨 위·버튼 아래) · 잘못된 outline 통일 롤백
@@ -458,4 +459,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (타이머 기본 슬롯 아이콘·기타)*
+*Last updated: 2026-09-21 (PiP 사냥 종료 잘림 fix)*
