@@ -92,35 +92,137 @@
     background: var(--paper-card);
     border: 2px solid var(--line-strong);
     border-radius: 14px;
-    padding: 20px 22px 16px;
+    padding: 14px 16px 12px;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
   }
-  .app-header-main {
-    display: flex;
-    flex-direction: column;
+  .app-header-banner {
+    position: relative;
+    min-height: 108px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(118deg, #eef2ff 0%, #f8fafc 42%, #ecfdf5 100%);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    text-align: center;
-    gap: 10px;
+    gap: 8px;
+    padding: 14px 12px;
+    margin-bottom: 8px;
   }
-  header.app-header h1 {
-    font-family: 'Fraunces', serif;
-    font-optical-sizing: auto;
-    font-weight: 700;
-    font-size: 32px;
-    margin: 0;
-    color: var(--ink);
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-  }
-  .app-header-meta {
+  .app-banner-deco {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--ink-soft);
+    min-height: 72px;
+    pointer-events: none;
+  }
+  .app-banner-deco--left { justify-content: flex-start; }
+  .app-banner-deco--right { justify-content: flex-end; }
+  .app-banner-deco img {
+    max-height: 80px;
     max-width: 100%;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+  .app-banner-core { text-align: center; z-index: 1; padding: 0 4px; }
+  .app-banner-title {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-size: clamp(26px, 4.5vw, 34px);
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1.12;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+  .app-banner-title.is-animated {
+    animation: app-banner-title-float 4.2s ease-in-out infinite;
+  }
+  @keyframes app-banner-title-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .app-save-hint {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: center;
+    min-height: 1.2em;
+  }
+  .app-save-hint.is-error { color: var(--rust); font-weight: 600; }
+  .app-save-hint[hidden] { display: none !important; }
+  .app-toolbar-fold {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+  .app-toolbar-fold > summary {
+    cursor: pointer;
+    list-style: none;
+    text-align: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    padding: 6px 10px;
+    border-radius: 8px;
+    user-select: none;
+  }
+  .app-toolbar-fold > summary::-webkit-details-marker { display: none; }
+  .app-toolbar-fold > summary::after { content: ' ▾'; font-size: 11px; opacity: 0.75; }
+  .app-toolbar-fold[open] > summary::after { content: ' ▴'; }
+  .app-toolbar-fold > summary:hover { background: var(--surface-muted); color: var(--ink); }
+  .app-toolbar-categories {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 0 4px;
+  }
+  .app-toolbar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 12px 10px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    min-width: 0;
+  }
+  .app-toolbar-group[hidden] { display: none !important; }
+  .app-toolbar-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--ink-soft);
+    line-height: 1.2;
+  }
+  .app-toolbar-btns {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+  }
+  .app-toolbar .btn-sm {
+    padding: 7px 11px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+  .master-room-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    margin: 0 0 12px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    background: var(--surface-muted);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    line-height: 1.45;
   }
   .live-pill {
     width: 8px;
@@ -134,49 +236,9 @@
     background: #94a3b8;
     box-shadow: none;
   }
-  .app-toolbar {
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px solid var(--line);
-  }
-  .app-toolbar-categories {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    justify-content: center;
-    gap: 10px;
-  }
-  .app-toolbar-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 10px 14px 12px;
-    background: var(--surface-muted);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    min-width: 0;
-  }
-  .app-toolbar-group[hidden] { display: none !important; }
-  .app-toolbar-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--ink-soft);
-    line-height: 1.2;
-  }
-  .app-toolbar-btns {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-  }
-  .app-toolbar .btn-sm {
-    padding: 8px 14px;
-    font-size: 13px;
-    border-radius: 8px;
-  }
   @media (max-width: 640px) {
+    .app-header-banner { grid-template-columns: 1fr; min-height: 0; }
+    .app-banner-deco--left, .app-banner-deco--right { min-height: 48px; }
     .app-toolbar-categories { flex-direction: column; align-items: stretch; }
     .app-toolbar-group { align-items: center; }
     .app-toolbar-btns { justify-content: center; }
@@ -2536,38 +2598,42 @@
 <div class="wrap" id="appRoot" hidden>
 
   <header class="app-header">
-    <div class="app-header-main">
-      <h1>퉁퉁이 공대</h1>
-      <div class="app-header-meta">
-        <span class="live-pill" id="livePill" data-live="off" aria-hidden="true"></span>
-        <span id="statusText">불러오는 중…</span>
+    <div class="app-header-banner" id="appHeaderBanner" aria-label="퉁공대 배너">
+      <div class="app-banner-deco app-banner-deco--left" id="appBannerSlotLeft" data-banner-slot="left"></div>
+      <div class="app-banner-core">
+        <h1 class="app-banner-title" id="appBannerTitle">퉁퉁이 공대</h1>
       </div>
+      <div class="app-banner-deco app-banner-deco--right" id="appBannerSlotRight" data-banner-slot="right"></div>
     </div>
-    <nav class="app-toolbar" aria-label="공대 도구">
-      <div class="app-toolbar-categories">
-        <div class="app-toolbar-group">
-          <span class="app-toolbar-label">참고</span>
-          <div class="app-toolbar-btns">
-            <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
+    <p class="app-save-hint" id="saveStatusHint" hidden aria-live="polite"></p>
+    <details class="app-toolbar-fold">
+      <summary>공대 도구 · 참고 · 운영</summary>
+      <nav class="app-toolbar" aria-label="공대 도구">
+        <div class="app-toolbar-categories">
+          <div class="app-toolbar-group">
+            <span class="app-toolbar-label">참고</span>
+            <div class="app-toolbar-btns">
+              <button type="button" class="btn-fee-info btn-sm" id="feeInfoBtn" title="교환·택배·거래소 수수료 표">수수료</button>
+            </div>
+          </div>
+          <div class="app-toolbar-group">
+            <span class="app-toolbar-label">운영</span>
+            <div class="app-toolbar-btns">
+              <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
+              <button type="button" class="btn-timer btn-sm" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">퉁공대 타이머</button>
+              <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
+                퉁공대 핫이슈
+                <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
+              </button>
+              <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
+              <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
+              <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">마스터 옵션</button>
+              <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
+            </div>
           </div>
         </div>
-        <div class="app-toolbar-group">
-          <span class="app-toolbar-label">운영</span>
-          <div class="app-toolbar-btns">
-            <button type="button" class="btn-warehouse btn-sm" id="warehouseBtn" title="창고캐 닉·보낼 아이템">창고캐</button>
-            <button type="button" class="btn-timer btn-sm" id="partyTimerBtn" title="공대 버프·한타임 실시간 타이머 (PIP)">퉁공대 타이머</button>
-            <button type="button" class="btn-hot-issue btn-sm" id="hotIssueBtn" title="그날 기록할 이슈 · 사진">
-              퉁공대 핫이슈
-              <span class="hot-issue-badge" id="hotIssueBadge" hidden>N</span>
-            </button>
-            <button type="button" class="btn-stats btn-sm" id="statsBtn" title="현재 장부 기준 통계">통계</button>
-            <button type="button" class="btn-challenge btn-sm" id="challengeBtn" style="display:none;" title="훈장 · 도전과제 · 고유 훈장">훈장</button>
-            <button type="button" class="btn-challenge-admin btn-sm" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">마스터 옵션</button>
-            <button type="button" class="btn-logout btn-sm" id="logoutBtn" style="display:none;">로그아웃</button>
-          </div>
-        </div>
-      </div>
-    </nav>
+      </nav>
+    </details>
   </header>
 
   <div class="cycle-strip" id="cycleStrip">
@@ -2789,6 +2855,10 @@
 <div class="modal-backdrop" id="challengeAdminModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="challengeAdminTitle" style="max-width:540px;">
     <h3 id="challengeAdminTitle">마스터 옵션</h3>
+    <div class="master-room-status" id="masterRoomStatus">
+      <span class="live-pill" id="masterLivePill" data-live="off" aria-hidden="true"></span>
+      <span id="masterStatusText">연결 상태 불러오는 중…</span>
+    </div>
     <p style="margin:-6px 0 10px;font-size:13px;color:var(--ink-soft);">배퉁 전용 · 훈장·도전·<strong>아이템 카탈로그</strong> · 색·설명은 <strong>저장</strong> 후 반영.</p>
     <div class="mypage-tabs ch-admin-tabs" role="tablist" style="margin-bottom:10px;flex-wrap:wrap;">
       <button type="button" class="mypage-tab is-active" id="chAdminTabAdd" data-ch-admin-tab="add">도전 추가</button>
@@ -3296,6 +3366,14 @@
     const q = new URLSearchParams(location.search).get('room');
     return q && /^[a-zA-Z0-9_-]{3,48}$/.test(q) ? q : 'tongtongi';
   })();
+
+  /** 상단 배너 꾸미기 · `slots.left/right`·`backgroundImage` 경로만 넣으면 자동 배치 */
+  const APP_HEADER_BANNER = {
+    title: '퉁퉁이 공대',
+    titleAnimate: true,
+    backgroundImage: null,
+    slots: { left: null, right: null },
+  };
 
   const STORAGE_KEY = 'tongtongi-party-ledger-v2';
   const DEFAULT_MEMBERS = ['나', '친구', '아는형'];
@@ -5121,21 +5199,66 @@
     return url.toString();
   }
 
-  function updateStatusUi() {
-    const livePill = $('livePill');
-    if (storageMode === 'cloud') {
-      const live = !!realtimeReady;
-      if (livePill) livePill.dataset.live = live ? 'on' : 'off';
-      $('statusText').textContent = live
-        ? `실시간 공유 중 · 방 ${ROOM_ID}`
-        : `클라우드 저장 · 방 ${ROOM_ID}`;
-    } else if (storageMode === 'cursor') {
-      if (livePill) livePill.dataset.live = 'off';
-      $('statusText').textContent = 'Cursor에서 함께 보는 중 · 자동 저장됨';
-    } else {
-      if (livePill) livePill.dataset.live = 'off';
-      $('statusText').textContent = '⚠ 이 기기만 저장 · 공대 공유는 Supabase 설정 필요 (NETLIFY-배포.md)';
+  function renderAppHeaderBanner() {
+    const titleEl = $('appBannerTitle');
+    if (titleEl) {
+      titleEl.textContent = APP_HEADER_BANNER.title || '퉁퉁이 공대';
+      titleEl.classList.toggle('is-animated', !!APP_HEADER_BANNER.titleAnimate);
     }
+    const banner = $('appHeaderBanner');
+    if (banner) {
+      if (APP_HEADER_BANNER.backgroundImage) {
+        banner.style.backgroundImage = `url(${APP_HEADER_BANNER.backgroundImage})`;
+        banner.style.backgroundSize = 'cover';
+        banner.style.backgroundPosition = 'center';
+      } else {
+        banner.style.backgroundImage = '';
+      }
+    }
+    function fillBannerSlot(elId, src) {
+      const el = $(elId);
+      if (!el) return;
+      el.innerHTML = '';
+      if (!src) return;
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = '';
+      img.decoding = 'async';
+      el.appendChild(img);
+    }
+    fillBannerSlot('appBannerSlotLeft', APP_HEADER_BANNER.slots.left);
+    fillBannerSlot('appBannerSlotRight', APP_HEADER_BANNER.slots.right);
+  }
+
+  function setSaveStatusHint(text, isError) {
+    const el = $('saveStatusHint');
+    if (!el) return;
+    if (!text) {
+      el.hidden = true;
+      el.textContent = '';
+      el.classList.remove('is-error');
+      return;
+    }
+    el.hidden = false;
+    el.textContent = text;
+    el.classList.toggle('is-error', !!isError);
+  }
+
+  function updateStatusUi() {
+    const livePill = $('masterLivePill');
+    const statusEl = $('masterStatusText');
+    let live = false;
+    let connMsg = '';
+    if (storageMode === 'cloud') {
+      live = !!realtimeReady;
+      connMsg = live ? `실시간 공유 중 · 방 ${ROOM_ID}` : `클라우드 저장 · 방 ${ROOM_ID}`;
+    } else if (storageMode === 'cursor') {
+      connMsg = 'Cursor에서 함께 보는 중 · 자동 저장됨';
+    } else {
+      connMsg = '⚠ 이 기기만 저장 · Supabase 설정 필요 (NETLIFY-배포.md)';
+    }
+    if (livePill) livePill.dataset.live = live ? 'on' : 'off';
+    if (statusEl) statusEl.textContent = connMsg;
   }
 
   function initStorageBackend() {
@@ -5241,18 +5364,19 @@
       }
     } catch (e) {
       partyStateHydrated = true;
-      $('statusText').textContent = '불러오기 실패 · 잠시 후 다시 시도해 주세요';
+      setSaveStatusHint('불러오기 실패 · 잠시 후 다시 시도해 주세요', true);
       render();
     }
   }
 
   async function saveState() {
     try {
-      $('statusText').textContent = '저장 중…';
+      setSaveStatusHint('저장 중…');
       await saveStateToBackend();
       updateStatusUi();
+      setSaveStatusHint('');
     } catch (e) {
-      $('statusText').textContent = '저장에 실패했어요. 다시 시도해주세요.';
+      setSaveStatusHint('저장에 실패했어요. 다시 시도해주세요.', true);
     }
   }
 
@@ -9649,6 +9773,7 @@
   }
 
   async function bootApp() {
+    renderAppHeaderBanner();
     initStorageBackend();
     if (storageMode !== 'cloud') {
       showAppShell();

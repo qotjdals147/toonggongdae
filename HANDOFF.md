@@ -141,7 +141,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `.app-toolbar-categories` > `.app-toolbar-group` — **참고**(수수료) · **운영**(창고캐·타이머·핫이슈·통계·훈장·마스터·로그아웃) · 라벨 **위**·버튼 **아래** 박스 · **컬러 버튼·풀 라벨 유지** |
+| 상단 헤더 | `#appHeaderBanner` 좌·중(제목)·우 슬롯 · `APP_HEADER_BANNER` · `<details>` **공대 도구** 접이(기본 닫힘) · 참고/운영 카테고리 · **연결 상태=마스터 옵션만** · 저장 힌트 `#saveStatusHint` |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -289,6 +289,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 헤더 **배너 슬롯** · 도구 **접이** · **실시간/방 상태 → 마스터 옵션** · `APP_HEADER_BANNER`
 - **2026-09-21** — 장부 섹션 아이콘 · **획득/지출/정산** `image/아이콘/*.png` · **인수** `스틸(인수).png` · **메이커** `메이커.png`
 - **2026-09-21** — **메이커 재련** 섹션 제목 · `image/스킬아이콘/메이커.png` (획득/지출과 동일 section-title)
 - **2026-09-21** — PiP 사냥 **사냥 종료 → 상단 툴바 우측** · 퉁공대 라벨 제거
@@ -385,9 +386,10 @@ legacySummaryOnly (옛 회차 요약만)
 - [ ] (선택) 사냥 툴바 **줌 ±** · 슬롯별 음소거 · 0초 전 pre-alert
 - [ ] (선택) Realtime **참여자 표시** (동시 편집자)
 
-### 11.2 상단 헤더
+### 11.2 상단 헤더 · 배너
 
-- [ ] **카테고리 더 나눌지** (예: 운영 → 공대 / 장부 / 계정) — **소유자와 합의 후만** · 임의로 라벨 줄이거나 색 통일 **금지**
+- [ ] **배너 이미지** — 소유자 PNG/GIF 제공 → `APP_HEADER_BANNER.slots.left/right` · `backgroundImage` · `renderAppHeaderBanner()` (`index.html` 상단 상수)
+- [ ] **카테고리 더 나눌지** — **합의 후만**
 
 ### 11.3 기타
 
@@ -463,4 +465,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (장부 섹션 아이콘 통일)*
+*Last updated: 2026-09-21 (헤더 배너·도구 접이·마스터 연결 상태)*
