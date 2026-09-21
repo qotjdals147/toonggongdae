@@ -120,7 +120,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **UX:** **장부 팝업(모달) 없음 · PIP만** · `huntActive` false → PIP **설정 화면**(+ 사냥 시작) · true → **타일 그리드**(+ 사냥 종료, 설정/종료 버튼 없음).
 - **PIP CSS:** `#partyTimerPipStyles` **textContent**만 PiP `<head>`에 주입 — **`cloneNode`+`media="not all"` 금지**(스타일 미적용·흰 화면).
 - **PIP 크기:** `computePipTargetSize` + `measurePipContentSize`(CTA bottom 포함) + `resizeTo` · 전환 후 rAF·지연 재측정 · `overflow:hidden`에서 scrollHeight만 쓰면 **사냥 종료 잘림** 간헐 버그.
-- **동기화:** `runtime.slotEndsAt` + `huntActive` · **사냥 중 슬롯 0초 → 설정 `durationSec`으로 자동 반복**(`processSlotTimerLoops`) · **사냥 종료** 전까지 · PiP 닫아도 `syncHuntRuntimeTick` 유지.
+- **동기화:** `runtime.slotEndsAt` + `huntActive` · 0초 → `processSlotTimerLoops`가 **알람 1세트(repeatCount)** 후 `slotCycleMs`로 재시작 · 만료 `endsAt`당 알람 1회(`slotAlarmFired` cycleKey) · PiP 닫아도 tick 유지.
 - **PIP:** Chrome/Edge Document PiP · **2×2 타일** · 사냥 중 상단 **좌** ▶⏸↺🔊 · **우** **사냥 종료**(하단 CTA 없음 — 잘림 방지) · urgent·0초 alarm·반복.
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
@@ -292,6 +292,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 타이머 0초 **알람·루프 버그** fix · `slotAlarmFired` 만료 키 · 사냥 종료 시 재생 중단
 - **2026-09-21** — 메이커 보석명 **gemsOnly** AC · 보석/주문서 **카탈로그 정렬** 보강
 - **2026-09-21** — 타이머 **슬롯별 사운드·볼륨·반복** · 배퉁 마스터 **타이머 사운드** 탭 · `soundProfiles` JSON
 - **2026-09-21** — HANDOFF **§11.1.1 타이머 알람 사운드** 인수인계 · §4.6 알람/tick 정확화
