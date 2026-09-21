@@ -7298,7 +7298,7 @@
     const iconSrc = def.icon ? catalogAssetUrl(def.icon) : '';
     const iconCls = medalIconImgClass(def.icon);
     const iconClassAttr = iconCls ? ` class="${iconCls}"` : '';
-    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}${zap}<img src="${escapeHtml(catalogAssetUrl(iconSrc))}" alt=""${iconClassAttr}><span>${escapeHtml(def.name)}</span></div>`;
+    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}${zap}<img src="${escapeHtml(iconSrc)}" alt=""${iconClassAttr}><span>${escapeHtml(def.name)}</span></div>`;
     if (!showTooltip || !titleBadgeHasTooltip(def)) return inner;
     return `<div class="member-title-badge-wrap">${titleBadgeTooltipHtml(def)}${inner}</div>`;
   }
@@ -7413,7 +7413,7 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'title-pick-row' + (p.equippedTitleId === tid ? ' is-equipped' : '');
-      row.innerHTML = `<img src="${escapeHtml(def.icon)}" alt=""><strong>${escapeHtml(def.name)}</strong><span>${p.equippedTitleId === tid ? '장착 중' : '장착'}</span>`;
+      row.innerHTML = `<img src="${escapeHtml(catalogAssetUrl(def.icon))}" alt=""><strong>${escapeHtml(def.name)}</strong><span>${p.equippedTitleId === tid ? '장착 중' : '장착'}</span>`;
       row.addEventListener('click', () => {
         p.equippedTitleId = tid;
         scheduleSave();

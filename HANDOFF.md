@@ -298,6 +298,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
 - **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
+- **2026-09-21** — fix: `titleBadgePreviewHtml` **catalogAssetUrl 이중 인코딩** → 훈장 img 깨짐
 - **2026-09-21** — **처치 기록** 공동 모달 분리(마스터 옵션 밖) · 로그인 전원 도구 노출
 - **2026-09-21** — 도구 **처치 기록** 카드 · **M=마스터 옵션** · 몬스터 입력 **아이콘** · 어싸만코 좌우 flip
 - **2026-09-21** — **처치 기록** 탭 · `monsterKillCounts` · 함께 처치 복수 · 배퉁 **M** 뱃지
@@ -530,4 +531,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (처치 기록 공동 모달)*
+*Last updated: 2026-09-21 (훈장 아이콘 URL fix)*
