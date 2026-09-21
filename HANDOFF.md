@@ -69,6 +69,7 @@ challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
 hotIssues: { id, …, authorMemberIdx?, **targetMemberIdxs[]**, text, images[] }[]
 challengeMonsterCatalog[]  // { id, canonical, aliases[], icon? } · 처치 도전
+monsterKillCounts  // { "0"|"1"|"2" → { [monsterId]: count } } · **처치 기록** 탭
 partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
 ```
 

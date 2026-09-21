@@ -686,8 +686,12 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    width: 100%;
     min-height: 28px;
     margin-bottom: 4px;
+  }
+  .member-slot-head:has(.member-slot-head-actions) {
+    justify-content: space-between;
   }
   .member-slot-head--empty {
     visibility: hidden;
@@ -698,6 +702,60 @@
     font-size: 11px;
     line-height: 1.3;
     flex-shrink: 0;
+  }
+  .member-slot-head-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .member-slot-master-kill {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .member-slot-master-kill:hover {
+    border-color: #94a3b8;
+    color: #334155;
+    background: #fff;
+  }
+  .monster-kill-compose {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fafafa;
+  }
+  .monster-kill-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .monster-kill-stats-table th,
+  .monster-kill-stats-table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+    vertical-align: middle;
+  }
+  .monster-kill-stats-table th:first-child,
+  .monster-kill-stats-table td:first-child {
+    text-align: left;
+  }
+  .monster-kill-stats-monster {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
   }
   .member-slot-body {
     flex: 1 1 auto;
@@ -3123,6 +3181,7 @@
       <button type="button" class="mypage-tab" id="chAdminTabList" data-ch-admin-tab="list">등록된 도전</button>
       <button type="button" class="mypage-tab" id="chAdminTabExclusive" data-ch-admin-tab="exclusive">고유 훈장</button>
       <button type="button" class="mypage-tab" id="chAdminTabTimerSound" data-ch-admin-tab="timerSound">타이머 사운드</button>
+      <button type="button" class="mypage-tab" id="chAdminTabKillLog" data-ch-admin-tab="killLog">처치 기록</button>
     </div>
     <div class="ch-admin-tab-panel" id="chAdminPanelAdd">
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">조건·XP·훈장 정보를 입력한 뒤 아래 <strong>도전과제 추가</strong>로 등록해요.</p>
@@ -3224,6 +3283,24 @@
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelExclusive" hidden>
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">코드로 등록된 고유 훈장 · 대상·이름은 고정 · 설명·색·옵션만 <strong>저장</strong>.</p>
       <div class="challenge-list" id="exclusiveTitleAdminList" style="margin-top:0;"></div>
+    </div>
+    <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelKillLog" hidden>
+      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">몬스터 카탈로그 기준 · 등록 시 선택한 공대원 <strong>각 +1</strong> · 같은 몬스터는 횟수만 누적.</p>
+      <div class="monster-kill-compose">
+        <div class="field" style="margin-bottom:8px;">
+          <span>몬스터</span>
+          <div class="item-ac-wrap">
+            <input id="monsterKillPick" type="text" autocomplete="off" placeholder="몬스터 검색 → 선택">
+            <div class="item-ac-dropdown" id="monsterKillPickDropdown" hidden></div>
+          </div>
+        </div>
+        <div class="hot-compose-target" style="margin-bottom:8px;">
+          <span class="hot-compose-target-label">함께 처치 (복수 선택)</span>
+          <div class="hot-compose-target-picks" id="monsterKillMemberPicks"></div>
+        </div>
+        <button type="button" class="btn-settle btn-sm" id="monsterKillAddBtn">처치 +1 기록</button>
+      </div>
+      <div id="monsterKillStatsWrap"></div>
     </div>
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelTimerSound" hidden>
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">퉁공대 타이머 <strong>0초 알람</strong> · 슬롯별 mp3/wav · 볼륨·한 사이클 반복 횟수(기본 1) · PIP 열린 사람만 재생 · <strong>저장</strong> 후 공대 전체 JSON 동기화.</p>
@@ -3839,6 +3916,7 @@
     memberParcelReceive: [false, false, false],
     entryPriceBasis: 'listing',
     hotIssues: [],
+    monsterKillCounts: { '0': {}, '1': {}, '2': {} },
   };
   let hotIssueDraftImages = [];
   let editingHotIssueId = null;
@@ -5441,6 +5519,7 @@
     if (Array.isArray(parsed.challengeMonsterCatalog)) {
       next.challengeMonsterCatalog = migrateChallengeMonsterCatalog(parsed.challengeMonsterCatalog);
     }
+    next.monsterKillCounts = normalizeMonsterKillCounts(parsed.monsterKillCounts);
     if (parsed.catalogSearchFlags && typeof parsed.catalogSearchFlags === 'object') {
       next.catalogSearchFlags = {
         accuracyScrolls: !!parsed.catalogSearchFlags.accuracyScrolls,
@@ -5482,6 +5561,7 @@
     }
     if (!state.entryPriceBasis) state.entryPriceBasis = 'listing';
     state.hotIssues = normalizeHotIssues(state.hotIssues);
+    ensureMonsterKillCounts();
     ensurePartyRosterOnState();
     if (ROOM_ID === 'tongtongi') {
       state.partyRoster = DEFAULT_PARTY_ROSTER_TONGTONGI.map((r) => ({ ...r }));
@@ -5997,6 +6077,53 @@
     if (entry.icon) ch.icon = entry.icon;
   }
 
+  function findMonsterEntryById(id) {
+    if (!id) return null;
+    return (state.challengeMonsterCatalog || []).find((x) => x.id === id) || null;
+  }
+
+  function normalizeMonsterKillCounts(raw) {
+    const out = { '0': {}, '1': {}, '2': {} };
+    if (!raw || typeof raw !== 'object') return out;
+    [0, 1, 2].forEach((i) => {
+      const key = String(i);
+      const bucket = raw[key] || raw[i];
+      if (!bucket || typeof bucket !== 'object') return;
+      Object.keys(bucket).forEach((monsterId) => {
+        const n = Math.max(0, Math.round(Number(bucket[monsterId]) || 0));
+        if (n > 0) out[key][monsterId] = n;
+      });
+    });
+    return out;
+  }
+
+  function ensureMonsterKillCounts() {
+    state.monsterKillCounts = normalizeMonsterKillCounts(state.monsterKillCounts);
+  }
+
+  function getMonsterKillCount(memberIdx, monsterId) {
+    ensureMonsterKillCounts();
+    const bucket = state.monsterKillCounts[String(memberIdx)] || {};
+    return Math.max(0, Math.round(Number(bucket[monsterId]) || 0));
+  }
+
+  function incrementMonsterKillCounts(memberIdxs, monsterId, delta) {
+    if (!monsterId) return;
+    ensureMonsterKillCounts();
+    const step = Math.max(1, Math.round(Number(delta) || 1));
+    memberIdxs.forEach((i) => {
+      if (i < 0 || i > 2) return;
+      const key = String(i);
+      const bucket = state.monsterKillCounts[key];
+      bucket[monsterId] = getMonsterKillCount(i, monsterId) + step;
+    });
+  }
+
+  function monsterIdForChallenge(ch) {
+    const entry = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+    return entry ? entry.id : null;
+  }
+
   function migrateChallengeItemCatalog(list) {
     return (list || []).map((raw) => {
       if (typeof raw === 'string') {
@@ -6203,6 +6330,7 @@
     else state.challengeItemCatalog = migrateChallengeItemCatalog(state.challengeItemCatalog);
     if (!Array.isArray(state.challengeMonsterCatalog)) state.challengeMonsterCatalog = [];
     else state.challengeMonsterCatalog = migrateChallengeMonsterCatalog(state.challengeMonsterCatalog);
+    ensureMonsterKillCounts();
     const catalogAdded = mergeBuiltinCatalogSeeds();
     const monsterAdded = mergeBuiltinMonsterSeeds();
     if (catalogAdded > 0 || monsterAdded > 0) scheduleSave();
@@ -6927,15 +7055,9 @@
   }
 
   function countMonsterKillForMember(memberIdx, ch) {
-    let count = 0;
-    (state.cycles || []).forEach((cycle) => {
-      (cycle.entries || []).forEach((entry) => {
-        if (!itemTextMatchesMonsterChallenge(entry.item, ch)) return;
-        if (!entryParticipantIdxs(entry).includes(memberIdx)) return;
-        count += 1;
-      });
-    });
-    return count;
+    const monsterId = monsterIdForChallenge(ch);
+    if (!monsterId) return 0;
+    return getMonsterKillCount(memberIdx, monsterId);
   }
 
   function itemTextMatchesChallenge(itemText, ch) {
@@ -7709,12 +7831,122 @@
     });
   }
 
+  function openMonsterKillLogAdmin() {
+    if (!authSession || authSession.memberIdx !== 2) return;
+    syncChallengeAdminTypeFields();
+    renderChallengeAdminPanel();
+    $('challengeAdminModal').hidden = false;
+    switchChAdminTab('killLog');
+  }
+
+  function populateMonsterKillMemberPicks() {
+    const wrap = $('monsterKillMemberPicks');
+    if (!wrap) return;
+    const prev = getMonsterKillMemberIdxsFromUi();
+    wrap.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const lbl = document.createElement('label');
+      lbl.className = 'hot-compose-target-pick';
+      const inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.value = String(i);
+      inp.checked = prev.includes(i);
+      lbl.appendChild(inp);
+      lbl.appendChild(document.createTextNode(name || loginIdForMemberIdx(i) || `공대원 ${i + 1}`));
+      wrap.appendChild(lbl);
+    });
+    if (!prev.length) {
+      const defaults = authSession ? [authSession.memberIdx] : [0];
+      setMonsterKillMemberIdxsToUi(defaults);
+    }
+  }
+
+  function getMonsterKillMemberIdxsFromUi() {
+    const wrap = $('monsterKillMemberPicks');
+    if (!wrap) return [];
+    return [...wrap.querySelectorAll('input[type="checkbox"]:checked')]
+      .map((inp) => Number(inp.value))
+      .filter((i) => i >= 0 && i <= 2);
+  }
+
+  function setMonsterKillMemberIdxsToUi(idxs) {
+    const wrap = $('monsterKillMemberPicks');
+    if (!wrap) return;
+    const set = new Set((idxs || []).map((i) => Number(i)).filter((i) => i >= 0 && i <= 2));
+    wrap.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
+      inp.checked = set.has(Number(inp.value));
+    });
+  }
+
+  function bindMonsterKillPickAutocomplete() {
+    bindItemNameAutocomplete($('monsterKillPick'), $('monsterKillPickDropdown'), {
+      suggest: (q) => filterMonsterNameSuggestions(q),
+    });
+  }
+
+  function renderMonsterKillLogAdmin() {
+    ensureGamificationState();
+    ensureMonsterKillCounts();
+    populateMonsterKillMemberPicks();
+    const wrap = $('monsterKillStatsWrap');
+    if (!wrap) return;
+    const monsters = (state.challengeMonsterCatalog || []).slice().sort((a, b) =>
+      String(a.canonical || '').localeCompare(String(b.canonical || ''), 'ko')
+    );
+    const rows = [];
+    monsters.forEach((entry) => {
+      const perMember = [0, 1, 2].map((i) => getMonsterKillCount(i, entry.id));
+      const total = perMember.reduce((s, n) => s + n, 0);
+      if (total <= 0) return;
+      rows.push({ entry, perMember, total });
+    });
+    if (!rows.length) {
+      wrap.innerHTML = '<p class="challenge-meta">아직 처치 기록이 없어요.</p>';
+      return;
+    }
+    const head = `<tr><th>몬스터</th>${state.members.map((n, i) =>
+      `<th>${escapeHtml(n || loginIdForMemberIdx(i) || `P${i + 1}`)}</th>`).join('')}<th>합계</th></tr>`;
+    const body = rows.map(({ entry, perMember, total }) => {
+      const icon = entry.icon ? catalogIconMarkup(entry.icon) : '';
+      const cells = perMember.map((n) => `<td>${fmtNum(n)}</td>`).join('');
+      return `<tr>
+        <td><span class="monster-kill-stats-monster">${icon}<span>${escapeHtml(entry.canonical)}</span></span></td>
+        ${cells}<td><strong>${fmtNum(total)}</strong></td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div class="table-scroll"><table class="monster-kill-stats-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  function addMonsterKillFromAdminForm() {
+    if (!authSession || authSession.memberIdx !== 2) return;
+    ensureGamificationState();
+    const raw = ($('monsterKillPick') && $('monsterKillPick').value.trim()) || '';
+    const canonical = resolveMonsterCatalogInput(raw) || findMonsterEntryByCanonicalName(raw)?.canonical || '';
+    const entry = findMonsterEntryByCanonicalName(canonical);
+    if (!entry) {
+      alert('몬스터 추가 탭에 등록된 몬스터를 목록에서 선택해 주세요.');
+      $('monsterKillPick')?.focus();
+      return;
+    }
+    const members = getMonsterKillMemberIdxsFromUi();
+    if (!members.length) {
+      alert('함께 처치한 공대원을 한 명 이상 선택해 주세요.');
+      return;
+    }
+    incrementMonsterKillCounts(members, entry.id, 1);
+    scheduleSave();
+    gamificationReplayAndRefresh();
+    renderMonsterKillLogAdmin();
+    flashChAdminSaved($('monsterKillAddBtn'));
+  }
+
   function switchChAdminTab(tab) {
     chAdminActiveTab = tab;
     const map = {
       add: ['chAdminTabAdd', 'chAdminPanelAdd'],
       items: ['chAdminTabItems', 'chAdminPanelItems'],
       monsters: ['chAdminTabMonsters', 'chAdminPanelMonsters'],
+      killLog: ['chAdminTabKillLog', 'chAdminPanelKillLog'],
       level: ['chAdminTabLevel', 'chAdminPanelLevel'],
       list: ['chAdminTabList', 'chAdminPanelList'],
       exclusive: ['chAdminTabExclusive', 'chAdminPanelExclusive'],
@@ -7731,6 +7963,7 @@
     if (tab === 'list') renderChallengeAdminList();
     if (tab === 'items') renderMasterItemCatalogAdmin();
     if (tab === 'monsters') renderMasterMonsterCatalogAdmin();
+    if (tab === 'killLog') renderMonsterKillLogAdmin();
     if (tab === 'exclusive') renderExclusiveTitleAdmin();
     if (tab === 'timerSound') renderTimerSoundAdmin();
     if (tab === 'add') {
@@ -8572,12 +8805,25 @@
           label.className = 'member-slot-label member-slot-label--self';
           label.textContent = '내 캐릭터';
           head.appendChild(label);
+          const actions = document.createElement('div');
+          actions.className = 'member-slot-head-actions';
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'btn-light btn-sm member-slot-mypage';
           btn.textContent = '마이페이지';
           btn.addEventListener('click', () => openAccountModal());
-          head.appendChild(btn);
+          actions.appendChild(btn);
+          if (authSession.memberIdx === 2) {
+            const mBtn = document.createElement('button');
+            mBtn.type = 'button';
+            mBtn.className = 'member-slot-master-kill';
+            mBtn.textContent = 'M';
+            mBtn.title = '처치 기록 (배퉁)';
+            mBtn.setAttribute('aria-label', '처치 기록');
+            mBtn.addEventListener('click', () => openMonsterKillLogAdmin());
+            actions.appendChild(mBtn);
+          }
+          head.appendChild(actions);
         } else {
           head.innerHTML = '<span aria-hidden="true">&nbsp;</span>';
         }
@@ -10660,6 +10906,7 @@
   $('chAdminTabAdd').addEventListener('click', () => switchChAdminTab('add'));
   $('chAdminTabItems').addEventListener('click', () => switchChAdminTab('items'));
   $('chAdminTabMonsters').addEventListener('click', () => switchChAdminTab('monsters'));
+  $('chAdminTabKillLog').addEventListener('click', () => switchChAdminTab('killLog'));
   $('chAdminTabLevel').addEventListener('click', () => switchChAdminTab('level'));
   $('chAdminTabList').addEventListener('click', () => switchChAdminTab('list'));
   $('chAdminTabExclusive').addEventListener('click', () => switchChAdminTab('exclusive'));
@@ -10701,6 +10948,8 @@
   $('chAdminAddBtn').addEventListener('click', addChallengeFromAdminForm);
   bindChallengeAdminItemAutocomplete();
   bindChallengeAdminMonsterAutocomplete();
+  bindMonsterKillPickAutocomplete();
+  $('monsterKillAddBtn').addEventListener('click', addMonsterKillFromAdminForm);
   bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'), {
     onPick: () => syncEntryEditFormForItem()
   });
