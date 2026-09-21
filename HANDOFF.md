@@ -463,7 +463,7 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 ## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-09-21)
 
-**최근 main:** `3c6c5d6` (배너 제목 중앙 · 배경만) · **피해야 할 커밋 의도:** `c98dc9c` (카테고리 제거·outline 통일 — **소유자 거부**, `564eedd`에서 복구)
+**최근 main:** `5dc3dc7` (타이머 soundProfiles · 마스터 탭) · **피해야 할 커밋 의도:** `c98dc9c` (카테고리 제거·outline 통일 — **소유자 거부**, `564eedd`에서 복구)
 
 | 영역 | 상태 |
 |------|------|
