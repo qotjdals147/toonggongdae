@@ -97,12 +97,11 @@
   }
   .app-header-banner {
     position: relative;
-    min-height: 172px;
+    min-height: 208px;
     border-radius: 12px;
     overflow: hidden;
-    background: #0f172a;
+    background: #1a0a0a;
     margin-bottom: 8px;
-    isolation: isolate;
   }
   .app-banner-bg {
     position: absolute;
@@ -117,72 +116,100 @@
     inset: 0;
     z-index: 1;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: flex-end;
-    padding: 28px 2px 4px;
+    gap: 0 4px;
+    padding: 36px 6px 6px;
     pointer-events: none;
   }
   .app-banner-scene {
     position: relative;
     height: 100%;
-    min-height: 132px;
+    min-height: 156px;
+    overflow: hidden;
+    isolation: isolate;
   }
-  .app-banner-scene .banner-layer {
+  /* 흰 도트 배경 PNG/GIF — 배경 위에서만 multiply (완전 누끼 대체 아님) */
+  .app-banner-stage .banner-layer,
+  .app-banner-stage .baetung-frame {
     position: absolute;
     object-fit: contain;
+    object-position: bottom center;
     pointer-events: none;
     user-select: none;
+    mix-blend-mode: multiply;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    transform-origin: bottom center;
   }
   .app-banner-scene .banner-boss {
-    right: 0;
-    bottom: 0;
-    max-height: 82%;
-    max-width: 58%;
+    right: -2%;
+    bottom: -4%;
+    height: 92%;
+    width: auto;
+    max-width: 62%;
     z-index: 1;
   }
   .app-banner-scene .banner-char {
-    left: 0;
-    bottom: 0;
-    max-height: 72%;
-    max-width: 52%;
+    left: -2%;
+    bottom: -2%;
+    height: 84%;
+    width: auto;
+    max-width: 54%;
     z-index: 3;
   }
+  .app-banner-scene--soon .banner-boss {
+    transform: scaleX(-1);
+  }
   .app-banner-scene--soon .banner-soon-ghost {
-    left: 14%;
-    bottom: 6%;
-    max-height: 58%;
-    max-width: 45%;
+    left: 10%;
+    bottom: 2%;
+    height: 68%;
+    max-width: 48%;
     z-index: 2;
-    opacity: 0.92;
+    opacity: 0.88;
+    transform: scaleX(-1);
   }
   .app-banner-scene--soon .banner-soon-bullet {
-    left: 30%;
-    bottom: 36%;
-    max-height: 34%;
-    max-width: 50%;
+    left: 34%;
+    bottom: 42%;
+    height: 36%;
+    max-width: 46%;
     z-index: 4;
+    transform: none;
+  }
+  .app-banner-scene--ji .banner-char {
+    transform: scaleX(-1);
+    left: 4%;
+  }
+  .app-banner-scene--ji .banner-boss {
+    transform: scaleX(-1);
+    right: -4%;
   }
   .app-banner-scene--ji .banner-ji-arrow {
-    left: 22%;
-    bottom: 32%;
-    max-height: 38%;
-    max-width: 62%;
+    left: 28%;
+    bottom: 38%;
+    height: 40%;
+    max-width: 58%;
     z-index: 4;
+  }
+  .app-banner-scene--bae .banner-boss {
+    right: -6%;
+    height: 96%;
   }
   .banner-baetung-char {
     position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 48%;
-    height: 74%;
+    left: -2%;
+    bottom: -2%;
+    width: 52%;
+    height: 82%;
     z-index: 3;
+    transform-origin: bottom center;
   }
   .banner-baetung-char .baetung-frame {
-    position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
   }
   .banner-baetung-char .baetung-frame--a {
     animation: baetung-frame-a var(--baetung-cycle, 2.2s) steps(1, end) infinite;
@@ -200,20 +227,20 @@
     50%, 100% { opacity: 1; }
   }
   .app-banner-scene--bae .banner-baetung-slash {
-    left: 18%;
-    bottom: 18%;
-    max-height: 52%;
-    max-width: 55%;
+    left: 22%;
+    bottom: 22%;
+    height: 56%;
+    max-width: 52%;
     z-index: 4;
     opacity: 0;
     animation: baetung-slash var(--baetung-cycle, 2.2s) ease-out infinite;
   }
   @keyframes baetung-slash {
-    0%, 16% { opacity: 0; transform: scale(0.92); }
-    19%, 27% { opacity: 1; transform: scale(1); }
-    30%, 64% { opacity: 0; transform: scale(0.92); }
-    67%, 75% { opacity: 1; transform: scale(1); }
-    78%, 100% { opacity: 0; transform: scale(0.92); }
+    0%, 16% { opacity: 0; transform: scale(0.94); }
+    19%, 27% { opacity: 1; transform: scale(1.02); }
+    30%, 64% { opacity: 0; transform: scale(0.94); }
+    67%, 75% { opacity: 1; transform: scale(1.02); }
+    78%, 100% { opacity: 0; transform: scale(0.94); }
   }
   .app-banner-core {
     position: relative;
@@ -267,8 +294,8 @@
     .baetung-frame--b { opacity: 0 !important; }
   }
   @media (max-width: 640px) {
-    .app-header-banner { min-height: 148px; }
-    .app-banner-stage { padding-top: 26px; transform: scale(0.92); transform-origin: bottom center; width: 108%; margin-left: -4%; }
+    .app-header-banner { min-height: 176px; }
+    .app-banner-stage { padding-top: 32px; }
     .app-banner-title { font-size: 22px; }
   }
   .app-save-hint {
@@ -365,8 +392,6 @@
     box-shadow: none;
   }
   @media (max-width: 640px) {
-    .app-header-banner { grid-template-columns: 1fr; min-height: 0; }
-    .app-banner-deco--left, .app-banner-deco--right { min-height: 48px; }
     .app-toolbar-categories { flex-direction: column; align-items: stretch; }
     .app-toolbar-group { align-items: center; }
     .app-toolbar-btns { justify-content: center; }
