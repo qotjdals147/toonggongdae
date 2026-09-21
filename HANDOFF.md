@@ -50,6 +50,26 @@
 - **부트(클라우드):** `bootApp` → `refreshAuthSession` → `loadState` → `applyStateFromRemote` → `render()`. **`refreshAuthSession`에서 `renderMembers` 호출하지 않음** (장부 로드 전 UI 깜빡임 방지).
 - **모듈 플래그:** `partyStateHydrated` — Supabase/로컬 JSON **1회 반영 후** `true` (`applyStateFromRemote`·`loadState` 실패 시에도). 클라우드 공대원 칸은 `false`일 때 **「불러오는 중…」** (`DEFAULT_MEMBERS` `나·친구·아는형` 노출 금지).
 
+### 3.3 연동·통합 (신규 작업 시 **필수** — 에이전트·규칙)
+
+**원칙:** 기능 하나를 넣을 때 **데이터 → 저장 → 불러오기 → Realtime → 게임화 → 모든 UI**까지 한 번에 설계. “한 화면만” 고치고 unlock·저장·다른 탭 갱신을 나중으로 미루면 **2026-09 처치기록·좌붕 훈장** 같은 장애가 반복된다.
+
+| 층 | 확인할 것 |
+|----|-----------|
+| **쓰기** | `state.*` 변경 후 `scheduleSave` / 즉시 `saveState` · 필드가 `stateForPersistence()`에 포함 |
+| **복원** | `parseStoredState`: 새 필드는 `hasOwnProperty` — 없으면 **빈 객체로 덮지 않음** · `applyStateFromRemote`에서 `prev*` preserve(예: `monsterKillCounts`) |
+| **Realtime** | 새 `#…Modal` → **`modalBlocksRemote()`** · `saveStateToBackend`의 `suppressRemoteUntil` |
+| **정규화** | `ensureMonsterKillCounts()` 등이 **새 객체로 교체** → increment 시 **stale bucket**에 쓰면 집계 0 · `getMonsterKillCount` 안에서 재-normalize 후 옛 ref에 assign 금지 |
+| **게임화 3층** | ① `challengeProgressForMember` → 훈장 모달 “완료” · ② **`unlockedTitleIds`** + `grantXp`/`ach:` · ③ **마이페이지** `renderTitlePickList` · ①만 true면 **장착 불가** |
+| **replay vs 증분** | 장부·핫이슈는 `replayLedgerGamificationXp()` · **처치 +1**은 `syncMonsterKillChallengeUnlocksForMembers` + load 시 replay |
+| **UI 다중** | 처치 +1 → `#monsterKillModal` · `renderMembers` · (열려 있으면) `#challengeModal` · `#accountModal` 훈장 탭 |
+| **에셋** | 도전 `titleName` ↔ **`CHALLENGE_TITLE_ASSETS`** · img `catalogAssetUrl` **1회** · `medalIconImgClass`(좌붕 flip) |
+| **몬스터 키** | `challengeMonsterCatalog[].id` ↔ `monsterKillCounts[slot][id]` · `reconcileMonsterKillCountKeys` · 도전 `monsterCanonical` = 카탈로그 canonical |
+
+**처치·몬스터 도전 end-to-end:** `#monsterKillLogToolBtn` → `#monsterKillModal` · `addMonsterKillFromForm` → `incrementMonsterKillCounts` → `syncMonsterKillChallengeUnlocksForMembers` → save · 진행 `countMonsterKillForMember` / `monsterIdForChallenge`.
+
+**규칙 파일:** `.cursor/rules/toonggongdae-workflow.mdc` (연동 요약) · **`toonggongdae-integration.mdc`** (체크리스트).
+
 ### 3.1 `state` 주요 필드
 
 ```text
@@ -69,7 +89,7 @@ challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
 hotIssues: { id, …, authorMemberIdx?, **targetMemberIdxs[]**, text, images[] }[]
 challengeMonsterCatalog[]  // { id, canonical, aliases[], icon? } · 처치 도전
-monsterKillCounts  // { "0"|"1"|"2" → { [monsterId]: count } } · **처치 기록** 탭
+monsterKillCounts  // { "0"|"1"|"2" → { [monsterId]: count } } · **처치 기록** 공동 모달 · §3.3 unlock 연동
 partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
 ```
 
@@ -153,7 +173,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
-| 처치 기록 | `#monsterKillModal` · **로그인 공대원 전원** · `#monsterKillLogToolBtn` · `monsterKillCounts` · **공대원별 행**(캐릭터+보스 아이콘·이름·×횟수 · 순퉁→지퉁→배퉁) |
+| 처치 기록 | `#monsterKillModal` · **로그인 공대원 전원** · `monsterKillCounts` · unlock §3.3 · **M**=마스터만 |
 | 마스터 옵션(배퉁) | 공대원 **M** → `#challengeAdminModal` · 몬스터 카탈로그(마스터) · monster AC **아이콘** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
@@ -226,7 +246,9 @@ legacySummaryOnly (옛 회차 요약만)
 - **고유 훈장:** `EXCLUSIVE_TITLE_DEFS`(코드) · `memberIdx` 전용 · `xpReward` · `EXCLUSIVE_XP_TIER_HIGH`(150)·`TIER_MID`(80) · unlock 시 `exclusive:{id}:{idx}` → 내역 **고유 훈장 · 이름** · **장착 시** EXP 보너스 · 예: 중급 샤프20=80 · (예정) 샤프30=150=리버스.
 - **도전 XP:** `challengeDefs[].xpReward` · 달성 시 `ach:{chId}:{idx}` · 내역 **도전과제 · 훈장명** · **도전 추가**·**등록된 도전**에서 편집 · 저장 후 replay.
 - **경험치 내역:** 마이페이지 탭 · `rebuildAllXpLogs()`(키→라벨·일시) · 최근 **200건** · 필터(전체/장부/훈장·도전/기타).
-- **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount`(threshold) | `item_acquire`(requiredCount·itemCanonical) · **조건 하나당 훈장 하나**.
+- **도전과제(조건부 칭호):** 초보/주니어/베테랑/마스터 **제외** · `challengeDefs` — 유형 `sale_amount` | `item_acquire` | **`monster_kill`**(requiredCount·`monsterCanonical` ↔ `challengeMonsterCatalog`) · **조건 하나당 훈장 하나**.
+- **처치 도전 unlock:** `monsterKillCounts`만 올리면 ① 진행도만 변함 — **`unlockedTitleIds`는** `replayLedgerGamificationXp`(load) 또는 **`syncMonsterKillChallengeUnlocksForMembers`**(+1 직후) · 좌/우붕어싸만코 → `CHALLENGE_TITLE_ASSETS`.
+- **처치 기록 UI:** `#monsterKillModal` · 로그인 전원 `#monsterKillLogToolBtn` · 공대원별 캐릭터+보스 아이콘·×횟수(0→1→2) · 마스터 옵션과 **분리**.
 - **마스터 옵션(배퉁):** 탭 **도전 추가 / 아이템 추가 / 레벨 훈장 / 등록된 도전 / 고유 훈장** · **고유**=`EXCLUSIVE_TITLE_DEFS`(코드) + `exclusiveTitleMeta` 오버라이드 · `resolveExclusiveTitleDef` · XP 보상·대상 멤버는 코드 고정.
 - **장착 시만:** `equippedTitleDef` → `grantMedalBonusKeys` / `equippedMedalBonuses` · **장착·해제** 시 replay · (주의) replay는 **현재 장착** 기준으로 과거 키에도 medal suffix 재부여 — 장착 바꾸면 totalXp 변동.
 - **`bonuses` 필드:** `xpGainRate`(전체 %), `flatAcq`, `achXpRate`, `flatCycleClose`, `hotXpRate` · grant suffix `:medalXp`, `:medalFlatAcq`, `:medalFlatCycle`, `:medalAchPct`, `:medalHotPct`.
@@ -248,7 +270,9 @@ legacySummaryOnly (옛 회차 요약만)
 | XP 1회 지급 | `grantXp`, `grantMedalBonusKeys` (장착 훈장) |
 | 옵션 UI/저장 | `mountMedalBonusEditor`, `normalizeMedalBonuses`, `MEDAL_BONUS_TEMPLATES` |
 | XP 전체 재계산 | `replayLedgerGamificationXp` |
-| 도전 진행 | `challengeProgressForMember`, `countItemAcquireForMember`, `itemTextMatchesChallenge` |
+| 도전 진행 | `challengeProgressForMember`, `countItemAcquireForMember`, `countMonsterKillForMember`, `itemTextMatchesChallenge` |
+| 처치 기록 | `incrementMonsterKillCounts`, `syncMonsterKillChallengeUnlocksForMembers`, `renderMonsterKillModal`, `reconcileMonsterKillCountKeys` |
+| 몬스터 카탈로그 | `challengeMonsterCatalog`, `mergeBuiltinMonsterSeeds`, `findMonsterEntryById` |
 | 카탈로그 | `findCatalogEntryByAnyLabel`, `resolveCatalogItemInput`, `addMasterCatalogItem`, `mergeBuiltinCatalogSeeds`, `catalogItemDisplayHtml` |
 | 훈장 정의 | `getTitleDefById`, `getLevelTitleDef`, `getChallengeTitleDef`, `EXCLUSIVE_TITLE_DEFS` |
 | 코드 전용 훈장 | `CHALLENGE_TITLE_ASSETS` (이름→icon·effect·description) |
@@ -296,6 +320,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — **§3.3 연동·통합** · **`toonggongdae-integration.mdc`** · workflow 연동 절 · §14 스냅샷
 - **2026-09-21** — fix: 처치 +1 후 **`syncMonsterKillChallengeUnlocksForMembers`** (좌/우붕 등 장착 목록) · `CHALLENGE_TITLE_ASSETS` 어싸만코
 - **2026-09-21** — fix: `incrementMonsterKillCounts` **stale bucket** (+1이 state에 안 쌓이던 버그) · 처치 모달 **확대**
 - **2026-09-21** — fix: 처치 **+1** · `monsterKillCounts` **원격 누락 시 유지** · 즉시 저장 · Realtime 차단
@@ -474,8 +499,8 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 ## 12. 에이전트 **시작** 체크리스트
 
-1. Read **`HANDOFF.md`** (this file) — **§14 진행 중** 먼저
-2. Read **`.cursor/rules/*.mdc`** (질문-only · mirror · §13 push)
+1. Read **`HANDOFF.md`** (this file) — **§14 진행 중** · **§3.3 연동** 먼저
+2. Read **`.cursor/rules/*.mdc`** — **`toonggongdae-integration.mdc`** · workflow · assets
 3. Read **`.cursor/rules/toonggongdae-workflow.mdc`** — user rule과 충돌 시 **워크스페이스 규칙**: 구현 턴은 HANDOFF+push; user rule “commit만 요청 시”는 **commit 명시** 턴에만 해당
 4. 큰 변경 전 **`index.html`만** 편집, mirror sync · 타이머 로직은 **`party-timer-app.js`**
 5. 금액 로직 변경 시 §4 regression mentally check
@@ -485,18 +510,21 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 ## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-09-21)
 
-**최근 main:** `5dc3dc7` (타이머 soundProfiles · 마스터 탭) · **피해야 할 커밋 의도:** `c98dc9c` (카테고리 제거·outline 통일 — **소유자 거부**, `564eedd`에서 복구)
+**최근 main:** `7b46119` (처치 unlock sync · 어싸만코 assets) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
 
 | 영역 | 상태 |
 |------|------|
-| **타이머** | PIP · 0초 반복 · **soundProfiles**(마스터 탭) · mp3/wav data URL |
-| **헤더** | `배경.png` + 제목 바운스 · **참고 / 운영** 카테고리 |
-| **획득 모달** | 잡장비·카탈로그 아이콘 |
-| **미커밋 asset** | `image/훈장아이콘/중급샤프아이즈.png` · `image/이펙트/…` — **untracked** |
+| **처치 기록** | 공동 `#monsterKillModal` · `monsterKillCounts` · +1→unlock sync · stale bucket fix |
+| **훈장** | 좌/우붕어싸만코 = **monster_kill 도전** + `CHALLENGE_TITLE_ASSETS` · 고유≠어싸만코 |
+| **마스터** | **M** → `#challengeAdminModal` · 도구 **처치 기록** |
+| **타이머** | PIP · soundProfiles(마스터) |
+| **헤더** | NPC 도구 카드 · 배너 |
 
-**로컬 검증:** Chrome/Edge · Ctrl+F5 · `?room=tongtongi` 로그인 → **퉁공대 타이머** PIP.
+**회귀 주의:** Realtime 구버전 JSON · `catalogAssetUrl` 이중 인코딩 · progress만 “완료”인데 unlock 없음.
 
-**다음 작업 후보:** 슬롯별 PiP mute · pre-alert · JSON 용량(짧은 알람 권장).
+**로컬 검증:** Ctrl+F5 · 로그인 → 처치 +1 → 마이페이지 훈장 장착 · 훈장 모달 진행도.
+
+**다음 작업 후보:** PiP mute · JSON 용량 · (요청 시) 우붕/파풀 전용 도전 기본값.
 
 ---
 
@@ -519,6 +547,8 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 | 새 UI / 함수 / state 필드 | §3, §5 |
 | 아이템·아이콘 | §6 |
 | Supabase·배포 | §7, §8 |
+| 연동·다중 UI·게임화 | **§3.3**, §6.3 |
+| `.cursor/rules` | workflow · **integration.mdc** |
 | 아무 구현이나 | **§10 맨 위 한 줄** (날짜 + 요약) |
 | TODO 완료/추가 | §11 |
 | — | **`Last updated` 날짜** |
@@ -535,4 +565,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (처치 +1 stale bucket fix)*
+*Last updated: 2026-09-21 (§3.3 연동·integration 규칙)*

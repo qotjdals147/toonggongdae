@@ -1,0 +1,24 @@
+---
+description: 퉁공대 — 신규·변경 시 state·저장·Realtime·게임화·UI 연동 필수 점검
+alwaysApply: true
+---
+
+# 연동·통합 (절대 생략 금지)
+
+새 작업·버그fix·UI 추가 시 **단일 파일/단일 함수만** 보지 말고, **끝까지 연결**된 경로를 확인한다.
+
+## 체크리스트 (구현 전·후)
+
+- [ ] **영속:** `state` 필드가 `stateForPersistence()` JSON에 포함되는가?
+- [ ] **로드:** `parseStoredState` / `applyStateFromRemote`에서 필드가 **undefined로 덮이지** 않는가?
+- [ ] **Realtime:** 관련 모달이 `modalBlocksRemote()`에 있는가? 저장 직후 stale payload로 롤백되지 않는가?
+- [ ] **게임화:** 진행도 표시 ≠ unlock ≠ 장착 — unlock·XP 경로가 **이 액션·load·replay** 중 어디서 도는가?
+- [ ] **참조:** `normalize*` / `ensure*` 후 **옛 객체 참조**에 쓰지 않았는가?
+- [ ] **UI:** 사용자가 볼 **모든** 화면(모달·마이페이지·공대원 칸) 갱신했는가?
+- [ ] **카탈로그·id:** 몬스터/아이템 **canonical ↔ catalog id ↔ 집계 키** 일치하는가?
+
+## 대표 연동 맵 (처치·훈장)
+
+`monsterKillCounts` → `challengeProgressForMember(monster_kill)` → `syncMonsterKillChallengeUnlocksForMembers` / `replayLedgerGamificationXp` → `unlockedTitleIds` → `renderTitlePickList` / `memberTitleBadgeHtml`
+
+상세·회귀 사례: **`HANDOFF.md` §3.3**
