@@ -238,10 +238,11 @@
     const rows = Math.ceil(n / cols);
     const gridW = cols * TILE_W + (cols - 1) * GAP;
     const gridH = rows * TILE_H + (rows - 1) * GAP;
-    const CTA_BLOCK = 56;
+    const TOOLBAR_H = 42;
+    const toolbarMinW = 340;
     return {
-      w: gridW + PAD_X,
-      h: PAD_Y + 38 + gridH + CTA_BLOCK + 20,
+      w: Math.max(gridW, toolbarMinW) + PAD_X,
+      h: PAD_Y + TOOLBAR_H + gridH + 14,
     };
   }
 
@@ -325,13 +326,13 @@
   function pipToolbarHtml() {
     return `
       <header class="pip-toolbar">
-        <span class="pip-toolbar-brand">퉁공대</span>
-        <div class="pip-toolbar-actions">
+        <div class="pip-toolbar-left">
           <button type="button" class="pip-tb-btn pip-tb-play" data-pip-act="play" title="전체 재개">▶</button>
           <button type="button" class="pip-tb-btn pip-tb-pause" data-pip-act="pause-all" title="전체 일시정지">⏸</button>
           <button type="button" class="pip-tb-btn pip-tb-reset" data-pip-act="reset-all" title="전체 설정 시간으로">↺</button>
           <button type="button" class="pip-tb-btn pip-tb-mute${pipUi.muted ? ' is-muted' : ''}" data-pip-act="mute" title="알림음">${pipUi.muted ? '🔇' : '🔊'}</button>
         </div>
+        <button type="button" class="pip-toolbar-end" data-pip-act="hunt-end">사냥 종료</button>
       </header>
     `;
   }
@@ -365,7 +366,6 @@
         <div class="pip-grid pip-grid--${cols}" id="pipGrid" style="--pip-cols:${cols}">
           ${enabledSlots().map((s) => pipTileHtml(s)).join('')}
         </div>
-        <button type="button" class="pip-cta pip-cta-end" data-pip-act="hunt-end">사냥 종료</button>
       </div>
     `;
   }

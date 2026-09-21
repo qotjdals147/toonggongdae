@@ -3171,10 +3171,18 @@
 <style id="partyTimerPipStyles" media="not all">
   html, body.pip-root { margin: 0; padding: 0; background: #0f1115; font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif; color: #eef0f3; overflow: hidden; }
   .pip-app { box-sizing: border-box; padding: 10px 12px 12px; width: max-content; max-width: 100vw; margin: 0 auto; }
-  .pip-hunt { width: max-content; max-width: 100%; padding-bottom: 2px; }
-  .pip-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-  .pip-toolbar-brand { font-size: 12px; color: #8b929e; font-weight: 700; }
-  .pip-toolbar-actions { display: flex; align-items: center; gap: 6px; }
+  .pip-hunt { width: max-content; max-width: 100%; min-width: 340px; }
+  .pip-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    margin-bottom: 10px; width: 100%; box-sizing: border-box;
+  }
+  .pip-toolbar-left { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .pip-toolbar-end {
+    flex-shrink: 0; border: none; border-radius: 8px; padding: 8px 12px; margin: 0;
+    font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+    background: #64748b; color: #fff; white-space: nowrap; line-height: 1.2;
+  }
+  .pip-toolbar-end:hover { background: #475569; }
   .pip-tb-btn { border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; color: #fff; }
   .pip-tb-play { background: #2563eb; }
   .pip-tb-pause { background: #dc2626; }

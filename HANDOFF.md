@@ -121,7 +121,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **PIP CSS:** `#partyTimerPipStyles` **textContent**만 PiP `<head>`에 주입 — **`cloneNode`+`media="not all"` 금지**(스타일 미적용·흰 화면).
 - **PIP 크기:** `computePipTargetSize` + `measurePipContentSize`(CTA bottom 포함) + `resizeTo` · 전환 후 rAF·지연 재측정 · `overflow:hidden`에서 scrollHeight만 쓰면 **사냥 종료 잘림** 간헐 버그.
 - **동기화:** `runtime.slotEndsAt` + `huntActive` · **사냥 중 슬롯 0초 → 설정 `durationSec`으로 자동 반복**(`processSlotTimerLoops`) · **사냥 종료** 전까지 · PiP 닫아도 `syncHuntRuntimeTick` 유지.
-- **PIP:** Chrome/Edge Document PiP · **2×2 컴팩트 타일**(아이콘+이름+시간+슬롯 ⏸/↺) · 상단 전체 ▶⏸↺·음소거·줌 · **3초 이하 urgent 배경** · 0초 alarm.
+- **PIP:** Chrome/Edge Document PiP · **2×2 타일** · 사냥 중 상단 **좌** ▶⏸↺🔊 · **우** **사냥 종료**(하단 CTA 없음 — 잘림 방지) · urgent·0초 alarm·반복.
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
@@ -289,6 +289,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — PiP 사냥 **사냥 종료 → 상단 툴바 우측** · 퉁공대 라벨 제거
 - **2026-09-21** — 타이머 **0초 후 자동 반복**(사냥 종료 전) · 사냥 중 백그라운드 tick
 - **2026-09-21** — PiP **사냥 종료 버튼 잘림** fix · 콘텐츠 rect 측정·재resize
 - **2026-09-21** — 타이머 **기본 슬롯** 홀리 심볼·한타임·경쿠 아이콘 · **기타** 자유 이름 · PiP 설정 아이콘
@@ -460,4 +461,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (PiP 사냥 종료 잘림 fix)*
+*Last updated: 2026-09-21 (PiP 사냥 종료 상단 툴바)*
