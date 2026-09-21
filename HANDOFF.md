@@ -296,6 +296,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — fix: 처치 **+1** · `monsterKillCounts` **원격 누락 시 유지** · 즉시 저장 · Realtime 차단
 - **2026-09-21** — 처치 기록 **공대원별 UI**(캐릭터 박스 · 보스명·아이콘·×횟수 · 0→1→2)
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
 - **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
@@ -532,4 +533,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (처치 기록 공대원별 UI)*
+*Last updated: 2026-09-21 (처치 +1 집계 fix)*

@@ -5169,6 +5169,7 @@
       || !$('challengeModal').hidden
       || !$('challengeAdminModal').hidden
       || !$('makerEditModal').hidden
+      || ($('monsterKillModal') && !$('monsterKillModal').hidden)
       || ($('partyTimerModal') && !$('partyTimerModal').hidden);
   }
 
@@ -5634,7 +5635,9 @@
     if (Array.isArray(parsed.challengeMonsterCatalog)) {
       next.challengeMonsterCatalog = migrateChallengeMonsterCatalog(parsed.challengeMonsterCatalog);
     }
-    next.monsterKillCounts = normalizeMonsterKillCounts(parsed.monsterKillCounts);
+    if (Object.prototype.hasOwnProperty.call(parsed, 'monsterKillCounts')) {
+      next.monsterKillCounts = normalizeMonsterKillCounts(parsed.monsterKillCounts);
+    }
     if (parsed.catalogSearchFlags && typeof parsed.catalogSearchFlags === 'object') {
       next.catalogSearchFlags = {
         accuracyScrolls: !!parsed.catalogSearchFlags.accuracyScrolls,
@@ -5668,7 +5671,11 @@
   function applyStateFromRemote(next, needsResave) {
     partyStateHydrated = true;
     const prevViewId = hasInitialViewFocus ? null : state.viewCycleId;
+    const prevMonsterKillCounts = state.monsterKillCounts;
     state = next;
+    if (state.monsterKillCounts == null) {
+      state.monsterKillCounts = normalizeMonsterKillCounts(prevMonsterKillCounts);
+    }
     const gemNamesMigrated = migrateLegacyGemNamesInState();
     if (!state.warehouseChars) state.warehouseChars = [];
     if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
@@ -5696,6 +5703,7 @@
     render();
     if (!$('warehouseModal').hidden) renderWarehouseList();
     if (!$('hotIssueModal').hidden) renderHotIssueFeed();
+    if ($('monsterKillModal') && !$('monsterKillModal').hidden) renderMonsterKillModal();
   }
 
   function shareUrl() {
@@ -6194,7 +6202,35 @@
 
   function findMonsterEntryById(id) {
     if (!id) return null;
-    return (state.challengeMonsterCatalog || []).find((x) => x.id === id) || null;
+    const sid = String(id);
+    return (state.challengeMonsterCatalog || []).find((x) => String(x.id) === sid) || null;
+  }
+
+  function resolveMonsterEntryForKillRecord(storedKey) {
+    const key = String(storedKey || '').trim();
+    if (!key) return null;
+    return findMonsterEntryById(key)
+      || findMonsterEntryByCanonicalName(key)
+      || findMonsterEntryByAnyLabel(key);
+  }
+
+  /** 카탈로그 id 변경·구버전 키(canonical) → 현재 entry.id 로 합침 */
+  function reconcileMonsterKillCountKeys() {
+    ensureMonsterKillCounts();
+    [0, 1, 2].forEach((memberIdx) => {
+      const slotKey = String(memberIdx);
+      const bucket = state.monsterKillCounts[slotKey];
+      if (!bucket || typeof bucket !== 'object') return;
+      const merged = {};
+      Object.keys(bucket).forEach((storedKey) => {
+        const n = Math.max(0, Math.round(Number(bucket[storedKey]) || 0));
+        if (n <= 0) return;
+        const entry = resolveMonsterEntryForKillRecord(storedKey);
+        const outKey = entry ? String(entry.id) : storedKey;
+        merged[outKey] = Math.max(merged[outKey] || 0, n);
+      });
+      state.monsterKillCounts[slotKey] = merged;
+    });
   }
 
   function normalizeMonsterKillCounts(raw) {
@@ -6446,6 +6482,7 @@
     if (!Array.isArray(state.challengeMonsterCatalog)) state.challengeMonsterCatalog = [];
     else state.challengeMonsterCatalog = migrateChallengeMonsterCatalog(state.challengeMonsterCatalog);
     ensureMonsterKillCounts();
+    reconcileMonsterKillCountKeys();
     const catalogAdded = mergeBuiltinCatalogSeeds();
     const monsterAdded = mergeBuiltinMonsterSeeds();
     if (catalogAdded > 0 || monsterAdded > 0) scheduleSave();
@@ -8020,12 +8057,14 @@
     }
   }
 
-  function monsterKillBossCellHtml(entry, count) {
-    const iconInner = entry.icon
+  function monsterKillBossCellHtml(entryOrName, count) {
+    const entry = entryOrName && typeof entryOrName === 'object' ? entryOrName : null;
+    const label = entry ? entry.canonical : String(entryOrName || '몬스터');
+    const iconInner = entry && entry.icon
       ? `<div class="monster-kill-boss-icon">${catalogIconMarkup(entry.icon)}</div>`
       : '<div class="monster-kill-boss-icon"></div>';
     return `<div class="monster-kill-boss-cell">
-      <span class="monster-kill-boss-name">${escapeHtml(entry.canonical)}</span>
+      <span class="monster-kill-boss-name">${escapeHtml(label)}</span>
       ${iconInner}
       <span class="monster-kill-boss-count">×${fmtNum(count)}</span>
     </div>`;
@@ -8033,16 +8072,16 @@
 
   function memberKillEntriesForIdx(memberIdx) {
     ensureMonsterKillCounts();
+    reconcileMonsterKillCountKeys();
     const bucket = state.monsterKillCounts[String(memberIdx)] || {};
     return Object.keys(bucket)
-      .map((id) => ({
-        entry: findMonsterEntryById(id),
-        count: getMonsterKillCount(memberIdx, id),
-      }))
-      .filter((k) => k.count > 0 && k.entry)
-      .sort((a, b) =>
-        String(a.entry.canonical || '').localeCompare(String(b.entry.canonical || ''), 'ko')
-      );
+      .map((storedKey) => {
+        const count = getMonsterKillCount(memberIdx, storedKey);
+        const entry = resolveMonsterEntryForKillRecord(storedKey);
+        return { entry, count, sortName: entry ? entry.canonical : storedKey };
+      })
+      .filter((k) => k.count > 0)
+      .sort((a, b) => String(a.sortName || '').localeCompare(String(b.sortName || ''), 'ko'));
   }
 
   function renderMonsterKillModal() {
@@ -8064,7 +8103,7 @@
         `공대원 ${memberIdx + 1}`;
       const charHtml = memberCharSpriteHtml(memberIdx);
       const bossGrid = kills.length
-        ? kills.map(({ entry, count }) => monsterKillBossCellHtml(entry, count)).join('')
+        ? kills.map(({ entry, count, sortName }) => monsterKillBossCellHtml(entry || sortName, count)).join('')
         : '<p class="monster-kill-boss-empty">아직 처치 기록 없음</p>';
       const rowCls = kills.length ? 'monster-kill-member-row' : 'monster-kill-member-row monster-kill-member-row--empty';
       return `<div class="${rowCls}">
@@ -8078,12 +8117,12 @@
     wrap.innerHTML = `${hint}<div class="monster-kill-roster">${rowsHtml}</div>`;
   }
 
-  function addMonsterKillFromForm() {
+  async function addMonsterKillFromForm() {
     if (!authSession) return;
     ensureGamificationState();
     const raw = ($('monsterKillPick') && $('monsterKillPick').value.trim()) || '';
-    const canonical = resolveMonsterCatalogInput(raw) || findMonsterEntryByCanonicalName(raw)?.canonical || '';
-    const entry = findMonsterEntryByCanonicalName(canonical);
+    const entry = findMonsterEntryByAnyLabel(raw)
+      || findMonsterEntryByCanonicalName(resolveMonsterCatalogInput(raw) || raw);
     if (!entry) {
       alert('몬스터 추가 탭에 등록된 몬스터를 목록에서 선택해 주세요.');
       $('monsterKillPick')?.focus();
@@ -8095,9 +8134,20 @@
       return;
     }
     incrementMonsterKillCounts(members, entry.id, 1);
-    scheduleSave();
-    gamificationReplayAndRefresh();
+    reconcileMonsterKillCountKeys();
     renderMonsterKillModal();
+    renderMembers();
+    if ($('challengeModal') && !$('challengeModal').hidden) {
+      if ($('exclusiveMedalView') && !$('exclusiveMedalView').hidden) renderExclusiveMedalView();
+      else renderChallengeListView();
+    }
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
+    try {
+      await saveState();
+    } catch (e) { /* saveState already sets hint */ }
     flashChAdminSaved($('monsterKillAddBtn'));
   }
 
