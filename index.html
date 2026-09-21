@@ -97,7 +97,7 @@
   }
   .app-header-banner {
     position: relative;
-    min-height: 208px;
+    min-height: 120px;
     border-radius: 12px;
     overflow: hidden;
     background: #1a0a0a;
@@ -5351,55 +5351,9 @@
     return url.toString();
   }
 
-  function bannerLayerImg(src, className) {
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = '';
-    img.className = className;
-    img.decoding = 'async';
-    img.draggable = false;
-    return img;
-  }
-
   function buildAppBannerStage() {
     const stage = $('appBannerStage');
-    const banner = $('appHeaderBanner');
-    if (!stage || !banner) return;
-    const r = BANNER_RES;
-    const cycle = `${Number(APP_HEADER_BANNER.baetungCycleSec) || 2.2}s`;
-    banner.style.setProperty('--baetung-cycle', cycle);
-    stage.innerHTML = '';
-
-    const soon = document.createElement('div');
-    soon.className = 'app-banner-scene app-banner-scene--soon';
-    soon.append(
-      bannerLayerImg(`${r}/자쿰.gif`, 'banner-layer banner-boss'),
-      bannerLayerImg(`${r}/순퉁몸통이펙트.gif`, 'banner-layer banner-soon-ghost'),
-      bannerLayerImg(`${r}/순퉁.png`, 'banner-layer banner-char'),
-      bannerLayerImg(`${r}/순퉁총알.gif`, 'banner-layer banner-soon-bullet')
-    );
-    stage.append(soon);
-
-    const ji = document.createElement('div');
-    ji.className = 'app-banner-scene app-banner-scene--ji';
-    ji.append(
-      bannerLayerImg(`${r}/파풀라투스.gif`, 'banner-layer banner-boss'),
-      bannerLayerImg(`${r}/지퉁.png`, 'banner-layer banner-char'),
-      bannerLayerImg(`${r}/지퉁이펙트.gif`, 'banner-layer banner-ji-arrow')
-    );
-    stage.append(ji);
-
-    const bae = document.createElement('div');
-    bae.className = 'app-banner-scene app-banner-scene--bae';
-    bae.append(bannerLayerImg(`${r}/피아누스.gif`, 'banner-layer banner-boss'));
-    const baeChar = document.createElement('div');
-    baeChar.className = 'banner-baetung-char';
-    baeChar.append(
-      bannerLayerImg(`${r}/배퉁1.gif`, 'baetung-frame baetung-frame--a'),
-      bannerLayerImg(`${r}/배퉁.gif`, 'baetung-frame baetung-frame--b')
-    );
-    bae.append(baeChar, bannerLayerImg(`${r}/배퉁이펙트.gif`, 'banner-layer banner-baetung-slash'));
-    stage.append(bae);
+    if (stage) stage.innerHTML = '';
   }
 
   function renderAppHeaderBanner() {
