@@ -363,10 +363,12 @@
     align-items: center;
     justify-content: flex-start;
     gap: 6px;
-    padding: 10px 10px 8px;
-    min-width: 84px;
-    max-width: 100px;
-    flex: 0 1 auto;
+    padding: 10px 8px 8px;
+    width: 92px;
+    min-width: 92px;
+    max-width: 92px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
     border: 2px solid var(--line);
     border-radius: 12px;
     background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
@@ -409,6 +411,8 @@
     pointer-events: none;
   }
   .app-tool-card-label {
+    display: block;
+    width: 100%;
     font-size: 11px;
     font-weight: 700;
     text-align: center;
@@ -3908,9 +3912,9 @@
     const cloud = storageMode === 'cloud';
     const showLogout = cloud && authSession;
     const showMaster = showLogout && authSession.memberIdx === 2;
-    if ($('logoutBtn')) $('logoutBtn').style.display = showLogout ? 'inline-block' : 'none';
-    if ($('challengeBtn')) $('challengeBtn').style.display = showLogout ? 'inline-block' : 'none';
-    if ($('challengeAdminBtn')) $('challengeAdminBtn').style.display = showMaster ? 'inline-block' : 'none';
+    if ($('logoutBtn')) $('logoutBtn').style.display = showLogout ? 'flex' : 'none';
+    if ($('challengeBtn')) $('challengeBtn').style.display = showLogout ? 'flex' : 'none';
+    if ($('challengeAdminBtn')) $('challengeAdminBtn').style.display = showMaster ? 'flex' : 'none';
   }
 
   function rosterEntryForAuthEmail(email) {

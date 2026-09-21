@@ -17,15 +17,9 @@
   let slotActiveAudios = {};
   /** slotId → generation (stale 콜백 무시) */
   let slotAlarmGen = {};
-  /** slotId → { src, audio } · HTML Audio fallback */
+  /** slotId → { src, audio } · PiP에서 preload만 (재생은 매회 새 Audio) */
   let slotAudioWarm = {};
-  /** slotId → { src, buffer } · Web Audio (0초 즉시 재생) */
-  let slotBufferWarm = {};
-  /** PiP 창 AudioContext */
-  let pipAudioCtx = null;
   const HUNT_RUNTIME_TICK_MS = 80;
-  /** HTML Audio start 지연 보정 (ms) */
-  const ALARM_FIRE_LEAD_MS = 18;
   /** slotId → setTimeout id · endsAt 시각에 맞춰 0초 알람 */
   let slotEndTimers = {};
   let pipStyleEl = null;
@@ -175,9 +169,7 @@
     pt.soundProfiles[slotId] = normalizeSoundProfile({ ...pt.soundProfiles[slotId], ...patch });
     scheduleSave();
     if (pipWindow && !pipWindow.closed) {
-      const profile = pt.soundProfiles[slotId];
-      ensureWarmAlarmAudio(pipWindow.document, slotId, profile);
-      void warmAlarmBuffer(pipWindow.document, slotId, profile);
+      ensureWarmAlarmAudio(pipWindow.document, slotId, pt.soundProfiles[slotId]);
     }
   }
 
@@ -275,37 +267,6 @@
 
   function clearSlotAudioWarm() {
     slotAudioWarm = {};
-    slotBufferWarm = {};
-    pipAudioCtx = null;
-  }
-
-  function getPipAudioContext(doc) {
-    if (!doc || !doc.defaultView) return null;
-    const Ctx = doc.defaultView.AudioContext || doc.defaultView.webkitAudioContext;
-    if (!Ctx) return null;
-    if (!pipAudioCtx || pipAudioCtx.state === 'closed') {
-      try {
-        pipAudioCtx = new Ctx();
-      } catch (e) {
-        pipAudioCtx = null;
-      }
-    }
-    return pipAudioCtx;
-  }
-
-  async function warmAlarmBuffer(doc, slotId, profile) {
-    if (!profile || !profile.src || !doc) return;
-    const src = profile.src;
-    const existing = slotBufferWarm[slotId];
-    if (existing && existing.src === src && existing.buffer) return;
-    const ctx = getPipAudioContext(doc);
-    if (!ctx) return;
-    try {
-      const res = await fetch(src);
-      const ab = await res.arrayBuffer();
-      const buffer = await ctx.decodeAudioData(ab);
-      slotBufferWarm[slotId] = { src, buffer };
-    } catch (e) { /* ignore · HTML Audio fallback */ }
   }
 
   function ensureWarmAlarmAudio(doc, slotId, profile) {
@@ -325,12 +286,8 @@
   function warmAllAlarmAudiosInPip() {
     if (!pipWindow || pipWindow.closed) return;
     const doc = pipWindow.document;
-    const ctx = getPipAudioContext(doc);
-    if (ctx && ctx.state === 'suspended') void ctx.resume();
     TIMER_SOUND_SLOT_IDS.forEach((id) => {
-      const profile = getSoundProfile(id);
-      ensureWarmAlarmAudio(doc, id, profile);
-      void warmAlarmBuffer(doc, id, profile);
+      ensureWarmAlarmAudio(doc, id, getSoundProfile(id));
     });
   }
 
@@ -779,33 +736,6 @@
     slotActiveAudios[slotId].add(handle);
   }
 
-  function tryPlayAlarmBuffer(doc, slotId, profile, volume, finish) {
-    const entry = slotBufferWarm[slotId];
-    const ctx = getPipAudioContext(doc);
-    if (!ctx || !entry || entry.src !== profile.src || !entry.buffer) return false;
-    if (ctx.state === 'suspended') void ctx.resume();
-    try {
-      const source = ctx.createBufferSource();
-      source.buffer = entry.buffer;
-      const gain = ctx.createGain();
-      gain.gain.value = volume;
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      const handle = {
-        stop() {
-          try { source.stop(); } catch (e) { /* ignore */ }
-          try { source.disconnect(); gain.disconnect(); } catch (e) { /* ignore */ }
-        },
-      };
-      trackSlotAudio(slotId, handle);
-      source.onended = finish;
-      source.start(0);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   /** 1회 재생 · 파일 있으면 **비프 fallback 없음** (겹침 방지) */
   function playAlarmOneShot(doc, slotId, profile, volume, onDone) {
     const done = typeof onDone === 'function' ? onDone : () => {};
@@ -825,15 +755,11 @@
       clearTimeout(watchdog);
       finish();
     };
-    if (tryPlayAlarmBuffer(doc, slotId, profile, vol, wrapFinish)) return;
+    ensureWarmAlarmAudio(doc, slotId, profile);
     try {
-      const audio = ensureWarmAlarmAudio(doc, slotId, profile)
-        || new doc.defaultView.Audio(profile.src);
+      const audio = new doc.defaultView.Audio(profile.src);
+      audio.preload = 'auto';
       audio.volume = vol;
-      try {
-        audio.pause();
-      } catch (e) { /* ignore */ }
-      audio.currentTime = 0;
       trackSlotAudio(slotId, audio);
       audio.onended = wrapFinish;
       audio.onerror = wrapFinish;
@@ -936,8 +862,7 @@
     const endsAt = rt.slotEndsAt[slotId];
     if (endsAt == null) return;
     now = now != null ? now : Date.now();
-    const expirySlackMs = ALARM_FIRE_LEAD_MS + 8;
-    if (endsAt > now && endsAt - now > expirySlackMs) {
+    if (endsAt > now) {
       scheduleSlotExpiryAlarm(slotId);
       return;
     }
@@ -964,7 +889,7 @@
     if (rt.slotPaused[slotId]) return;
     const endsAt = rt.slotEndsAt[slotId];
     if (endsAt == null) return;
-    const delay = endsAt - Date.now() - ALARM_FIRE_LEAD_MS;
+    const delay = endsAt - Date.now();
     if (delay <= 0) {
       handleSlotExpired(slotId, Date.now());
       return;

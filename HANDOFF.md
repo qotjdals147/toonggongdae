@@ -126,7 +126,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
 - **알람:** 0초 `is-alarm` 플래시(~2s) · `processSlotTimerLoops` → `playPipAlarm()` + `flashPipTileAlarm()` · **소리는 PIP 창이 열려 있을 때만** (`playPipAlarm`이 `pipWindow.closed`면 return) · 사냥 tick은 PiP 닫아도 **`syncHuntRuntimeTick` 유지**(반복 카운트만 백그라운드).
-- **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount** · PiP에서 **Web Audio 버퍼 preload**(`slotBufferWarm`) 우선 재생 · fallback HTML Audio · 파일 없으면 **880Hz 비프**.
+- **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount** · PiP **preload + 매 알람 새 `Audio` 인스턴스**(재사용 금지) · `setTimeout(endsAt)` · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
 - **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
 
@@ -293,7 +293,8 @@ legacySummaryOnly (옛 회차 요약만)
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
-- **2026-09-21** — 타이머 알람 **Web Audio 버퍼** 재생(0초 지연 완화)
+- **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
+- **2026-09-21** — 타이머 알람 **매회 새 Audio** · Web Audio 경로 제거(2회째 무음 fix)
 - **2026-09-21** — 타이머 0초 **`setTimeout(endsAt)`** 정밀 알람 + preload
 - **2026-09-21** — 타이머 0초 감지 **80ms tick** · 알람 mp3 **PIP preload** (재생 지연 완화)
 - **2026-09-21** — 타이머 알람 **파일 재생 후 비프 제거** · repeat 시퀀스 정리 · **슬롯 간 겹침** 허용
@@ -520,4 +521,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (Web Audio 알람·NPC 도구 박스)*
+*Last updated: 2026-09-21 (훈장 카드 정렬·타이머 알람 재생 fix)*
