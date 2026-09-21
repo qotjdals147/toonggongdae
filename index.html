@@ -1213,6 +1213,33 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
     transition: width 0.35s ease;
   }
+  .member-exp-fill.member-exp-fill--anim {
+    transition: width 0.9s cubic-bezier(0.22, 0.85, 0.32, 1);
+  }
+  .member-exp-float-layer {
+    position: relative;
+    height: 0;
+    overflow: visible;
+    z-index: 2;
+  }
+  .member-xp-float {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 800;
+    color: #4d7c0f;
+    text-shadow: 0 1px 0 #fff, 0 0 8px rgba(190, 242, 100, 0.85);
+    animation: member-xp-float-up 1.2s ease-out forwards;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  @keyframes member-xp-float-up {
+    0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    70% { opacity: 0.85; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-24px) scale(1.05); }
+  }
   .member-slot > span { font-size: 11.5px; color: var(--ink-soft); font-weight: 500; }
   .mypage-tabs {
     display: flex;
@@ -4036,6 +4063,11 @@
   let currentExpSplit = [...DEFAULT_SPLIT];
   let saveTimeout = null;
   let editingField = false;
+  let gamificationReplayInProgress = false;
+  let memberXpUiBaseline = null;
+  let memberExpBarVisualPct = [0, 0, 0];
+  let pendingMemberXpFloats = [[], [], []];
+  let memberXpVisualRaf = null;
   let editingHistoryId = null;
   let editingEntryId = null;
   let editingExpId = null;
@@ -5721,6 +5753,7 @@
     }
     if (needsResave || gemNamesMigrated) scheduleSave();
     runGamificationAfterStateLoad();
+    syncMemberXpUiBaseline();
     if (window.PartyTimerApp) {
       PartyTimerApp.ensurePartyTimerState();
       PartyTimerApp.onRemoteStateApplied();
@@ -6927,6 +6960,25 @@
     return null;
   }
 
+  function reconcileEquippedTitleForMember(memberIdx) {
+    ensureGamificationState();
+    const p = state.memberProfiles[memberIdx];
+    const eq = p.equippedTitleId;
+    if (!eq) return;
+    if (p.unlockedTitleIds.includes(eq)) return;
+    if (!getTitleDefById(eq)) {
+      p.equippedTitleId = null;
+      return;
+    }
+    const ch = (state.challengeDefs || []).find((c) => c.titleId === eq);
+    if (ch && challengeProgressForMember(ch, memberIdx).done) {
+      unlockChallengeTitle(memberIdx, ch);
+      return;
+    }
+    syncExclusiveTitlesForMember(memberIdx);
+    if (!p.unlockedTitleIds.includes(eq)) p.equippedTitleId = null;
+  }
+
   function syncLevelTitlesForMember(memberIdx) {
     ensureGamificationState();
     const p = state.memberProfiles[memberIdx];
@@ -6937,9 +6989,7 @@
       }
     });
     syncExclusiveTitlesForMember(memberIdx);
-    if (p.equippedTitleId && !p.unlockedTitleIds.includes(p.equippedTitleId)) {
-      p.equippedTitleId = null;
-    }
+    reconcileEquippedTitleForMember(memberIdx);
   }
 
   function syncAllLevelTitles() {
@@ -7247,7 +7297,32 @@
     let added = amt;
     added += grantMedalBonusKeys(memberIdx, key, amt);
     syncLevelTitlesForMember(memberIdx);
+    if (added > 0 && !gamificationReplayInProgress) scheduleMemberXpVisual(memberIdx, added);
     return added;
+  }
+
+  function memberExpProgressPct(memberIdx) {
+    const p = state.memberProfiles[memberIdx];
+    if (!p) return 0;
+    const { progressXp, needXp } = levelFromTotalXp(p.totalXp);
+    return needXp > 0 ? Math.min(100, (progressXp / needXp) * 100) : 100;
+  }
+
+  function syncMemberXpUiBaseline() {
+    if (!gamificationActive() || !state.memberProfiles) return;
+    memberXpUiBaseline = state.memberProfiles.map((p) => Math.max(0, Math.round(Number(p.totalXp) || 0)));
+    memberExpBarVisualPct = [0, 1, 2].map((i) => memberExpProgressPct(i));
+  }
+
+  function scheduleMemberXpVisual(memberIdx, amount) {
+    const n = Math.round(Number(amount) || 0);
+    if (n <= 0 || memberIdx < 0 || memberIdx > 2) return;
+    pendingMemberXpFloats[memberIdx].push(n);
+    if (memberXpVisualRaf != null) return;
+    memberXpVisualRaf = requestAnimationFrame(() => {
+      memberXpVisualRaf = null;
+      renderMembers({ animateXp: true });
+    });
   }
 
   function saleXpFromListingPrice(price) {
@@ -7376,7 +7451,10 @@
   }
 
   function replayLedgerGamificationXp() {
+    gamificationReplayInProgress = true;
+    try {
     ensureGamificationState();
+    const equipSnapshot = state.memberProfiles.map((p) => p.equippedTitleId || null);
     const loginKeys = state.xpGrantKeys.filter((k) => k.startsWith('login:'));
     state.xpGrantKeys = loginKeys.slice();
     state.memberProfiles.forEach((p) => { p.totalXp = 0; });
@@ -7419,9 +7497,19 @@
       });
     });
 
+    syncMonsterKillChallengeUnlocksForMembers([0, 1, 2]);
     syncExclusiveTitlesAll();
     syncAllLevelTitles();
+    state.memberProfiles.forEach((p, i) => {
+      const eq = equipSnapshot[i];
+      if (!eq) return;
+      if (!p.unlockedTitleIds.includes(eq)) reconcileEquippedTitleForMember(i);
+      if (p.unlockedTitleIds.includes(eq)) p.equippedTitleId = eq;
+    });
     rebuildAllXpLogs();
+    } finally {
+      gamificationReplayInProgress = false;
+    }
   }
 
   function gamificationReplayAndRefresh() {
@@ -7447,20 +7535,49 @@
     if (!gamificationActive()) return;
     ensureGamificationState();
     replayLedgerGamificationXp();
-    syncMonsterKillChallengeUnlocksForMembers([0, 1, 2]);
     if (tryDailyLoginXp()) scheduleSave();
+    syncMemberXpUiBaseline();
   }
 
-  function memberExpBarHtml(memberIdx) {
+  function memberExpBarHtml(memberIdx, opts) {
+    const o = opts || {};
     const p = state.memberProfiles[memberIdx];
-    const { level, progressXp, needXp } = levelFromTotalXp(p.totalXp);
-    const pct = needXp > 0 ? Math.min(100, (progressXp / needXp) * 100) : 100;
+    const { progressXp, needXp } = levelFromTotalXp(p.totalXp);
+    const targetPct = needXp > 0 ? Math.min(100, (progressXp / needXp) * 100) : 100;
+    const startPct = o.startPct != null ? o.startPct : targetPct;
+    const animCls = o.animate ? ' member-exp-fill--anim' : '';
     return `
       <div class="member-exp-wrap">
-        <div class="member-exp-label">EXP. ${fmtNum(progressXp)} / ${fmtNum(needXp || 0)} <span class="member-exp-pct">[${pct.toFixed(2)}%]</span></div>
-        <div class="member-exp-track"><div class="member-exp-fill" style="width:${pct.toFixed(2)}%"></div></div>
+        <div class="member-exp-float-layer" data-member-xp-float="${memberIdx}"></div>
+        <div class="member-exp-label">EXP. ${fmtNum(progressXp)} / ${fmtNum(needXp || 0)} <span class="member-exp-pct">[${targetPct.toFixed(2)}%]</span></div>
+        <div class="member-exp-track"><div class="member-exp-fill${animCls}" data-member-exp-fill="${memberIdx}" data-target-pct="${targetPct.toFixed(2)}" style="width:${startPct.toFixed(2)}%"></div></div>
       </div>
     `;
+  }
+
+  function flushMemberXpVisuals(grid) {
+    if (!grid) return;
+    [0, 1, 2].forEach((i) => {
+      const floats = pendingMemberXpFloats[i].splice(0);
+      if (!floats.length) return;
+      const layer = grid.querySelector(`[data-member-xp-float="${i}"]`);
+      if (!layer) return;
+      const total = floats.reduce((s, n) => s + n, 0);
+      const el = document.createElement('span');
+      el.className = 'member-xp-float';
+      el.textContent = `+${fmtNum(total)}`;
+      layer.appendChild(el);
+      setTimeout(() => el.remove(), 1300);
+    });
+    grid.querySelectorAll('[data-member-exp-fill]').forEach((fill) => {
+      const target = fill.getAttribute('data-target-pct');
+      if (!target) return;
+      if (fill.classList.contains('member-exp-fill--anim')) {
+        requestAnimationFrame(() => {
+          fill.style.width = `${target}%`;
+        });
+      }
+    });
   }
 
   function memberCharSpritePath(memberIdx) {
@@ -9080,7 +9197,7 @@
   }
 
   // ---------- members ----------
-  function renderMembers() {
+  function renderMembers(opts) {
     const grid = $('membersGrid');
     grid.innerHTML = '';
     ensurePartyRosterOnState();
@@ -9108,10 +9225,10 @@
             '<div class="member-exp-label">&nbsp;</div>' +
             '<div class="member-exp-track"></div></div>';
           slot.appendChild(foot);
-          grid.appendChild(slot);
-          return;
-        }
-        const head = document.createElement('div');
+        grid.appendChild(slot);
+        return;
+      }
+      const head = document.createElement('div');
         head.className = 'member-slot-head' + (isSelf ? '' : ' member-slot-head--empty');
         if (isSelf) {
           const label = document.createElement('span');
@@ -9163,7 +9280,13 @@
         slot.appendChild(body);
         const foot = document.createElement('div');
         foot.className = 'member-slot-foot';
-        foot.innerHTML = memberExpBarHtml(i);
+        const totalXp = state.memberProfiles[i].totalXp || 0;
+        const prevXp = memberXpUiBaseline ? memberXpUiBaseline[i] : totalXp;
+        const xpDelta = totalXp - prevXp;
+        const animateXp = !!(opts && opts.animateXp) && xpDelta > 0 && xpDelta <= 5000;
+        const targetPct = memberExpProgressPct(i);
+        const startPct = animateXp ? memberExpBarVisualPct[i] : targetPct;
+        foot.innerHTML = memberExpBarHtml(i, { startPct, animate: animateXp });
         slot.appendChild(foot);
       } else {
         slot.innerHTML = `<span>공대원 ${i + 1}</span>`;
@@ -9186,6 +9309,11 @@
       grid.appendChild(slot);
     });
     bindMemberTitleBadgeTooltips(grid);
+    if (gamificationActive() && partyStateHydrated) {
+      flushMemberXpVisuals(grid);
+      memberXpUiBaseline = state.memberProfiles.map((p) => Math.max(0, Math.round(Number(p.totalXp) || 0)));
+      memberExpBarVisualPct = [0, 1, 2].map((i) => memberExpProgressPct(i));
+    }
   }
 
   function populateMemberSelect(sel) {

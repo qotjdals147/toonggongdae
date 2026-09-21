@@ -240,6 +240,8 @@ legacySummaryOnly (옛 회차 요약만)
 - **XP:** 획득 `acq:`(고정 **28**) · **판매 `sale:`**(등록가 비례·상한 — **템플릿 없음**, 예전부터 코드에 존재 · 팀이 “판매 XP 제거”로 정했으면 `replay`의 `sale:` grant 제거 요청) · 회차 `cycle:` · 핫이슈 `hot:` · 로그인 `login:` · 도전 `ach:` · 고유 `exclusive:`.
 - **집계:** `replayLedgerGamificationXp()` — `xpGrantKeys`를 **`login:`만 남기고** 전부 재생성 · `totalXp` 0부터 재합산 · **`stripReplayChallengeTitleUnlocks`** 후 도전 충족분만 `unlockChallengeTitle` · 끝에 **`syncExclusiveTitlesAll`** + `syncAllLevelTitles` + `rebuildAllXpLogs`.
 - **UI 갱신 래퍼:** `gamificationReplayAndRefresh()` — replay + `renderMembers` + (훈장 모달 열려 있으면) 진행도 뷰.
+- **장착 유지:** `replayLedgerGamificationXp` — **equipSnapshot** · `reconcileEquippedTitleForMember` · replay 후 **equipped 복원** · 마이페이지 장착 시 **replay 호출 안 함**.
+- **EXP UI:** `grantXp` → `scheduleMemberXpVisual` · `+N` float · 게이지 **0.9s** (`member-exp-fill--anim`) · Realtime/load는 `syncMemberXpUiBaseline`으로 점프만.
 - **replay 호출 예:** 획득 저장/삭제 · 도전 추가/삭제 · 회차 마감 · 핫이슈 등록 · **카탈로그 추가/저장/삭제** · `runGamificationAfterStateLoad`.
 - **주의:** **카탈로그 항목 자체는 XP를 주지 않음.** 카탈로그 변경으로 **도전 완료 조건(매칭)이 바뀔 때만** ach XP가 replay로 변동. 획득 줄 삭제는 acq/sale XP 감소.
 - **금지(재귀):** `ensureGamificationState` 안에서 **`syncExclusiveTitlesAll()` 호출 금지** · `syncExclusiveTitlesForMember` 안에서 **`ensureGamificationState()` 호출 금지** (과거 불러오기 멈춤 버그).
@@ -320,6 +322,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — fix: **equippedTitleId** replay snapshot·restore · EXP **+float·바 애니** · grantXp 즉시 UI
 - **2026-09-21** — fix: 어싸만코 **monsterEntryForChallenge** · unlock/load · 장착 replay 제거 · **좌붕 flip** 마이페이지
 - **2026-09-21** — **§3.3 연동·통합** · **`toonggongdae-integration.mdc`** · workflow 연동 절 · §14 스냅샷
 - **2026-09-21** — fix: 처치 +1 후 **`syncMonsterKillChallengeUnlocksForMembers`** (좌/우붕 등 장착 목록) · `CHALLENGE_TITLE_ASSETS` 어싸만코
@@ -566,4 +569,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (어싸만코 장착·flip)*
+*Last updated: 2026-09-21 (장착 유지·EXP 연출)*
