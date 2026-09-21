@@ -897,18 +897,83 @@
     background: transparent;
     border: none;
   }
+  .member-char-leader-crown-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    width: 33px;
+    height: 28px;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .member-char-leader-crown-glow {
+    position: absolute;
+    left: 50%;
+    top: 55%;
+    width: 130%;
+    height: 110%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 236, 120, 0.85) 0%, rgba(255, 200, 60, 0.35) 42%, transparent 72%);
+    opacity: 0.55;
+    animation: member-leader-crown-glow 2.1s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes member-leader-crown-glow {
+    0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.92); }
+    45% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.08); }
+    70% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  }
+  .member-char-leader-crown-sparkles {
+    position: absolute;
+    inset: -6px -8px;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .member-char-leader-crown-sparkles i {
+    position: absolute;
+    width: var(--cs, 5px);
+    height: var(--cs, 5px);
+    margin: calc(var(--cs, 5px) / -2) 0 0 calc(var(--cs, 5px) / -2);
+    background: linear-gradient(135deg, #fffef0 0%, #ffd54a 55%, #ffb300 100%);
+    clip-path: polygon(50% 0%, 58% 38%, 100% 38%, 66% 59%, 79% 100%, 50% 72%, 21% 100%, 34% 59%, 0% 38%, 42% 38%);
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px rgba(255, 220, 80, 0.95))
+      drop-shadow(0 0 10px rgba(255, 180, 40, 0.65));
+    opacity: 0;
+    transform: scale(0.1) rotate(var(--cr, 0deg));
+    animation: member-leader-crown-sparkle var(--cd, 2.4s) ease-in-out infinite;
+    animation-delay: var(--cdelay, 0s);
+  }
+  @keyframes member-leader-crown-sparkle {
+    0%, 72%, 100% { opacity: 0; transform: scale(0.1) rotate(var(--cr, 0deg)); }
+    18% { opacity: 0; }
+    38% { opacity: 1; transform: scale(1.15) rotate(var(--cr, 0deg)); }
+    52% { opacity: 0.65; transform: scale(0.85) rotate(var(--cr, 0deg)); }
+  }
   .member-char-leader-crown {
     position: absolute;
     left: 50%;
-    bottom: calc(100% - 10px);
+    bottom: 0;
     transform: translateX(-50%);
-    width: 26px;
+    width: 33px;
     height: auto;
-    max-height: 20px;
+    max-height: 25px;
     object-fit: contain;
     pointer-events: none;
     z-index: 2;
-    filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.2));
+    animation: member-leader-crown-shine 2.8s ease-in-out infinite;
+  }
+  @keyframes member-leader-crown-shine {
+    0%, 100% {
+      filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.25))
+        drop-shadow(0 0 4px rgba(255, 210, 80, 0.35));
+    }
+    50% {
+      filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.3))
+        drop-shadow(0 0 10px rgba(255, 230, 120, 0.95))
+        drop-shadow(0 0 18px rgba(255, 170, 40, 0.55));
+    }
   }
   .member-char-sprite {
     display: block;
@@ -3950,6 +4015,7 @@
     },
     '차원의 균열': {
       icon: 'image/훈장아이콘/차원의 균열.png',
+      description: '차원의 균열(파풀라투스) 처치 도전을 완료한 이에게 주어진다.',
     },
   };
   /** 주문서·특수 아이템 카탈로그 시드 · load 시 중복 없이 merge (`mergeBuiltinCatalogSeeds`) */
@@ -6275,7 +6341,7 @@
     if (!entry) return;
     ch.monsterCanonical = entry.canonical;
     ch.monsterMatchTokens = challengeMatchTokensForMonsterEntry(entry);
-    if (entry.icon) ch.icon = entry.icon;
+    if (entry.icon && !resolveChallengeTitleAssets(ch)?.icon) ch.icon = entry.icon;
   }
 
   function findMonsterEntryById(id) {
@@ -6606,6 +6672,7 @@
       if (isMonsterKillChallenge(ch) && ch.type !== 'monster_kill') ch.type = 'monster_kill';
       if (ch.type === 'item_acquire') syncChallengeItemMatchFromCatalog(ch);
       if (isMonsterKillChallenge(ch)) syncChallengeMonsterMatchFromCatalog(ch);
+      applyKnownChallengeAssets(ch);
     });
     if (!state.levelTitleBadgeColors || typeof state.levelTitleBadgeColors !== 'object') {
       state.levelTitleBadgeColors = {};
@@ -6821,9 +6888,16 @@
     if (!ch) return null;
     const key = String(ch.titleName || '').trim();
     if (CHALLENGE_TITLE_ASSETS[key]) return CHALLENGE_TITLE_ASSETS[key];
-    const norm = key.replace(/\s+/g, '');
+    const norm = normalizeGamificationText(key);
     for (const k of Object.keys(CHALLENGE_TITLE_ASSETS)) {
-      if (k.replace(/\s+/g, '') === norm) return CHALLENGE_TITLE_ASSETS[k];
+      if (normalizeGamificationText(k) === norm) return CHALLENGE_TITLE_ASSETS[k];
+    }
+    if (norm.includes('차원') && norm.includes('균열')) {
+      return CHALLENGE_TITLE_ASSETS['차원의 균열'];
+    }
+    const mc = normalizeGamificationText(ch.monsterCanonical || '');
+    if (mc === '파풀라투스' && norm.includes('균열')) {
+      return CHALLENGE_TITLE_ASSETS['차원의 균열'];
     }
     return null;
   }
@@ -6831,6 +6905,8 @@
   function challengeIconFor(ch) {
     const assets = resolveChallengeTitleAssets(ch);
     if (assets?.icon) return assets.icon;
+    const storedIcon = String(ch.icon || '');
+    if (storedIcon.includes('훈장아이콘/')) return storedIcon;
     if (isMonsterKillChallenge(ch)) {
       const entry = monsterEntryForChallenge(ch);
       if (entry?.icon) return entry.icon;
@@ -7613,6 +7689,31 @@
     return '';
   }
 
+  function memberLeaderCrownSparkleHtml() {
+    const rnd = (() => {
+      let s = hashSeedStr('party-leader-crown');
+      return () => {
+        s = (s + 0x6d2b79f5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    })();
+    const count = 9;
+    let html = '<span class="member-char-leader-crown-sparkles" aria-hidden="true">';
+    for (let i = 0; i < count; i++) {
+      const x = (4 + rnd() * 92).toFixed(1);
+      const y = (0 + rnd() * 88).toFixed(1);
+      const dur = (1.8 + rnd() * 2.2).toFixed(2);
+      const delay = (rnd() * 4.5).toFixed(2);
+      const size = (4.5 + rnd() * 4).toFixed(1);
+      const rot = (rnd() * 360).toFixed(0);
+      html += `<i style="left:${x}%;top:${y}%;--cs:${size}px;--cr:${rot}deg;--cd:${dur}s;--cdelay:${delay}s"></i>`;
+    }
+    html += '</span>';
+    return html;
+  }
+
   function memberCharSpriteHtml(memberIdx, opts) {
     const o = opts || {};
     const rel = memberCharSpritePath(memberIdx);
@@ -7621,7 +7722,10 @@
     const alt = escapeHtml(memberDisplayName(memberIdx));
     const showCrown = o.leaderCrown !== false && memberIdx === PARTY_LEADER_MEMBER_IDX;
     const crown = showCrown
-      ? `<img class="member-char-leader-crown" src="${catalogAssetUrl(PARTY_LEADER_CROWN_ICON)}" alt="" decoding="async">`
+      ? `<span class="member-char-leader-crown-wrap" aria-hidden="true">` +
+        `<span class="member-char-leader-crown-glow"></span>${memberLeaderCrownSparkleHtml()}` +
+        `<img class="member-char-leader-crown" src="${catalogAssetUrl(PARTY_LEADER_CROWN_ICON)}" alt="" decoding="async">` +
+        `</span>`
       : '';
     return `<div class="member-char-wrap">${crown}<img class="member-char-sprite" src="${src}" alt="${alt}" decoding="async" loading="lazy"></div>`;
   }
