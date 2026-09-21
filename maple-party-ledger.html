@@ -884,6 +884,7 @@
     margin-bottom: -4px;
   }
   .member-char-wrap {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -895,6 +896,19 @@
     pointer-events: none;
     background: transparent;
     border: none;
+  }
+  .member-char-leader-crown {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 10px);
+    transform: translateX(-50%);
+    width: 26px;
+    height: auto;
+    max-height: 20px;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 2;
+    filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.2));
   }
   .member-char-sprite {
     display: block;
@@ -3872,6 +3886,9 @@
   const DEFAULT_MEMBERS = ['나', '친구', '아는형'];
   /** 공대원 캐릭터 PNG · `image/공대원캐릭터/{이름}.png` · 슬롯 0·1·2 기본 순퉁·지퉁·배퉁 */
   const MEMBER_CHAR_ROSTER = ['순퉁', '지퉁', '배퉁'];
+  /** 공대장 = 슬롯 0 (순퉁) · `image/아이콘/공대장왕관.png` */
+  const PARTY_LEADER_MEMBER_IDX = 0;
+  const PARTY_LEADER_CROWN_ICON = 'image/아이콘/공대장왕관.png';
   /** 획득자 1명만 34% (드롭다운 바꿀 때). 균등 분배 버튼과는 별개 */
   const DEFAULT_SPLIT = [34, 33, 33];
   const CYCLE_BAR_MAX = 7;
@@ -7593,12 +7610,17 @@
     return '';
   }
 
-  function memberCharSpriteHtml(memberIdx) {
+  function memberCharSpriteHtml(memberIdx, opts) {
+    const o = opts || {};
     const rel = memberCharSpritePath(memberIdx);
     if (!rel) return '';
     const src = catalogAssetUrl(rel);
     const alt = escapeHtml(memberDisplayName(memberIdx));
-    return `<div class="member-char-wrap"><img class="member-char-sprite" src="${src}" alt="${alt}" decoding="async" loading="lazy"></div>`;
+    const showCrown = o.leaderCrown !== false && memberIdx === PARTY_LEADER_MEMBER_IDX;
+    const crown = showCrown
+      ? `<img class="member-char-leader-crown" src="${catalogAssetUrl(PARTY_LEADER_CROWN_ICON)}" alt="" decoding="async">`
+      : '';
+    return `<div class="member-char-wrap">${crown}<img class="member-char-sprite" src="${src}" alt="${alt}" decoding="async" loading="lazy"></div>`;
   }
 
   function memberNameplateHtml(name, memberIdx) {

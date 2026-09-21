@@ -203,6 +203,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 발 | `member-slot-foot` | `member-exp-wrap` — **칸 바닥**에 붙음 (`member-slot` `min-height` + `margin-top: auto`) |
 
 - **스프라이트:** `MEMBER_CHAR_ROSTER` · `memberCharSpritePath` — `members[i]` → `loginIdForMemberIdx` → 슬롯 기본명 순 매칭 · `catalogAssetUrl`.
+- **공대장 왕관:** 슬롯 **0**(`PARTY_LEADER_MEMBER_IDX`) · `member-char-leader-crown` absolute · `image/아이콘/공대장왕관.png` · wrap 높이 불변.
 - **비게임화:** 슬롯당 텍스트 input (`DEFAULT_MEMBERS` 편집).
 
 ---
@@ -322,6 +323,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 공대장(슬롯0·순퉁) 캐릭터 **왕관** 오버레이 · `image/아이콘/공대장왕관.png` · 박스 크기 불변
 - **2026-09-21** — fix: **equippedTitleId** replay snapshot·restore · EXP **+float·바 애니** · grantXp 즉시 UI
 - **2026-09-21** — fix: 어싸만코 **monsterEntryForChallenge** · unlock/load · 장착 replay 제거 · **좌붕 flip** 마이페이지
 - **2026-09-21** — **§3.3 연동·통합** · **`toonggongdae-integration.mdc`** · workflow 연동 절 · §14 스냅샷
@@ -569,4 +571,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (장착 유지·EXP 연출)*
+*Last updated: 2026-09-21 (공대장 왕관)*
