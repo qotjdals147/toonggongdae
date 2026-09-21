@@ -868,6 +868,10 @@
     border: 1.5px solid #1e3a8a;
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 2px 6px rgba(29, 78, 216, 0.35);
   }
+  .member-title-badge img.medal-icon--flip-x,
+  .item-ac-field-icon img.medal-icon--flip-x {
+    transform: scaleX(-1);
+  }
   .member-title-badge img {
     width: 22px;
     height: 22px;
@@ -2934,9 +2938,9 @@
                 <img src="image/NPC/달리어(훈장).png" alt="" width="52" height="52" decoding="async" draggable="false">
                 <span class="app-tool-card-label">훈장</span>
               </button>
-              <button type="button" class="app-tool-card" id="challengeAdminBtn" style="display:none;" title="훈장·도전·아이템 카탈로그 (배퉁)">
-                <span class="app-tool-card-avatar" aria-hidden="true">⚙</span>
-                <span class="app-tool-card-label">마스터 옵션</span>
+              <button type="button" class="app-tool-card" id="monsterKillLogToolBtn" style="display:none;" title="몬스터 처치 기록 (배퉁)">
+                <img src="image/아이콘/처치기록.png" alt="" width="52" height="52" decoding="async" draggable="false">
+                <span class="app-tool-card-label">처치 기록</span>
               </button>
               <button type="button" class="app-tool-card app-tool-card--logout" id="logoutBtn" style="display:none;" title="로그아웃">
                 <span class="app-tool-card-avatar" aria-hidden="true">⎋</span>
@@ -3206,7 +3210,8 @@
         </div>
         <div class="field" id="chAdminMonsterField" hidden style="grid-column:1/-1;">
           <span>몬스터</span>
-          <div class="item-ac-wrap">
+          <div class="item-ac-wrap item-ac-wrap--field">
+            <span class="item-ac-field-icon" id="chAdminMonsterIcon" hidden aria-hidden="true"></span>
             <input id="chAdminMonster" type="text" autocomplete="off" placeholder="글자 입력 → 목록에서 선택">
             <div class="item-ac-dropdown" id="chAdminMonsterDropdown" hidden></div>
           </div>
@@ -3257,7 +3262,7 @@
       <div class="challenge-list" id="masterItemCatalogList"></div>
     </div>
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelMonsters" hidden>
-      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">처치 도전에 쓸 <strong>몬스터 이름</strong> · 아이콘은 PNG(투명) 권장 · GIF는 등록 후 PNG로 교체해도 돼요.</p>
+      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">처치 도전·<strong>처치 기록</strong> 탭에 쓸 몬스터 · 아이콘 PNG(투명) 권장.</p>
       <div class="modal-grid">
         <div class="field" style="grid-column:1/-1;"><span>몬스터 이름</span><input id="masterMonsterCanonical" type="text" autocomplete="off" placeholder="예: 파풀라투스"></div>
         <div class="field" style="grid-column:1/-1;">
@@ -3289,7 +3294,8 @@
       <div class="monster-kill-compose">
         <div class="field" style="margin-bottom:8px;">
           <span>몬스터</span>
-          <div class="item-ac-wrap">
+          <div class="item-ac-wrap item-ac-wrap--field">
+            <span class="item-ac-field-icon" id="monsterKillPickIcon" hidden aria-hidden="true"></span>
             <input id="monsterKillPick" type="text" autocomplete="off" placeholder="몬스터 검색 → 선택">
             <div class="item-ac-dropdown" id="monsterKillPickDropdown" hidden></div>
           </div>
@@ -4036,7 +4042,7 @@
     const showMaster = showLogout && authSession.memberIdx === 2;
     if ($('logoutBtn')) $('logoutBtn').style.display = showLogout ? 'flex' : 'none';
     if ($('challengeBtn')) $('challengeBtn').style.display = showLogout ? 'flex' : 'none';
-    if ($('challengeAdminBtn')) $('challengeAdminBtn').style.display = showMaster ? 'flex' : 'none';
+    if ($('monsterKillLogToolBtn')) $('monsterKillLogToolBtn').style.display = showMaster ? 'flex' : 'none';
   }
 
   function rosterEntryForAuthEmail(email) {
@@ -4802,6 +4808,33 @@
 
   function isEntryEditJunkGearMode() {
     return entrySkipsAhSaleFee(entryEditDraftFromForm());
+  }
+
+  function medalIconImgClass(iconPath) {
+    const p = String(iconPath || '');
+    /* 원본 PNG는 좌향 · 좌붕=우향(flip) · 우붕=좌향(그대로) */
+    if (p.includes('좌붕어싸만코')) return 'medal-icon--flip-x';
+    return '';
+  }
+
+  function syncMonsterCatalogFieldIcon(inputId, iconSlotId) {
+    const input = $(inputId);
+    const slot = $(iconSlotId);
+    if (!input || !slot) return;
+    const raw = input.value.trim();
+    if (!raw) {
+      slot.hidden = true;
+      slot.innerHTML = '';
+      return;
+    }
+    const entry = findMonsterEntryByAnyLabel(raw) || findMonsterEntryByCanonicalName(resolveMonsterCatalogInput(raw) || raw);
+    if (!entry || !entry.icon) {
+      slot.hidden = true;
+      slot.innerHTML = '';
+      return;
+    }
+    slot.hidden = false;
+    slot.innerHTML = catalogIconMarkup(entry.icon);
   }
 
   function syncEntryEditItemIcon() {
@@ -7256,10 +7289,10 @@
     const zap = titleBadgeSharpZapHtml(effect);
     const styleRaw = titleBadgeStyleAttrForDef(def);
     const styleAttr = styleRaw ? ` style="${escapeHtml(styleRaw)}"` : '';
-    const iconSrc = def.icon && (def.icon.includes('아이템아이콘') || def.icon.includes(' '))
-      ? catalogAssetUrl(def.icon)
-      : def.icon;
-    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}${zap}<img src="${escapeHtml(iconSrc)}" alt=""><span>${escapeHtml(def.name)}</span></div>`;
+    const iconSrc = def.icon ? catalogAssetUrl(def.icon) : '';
+    const iconCls = medalIconImgClass(def.icon);
+    const iconClassAttr = iconCls ? ` class="${iconCls}"` : '';
+    const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}${zap}<img src="${escapeHtml(catalogAssetUrl(iconSrc))}" alt=""${iconClassAttr}><span>${escapeHtml(def.name)}</span></div>`;
     if (!showTooltip || !titleBadgeHasTooltip(def)) return inner;
     return `<div class="member-title-badge-wrap">${titleBadgeTooltipHtml(def)}${inner}</div>`;
   }
@@ -7831,12 +7864,16 @@
     });
   }
 
-  function openMonsterKillLogAdmin() {
+  function openChallengeAdminModal(tab) {
     if (!authSession || authSession.memberIdx !== 2) return;
     syncChallengeAdminTypeFields();
     renderChallengeAdminPanel();
     $('challengeAdminModal').hidden = false;
-    switchChAdminTab('killLog');
+    if (tab) switchChAdminTab(tab);
+  }
+
+  function openMonsterKillLogAdmin() {
+    openChallengeAdminModal('killLog');
   }
 
   function populateMonsterKillMemberPicks() {
@@ -7881,7 +7918,14 @@
   function bindMonsterKillPickAutocomplete() {
     bindItemNameAutocomplete($('monsterKillPick'), $('monsterKillPickDropdown'), {
       suggest: (q) => filterMonsterNameSuggestions(q),
+      onPick: () => syncMonsterCatalogFieldIcon('monsterKillPick', 'monsterKillPickIcon'),
     });
+    const inp = $('monsterKillPick');
+    if (inp && !inp.dataset.monsterIconBound) {
+      inp.dataset.monsterIconBound = '1';
+      inp.addEventListener('input', () => syncMonsterCatalogFieldIcon('monsterKillPick', 'monsterKillPickIcon'));
+      inp.addEventListener('blur', () => syncMonsterCatalogFieldIcon('monsterKillPick', 'monsterKillPickIcon'));
+    }
   }
 
   function renderMonsterKillLogAdmin() {
@@ -8605,7 +8649,14 @@
   function bindChallengeAdminMonsterAutocomplete() {
     bindItemNameAutocomplete($('chAdminMonster'), $('chAdminMonsterDropdown'), {
       suggest: (q) => filterMonsterNameSuggestions(q),
+      onPick: () => syncMonsterCatalogFieldIcon('chAdminMonster', 'chAdminMonsterIcon'),
     });
+    const inp = $('chAdminMonster');
+    if (inp && !inp.dataset.monsterIconBound) {
+      inp.dataset.monsterIconBound = '1';
+      inp.addEventListener('input', () => syncMonsterCatalogFieldIcon('chAdminMonster', 'chAdminMonsterIcon'));
+      inp.addEventListener('blur', () => syncMonsterCatalogFieldIcon('chAdminMonster', 'chAdminMonsterIcon'));
+    }
   }
 
   function renderMasterMonsterCatalogAdmin() {
@@ -8818,9 +8869,9 @@
             mBtn.type = 'button';
             mBtn.className = 'member-slot-master-kill';
             mBtn.textContent = 'M';
-            mBtn.title = '처치 기록 (배퉁)';
+            mBtn.title = '마스터 옵션 (배퉁)';
             mBtn.setAttribute('aria-label', '처치 기록');
-            mBtn.addEventListener('click', () => openMonsterKillLogAdmin());
+            mBtn.addEventListener('click', () => openChallengeAdminModal());
             actions.appendChild(mBtn);
           }
           head.appendChild(actions);
@@ -10893,11 +10944,7 @@
   $('challengeModal').addEventListener('click', (e) => {
     if (e.target.id === 'challengeModal') $('challengeModal').hidden = true;
   });
-  $('challengeAdminBtn').addEventListener('click', () => {
-    syncChallengeAdminTypeFields();
-    renderChallengeAdminPanel();
-    $('challengeAdminModal').hidden = false;
-  });
+  $('monsterKillLogToolBtn').addEventListener('click', () => openMonsterKillLogAdmin());
   bindBadgeColorInputs($('chAdminBadgeColor'), $('chAdminBadgeColorHex'), updateChAdminAddBadgePreview);
   bindBadgeColorInputs($('chAdminBadgeTextColor'), $('chAdminBadgeTextColorHex'), updateChAdminAddBadgePreview);
   $('chAdminTitleName').addEventListener('input', updateChAdminAddBadgePreview);
