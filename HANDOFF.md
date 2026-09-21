@@ -141,7 +141,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `#appHeaderBanner` 좌·중(제목)·우 슬롯 · `APP_HEADER_BANNER` · `<details>` **공대 도구** 접이(기본 닫힘) · 참고/운영 카테고리 · **연결 상태=마스터 옵션만** · 저장 힌트 `#saveStatusHint` |
+| 상단 헤더 | `#appHeaderBanner` 3열 스테이지(순퉁·지퉁·배퉁 보스전) · `BANNER_RES`=`image/퉁공대배너리소스` · `buildAppBannerStage()` · `APP_HEADER_BANNER.baetungCycleSec` · `<details>` **공대 도구** · **연결 상태=마스터 옵션만** |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -289,6 +289,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 헤더 **3인 보스전 배너** — `image/퉁공대배너리소스` 레이어 · 배퉁 2모션+슬래시 CSS 동기(`baetungCycleSec`)
 - **2026-09-21** — 배너 제목 **글자별 통통 바운스**(퉁→…→공대 · ~2s 휴식 후 반복)
 - **2026-09-21** — 헤더 **배너 슬롯** · 도구 **접이** · **실시간/방 상태 → 마스터 옵션** · `APP_HEADER_BANNER`
 - **2026-09-21** — 장부 섹션 아이콘 · **획득/지출/정산** `image/아이콘/*.png` · **인수** `스틸(인수).png` · **메이커** `메이커.png`
@@ -389,7 +390,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 11.2 상단 헤더 · 배너
 
-- [ ] **배너 이미지** — 소유자 PNG/GIF 제공 → `APP_HEADER_BANNER.slots.left/right` · `backgroundImage` · `renderAppHeaderBanner()` (`index.html` 상단 상수)
+- [x] **배너 스테이지** — `BANNER_RES` · 배경 `배경.png` · 순퉁(자쿰)·지퉁(파풀라투스)·배퉁(피아누스) · 배퉁 `배퉁1`/`배퉁` 교차 + `배퉁이펙트` 키프레임 — **좌표·타이밍 미세조정**은 CSS 클래스 또는 `baetungCycleSec` (기본 2.2s)
 - [ ] **카테고리 더 나눌지** — **합의 후만**
 
 ### 11.3 기타
@@ -416,18 +417,18 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-09-21)
 
-**최근 main:** `564eedd` (헤더 참고·운영 카테고리 박스) · 직전 타이머: `68b07d2` (PiP 프리셋 삭제 즉시) · **피해야 할 커밋 의도:** `c98dc9c` (카테고리 제거·outline 통일 — **소유자 거부**, `564eedd`에서 복구)
+**최근 main:** (배너 스테이지 커밋 후 hash 갱신) · **피해야 할 커밋 의도:** `c98dc9c` (카테고리 제거·outline 통일 — **소유자 거부**, `564eedd`에서 복구)
 
 | 영역 | 상태 |
 |------|------|
 | **타이머** | PIP만 · 홀리 심볼/한타임/경쿠 아이콘+이름 · **기타** 슬롯 이름 편집 · `party-timer-app.js` |
-| **헤더** | **참고 / 운영** 2카테고리 박스 · 운영에 로그인 후 훈장·마스터·로그아웃 포함 |
+| **헤더** | **3열 보스전 배너** + 제목 바운스 · **참고 / 운영** 2카테고리 박스 |
 | **획득 모달** | 잡장비·카탈로그 아이콘 (`d965b59` 근처) |
 | **미커밋 asset** | `image/훈장아이콘/중급샤프아이즈.png` · `image/이펙트/샤프아이즈_훈장/` — repo에 **untracked** · 연동·commit은 **소유자 요청 시** |
 
 **로컬 검증:** Chrome/Edge · Ctrl+F5 · `?room=tongtongi` 로그인 → 타이머 PIP · 헤더 카테고리 박스.
 
-**다음 작업 후보 (우선순위는 소유자 지시):** §11.1 타이머 아이콘/소리 · §11.2 헤더 카테고리 세분(합의 후) · untracked 훈장 이미지 반영.
+**다음 작업 후보 (우선순위는 소유자 지시):** 배너 **레이어 위치·배퉁 슬래시 타이밍** 튜닝 · §11.1 타이머 알람 · §11.2 카테고리 세분(합의 후) · untracked 훈장 이미지.
 
 ---
 
@@ -466,4 +467,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (배너 제목 글자별 바운스)*
+*Last updated: 2026-09-21 (헤더 3인 보스전 배너 스테이지)*
