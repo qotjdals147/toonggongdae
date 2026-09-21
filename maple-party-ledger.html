@@ -1250,6 +1250,9 @@
   }
   .title-pick-row.is-equipped { border-color: var(--settle); background: var(--settle-soft); }
   .title-pick-row img { width: 28px; height: 28px; object-fit: contain; }
+  .title-pick-row img.medal-icon--flip-x {
+    transform: scaleX(-1);
+  }
   .title-pick-row strong { font-size: 14px; flex: 1; }
   .xp-log-filters {
     display: flex;
@@ -4913,10 +4916,11 @@
     return entrySkipsAhSaleFee(entryEditDraftFromForm());
   }
 
-  function medalIconImgClass(iconPath) {
+  function medalIconImgClass(iconPath, titleName) {
     const p = String(iconPath || '');
-    /* 원본 PNG는 좌향 · 좌붕=우향(flip) · 우붕=좌향(그대로) */
-    if (p.includes('좌붕어싸만코')) return 'medal-icon--flip-x';
+    const n = String(titleName || '').replace(/\s+/g, '');
+    /* PNG 원본 동일(좌향) · 좌붕만 flip → 우붕과 마주보게 */
+    if (p.includes('좌붕어싸만코') || n.includes('좌붕어싸만코')) return 'medal-icon--flip-x';
     return '';
   }
 
@@ -6294,8 +6298,40 @@
     });
   }
 
+  function isMonsterKillChallenge(ch) {
+    if (!ch) return false;
+    if (ch.type === 'monster_kill') return true;
+    if (ch.type === 'sale_amount' || ch.type === 'item_acquire') return false;
+    return !!(String(ch.monsterCanonical || '').trim() && ch.requiredCount != null);
+  }
+
+  function monsterEntryForChallenge(ch) {
+    if (!isMonsterKillChallenge(ch)) return null;
+    let entry = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+    if (entry) return entry;
+    if (ch.monsterCanonical) {
+      entry = findMonsterEntryByAnyLabel(ch.monsterCanonical);
+      if (entry) return entry;
+    }
+    for (const t of ch.monsterMatchTokens || []) {
+      entry = findMonsterEntryByAnyLabel(t);
+      if (entry) return entry;
+    }
+    const title = String(ch.titleName || '');
+    const canon = String(ch.monsterCanonical || '');
+    if (/좌붕/.test(title) || /좌붕/.test(canon)) {
+      entry = findMonsterEntryByCanonicalName('피아누스(좌붕)') || findMonsterEntryByAnyLabel('좌붕');
+      if (entry) return entry;
+    }
+    if (/우붕/.test(title) || /우붕/.test(canon)) {
+      entry = findMonsterEntryByCanonicalName('피아누스(우붕)') || findMonsterEntryByAnyLabel('우붕');
+      if (entry) return entry;
+    }
+    return null;
+  }
+
   function monsterIdForChallenge(ch) {
-    const entry = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+    const entry = monsterEntryForChallenge(ch);
     return entry ? entry.id : null;
   }
 
@@ -6459,6 +6495,7 @@
         ch.requiredCount = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
       }
       if (ch.xpReward != null) ch.xpReward = Math.max(0, Math.round(Number(ch.xpReward) || 0));
+      if (!ch.type && String(ch.monsterCanonical || '').trim()) ch.type = 'monster_kill';
       out.push(ch);
     });
     return out;
@@ -6468,8 +6505,10 @@
     if (ch.type === 'sale_amount') {
       return `1건 등록가 ${fmtNum(ch.threshold)} 이상`;
     }
-    if (ch.type === 'monster_kill') {
-      return `${escapeHtml(ch.monsterCanonical || '')} 처치 ${prog.target}회`;
+    if (isMonsterKillChallenge(ch)) {
+      const entry = monsterEntryForChallenge(ch);
+      const label = entry ? entry.canonical : (ch.monsterCanonical || ch.titleName || '');
+      return `${escapeHtml(label)} 처치 ${prog.target}회`;
     }
     return `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`;
   }
@@ -6511,8 +6550,9 @@
     const monsterAdded = mergeBuiltinMonsterSeeds();
     if (catalogAdded > 0 || monsterAdded > 0) scheduleSave();
     state.challengeDefs.forEach((ch) => {
+      if (isMonsterKillChallenge(ch) && ch.type !== 'monster_kill') ch.type = 'monster_kill';
       if (ch.type === 'item_acquire') syncChallengeItemMatchFromCatalog(ch);
-      if (ch.type === 'monster_kill') syncChallengeMonsterMatchFromCatalog(ch);
+      if (isMonsterKillChallenge(ch)) syncChallengeMonsterMatchFromCatalog(ch);
     });
     if (!state.levelTitleBadgeColors || typeof state.levelTitleBadgeColors !== 'object') {
       state.levelTitleBadgeColors = {};
@@ -6727,14 +6767,19 @@
   function resolveChallengeTitleAssets(ch) {
     if (!ch) return null;
     const key = String(ch.titleName || '').trim();
-    return CHALLENGE_TITLE_ASSETS[key] || null;
+    if (CHALLENGE_TITLE_ASSETS[key]) return CHALLENGE_TITLE_ASSETS[key];
+    const norm = key.replace(/\s+/g, '');
+    for (const k of Object.keys(CHALLENGE_TITLE_ASSETS)) {
+      if (k.replace(/\s+/g, '') === norm) return CHALLENGE_TITLE_ASSETS[k];
+    }
+    return null;
   }
 
   function challengeIconFor(ch) {
     const assets = resolveChallengeTitleAssets(ch);
     if (assets?.icon) return assets.icon;
-    if (ch.type === 'monster_kill') {
-      const entry = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+    if (isMonsterKillChallenge(ch)) {
+      const entry = monsterEntryForChallenge(ch);
       if (entry?.icon) return entry.icon;
     }
     if (ch.icon && ch.icon !== DEFAULT_TITLE_ICON) return ch.icon;
@@ -7290,7 +7335,7 @@
       const need = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
       return { current: cur, target: need, done: cur >= need };
     }
-    if (ch.type === 'monster_kill') {
+    if (isMonsterKillChallenge(ch)) {
       const cur = countMonsterKillForMember(memberIdx, ch);
       const need = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
       return { current: cur, target: need, done: cur >= need };
@@ -7311,7 +7356,7 @@
     const idxs = [...new Set((memberIdxs || []).map(Number).filter((i) => i >= 0 && i <= 2))];
     if (!idxs.length) return;
     (state.challengeDefs || []).forEach((ch) => {
-      if (ch.type !== 'monster_kill') return;
+      if (!isMonsterKillChallenge(ch)) return;
       idxs.forEach((memberIdx) => {
         const prog = challengeProgressForMember(ch, memberIdx);
         if (!prog.done) return;
@@ -7402,6 +7447,7 @@
     if (!gamificationActive()) return;
     ensureGamificationState();
     replayLedgerGamificationXp();
+    syncMonsterKillChallengeUnlocksForMembers([0, 1, 2]);
     if (tryDailyLoginXp()) scheduleSave();
   }
 
@@ -7453,7 +7499,7 @@
     const styleRaw = titleBadgeStyleAttrForDef(def);
     const styleAttr = styleRaw ? ` style="${escapeHtml(styleRaw)}"` : '';
     const iconSrc = def.icon ? catalogAssetUrl(def.icon) : '';
-    const iconCls = medalIconImgClass(def.icon);
+    const iconCls = medalIconImgClass(def.icon, def.name);
     const iconClassAttr = iconCls ? ` class="${iconCls}"` : '';
     const inner = `<div class="member-title-badge${cls}"${styleAttr}>${spark}${burn}${zap}<img src="${escapeHtml(iconSrc)}" alt=""${iconClassAttr}><span>${escapeHtml(def.name)}</span></div>`;
     if (!showTooltip || !titleBadgeHasTooltip(def)) return inner;
@@ -7562,6 +7608,7 @@
     const wrap = $('titlePickList');
     if (!wrap || !authSession) return;
     ensureGamificationState();
+    syncMonsterKillChallengeUnlocksForMembers([authSession.memberIdx]);
     const p = state.memberProfiles[authSession.memberIdx];
     wrap.innerHTML = '';
     p.unlockedTitleIds.forEach((tid) => {
@@ -7570,11 +7617,14 @@
       const row = document.createElement('button');
       row.type = 'button';
       row.className = 'title-pick-row' + (p.equippedTitleId === tid ? ' is-equipped' : '');
-      row.innerHTML = `<img src="${escapeHtml(catalogAssetUrl(def.icon))}" alt=""><strong>${escapeHtml(def.name)}</strong><span>${p.equippedTitleId === tid ? '장착 중' : '장착'}</span>`;
+      const pickIconCls = medalIconImgClass(def.icon, def.name);
+      const pickIconClassAttr = pickIconCls ? ` class="${pickIconCls}"` : '';
+      row.innerHTML = `<img src="${escapeHtml(catalogAssetUrl(def.icon))}" alt=""${pickIconClassAttr}><strong>${escapeHtml(def.name)}</strong><span>${p.equippedTitleId === tid ? '장착 중' : '장착'}</span>`;
       row.addEventListener('click', () => {
+        if (!p.unlockedTitleIds.includes(tid)) return;
         p.equippedTitleId = tid;
         scheduleSave();
-        gamificationReplayAndRefresh();
+        renderMembers();
         renderTitlePickList();
       });
       wrap.appendChild(row);
@@ -8178,8 +8228,12 @@
     }
     incrementMonsterKillCounts(members, entry.id, 1);
     reconcileMonsterKillCountKeys();
+    syncMonsterKillChallengeUnlocksForMembers(members);
     renderMonsterKillModal();
     renderMembers();
+    if ($('accountModal') && !$('accountModal').hidden && $('mypagePanelTitle') && !$('mypagePanelTitle').hidden) {
+      renderTitlePickList();
+    }
     if ($('challengeModal') && !$('challengeModal').hidden) {
       if ($('exclusiveMedalView') && !$('exclusiveMedalView').hidden) renderExclusiveMedalView();
       else renderChallengeListView();

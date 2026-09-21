@@ -320,6 +320,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — fix: 어싸만코 **monsterEntryForChallenge** · unlock/load · 장착 replay 제거 · **좌붕 flip** 마이페이지
 - **2026-09-21** — **§3.3 연동·통합** · **`toonggongdae-integration.mdc`** · workflow 연동 절 · §14 스냅샷
 - **2026-09-21** — fix: 처치 +1 후 **`syncMonsterKillChallengeUnlocksForMembers`** (좌/우붕 등 장착 목록) · `CHALLENGE_TITLE_ASSETS` 어싸만코
 - **2026-09-21** — fix: `incrementMonsterKillCounts` **stale bucket** (+1이 state에 안 쌓이던 버그) · 처치 모달 **확대**
@@ -565,4 +566,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (§3.3 연동·integration 규칙)*
+*Last updated: 2026-09-21 (어싸만코 장착·flip)*
