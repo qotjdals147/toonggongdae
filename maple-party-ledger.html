@@ -136,12 +136,25 @@
     line-height: 1.12;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
   }
-  .app-banner-title.is-animated {
-    animation: app-banner-title-float 4.2s ease-in-out infinite;
+  .app-banner-title.is-char-bounce { --banner-bounce-cycle: 3.4s; --banner-char-stagger: 0.12s; }
+  .app-banner-char {
+    display: inline-block;
+    will-change: transform;
   }
-  @keyframes app-banner-title-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+  .app-banner-title.is-char-bounce .app-banner-char {
+    animation: app-banner-char-bounce var(--banner-bounce-cycle) cubic-bezier(0.34, 1.2, 0.64, 1) infinite;
+    animation-delay: calc(var(--char-i) * var(--banner-char-stagger));
+  }
+  @keyframes app-banner-char-bounce {
+    0%, 22%, 100% { transform: translateY(0); }
+    4% { transform: translateY(10px); }
+    8% { transform: translateY(-4px); }
+    12% { transform: translateY(5px); }
+    16% { transform: translateY(-1px); }
+    20% { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-banner-title.is-char-bounce .app-banner-char { animation: none; }
   }
   .app-save-hint {
     margin: 0 0 6px;
@@ -5202,8 +5215,27 @@
   function renderAppHeaderBanner() {
     const titleEl = $('appBannerTitle');
     if (titleEl) {
-      titleEl.textContent = APP_HEADER_BANNER.title || '퉁퉁이 공대';
-      titleEl.classList.toggle('is-animated', !!APP_HEADER_BANNER.titleAnimate);
+      const title = APP_HEADER_BANNER.title || '퉁퉁이 공대';
+      const bounce = !!APP_HEADER_BANNER.titleAnimate;
+      titleEl.classList.toggle('is-char-bounce', bounce);
+      if (bounce) {
+        titleEl.textContent = '';
+        let charIdx = 0;
+        for (const ch of title) {
+          if (ch === ' ') {
+            titleEl.appendChild(document.createTextNode('\u00a0'));
+            continue;
+          }
+          const span = document.createElement('span');
+          span.className = 'app-banner-char';
+          span.style.setProperty('--char-i', String(charIdx));
+          span.textContent = ch;
+          titleEl.appendChild(span);
+          charIdx += 1;
+        }
+      } else {
+        titleEl.textContent = title;
+      }
     }
     const banner = $('appHeaderBanner');
     if (banner) {
