@@ -1428,8 +1428,26 @@
     margin-left: 6px;
   }
   .hot-compose-target { margin-bottom: 8px; }
-  .hot-compose-target label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-right: 8px; }
-  .hot-compose-target select { font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line-strong); }
+  .hot-compose-target-label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+  .hot-compose-target-picks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hot-compose-target-pick {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; padding: 6px 10px;
+    border-radius: 999px; border: 1.5px solid var(--line-strong);
+    background: #fff; cursor: pointer; user-select: none;
+  }
+  .hot-compose-target-pick input { accent-color: var(--settle); margin: 0; }
+  .hot-compose-target-pick:has(input:checked) {
+    border-color: var(--settle); background: rgba(37, 99, 235, 0.08);
+  }
+  .catalog-monster-icon-slot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex-shrink: 0;
+  }
+  .catalog-item-icon--monster {
+    width: 40px; height: 40px; object-fit: contain; object-position: center;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+  }
   .member-slot input {
     border: 1px solid var(--line);
     background: #fff;
@@ -3100,6 +3118,7 @@
     <div class="mypage-tabs ch-admin-tabs" role="tablist" style="margin-bottom:10px;flex-wrap:wrap;">
       <button type="button" class="mypage-tab is-active" id="chAdminTabAdd" data-ch-admin-tab="add">도전 추가</button>
       <button type="button" class="mypage-tab" id="chAdminTabItems" data-ch-admin-tab="items">아이템 추가</button>
+      <button type="button" class="mypage-tab" id="chAdminTabMonsters" data-ch-admin-tab="monsters">몬스터 추가</button>
       <button type="button" class="mypage-tab" id="chAdminTabLevel" data-ch-admin-tab="level">레벨 훈장</button>
       <button type="button" class="mypage-tab" id="chAdminTabList" data-ch-admin-tab="list">등록된 도전</button>
       <button type="button" class="mypage-tab" id="chAdminTabExclusive" data-ch-admin-tab="exclusive">고유 훈장</button>
@@ -3112,11 +3131,12 @@
           <select id="chAdminType">
             <option value="sale_amount">1건 판매 등록가 ≥ N</option>
             <option value="item_acquire">아이템 획득 N회</option>
+            <option value="monster_kill">몬스터 처치 N회</option>
           </select>
         </div>
         <div class="field"><span>훈장 이름</span><input id="chAdminTitleName" type="text" autocomplete="off" placeholder="예: 대박 판매왕"></div>
         <div class="field" id="chAdminThresholdField"><span>등록가 (메소)</span><input id="chAdminThreshold" class="money-input" type="text" inputmode="numeric" autocomplete="off"></div>
-        <div class="field" id="chAdminCountField" hidden><span>획득 횟수</span><input id="chAdminCount" type="number" min="1" value="1"></div>
+        <div class="field" id="chAdminCountField" hidden><span id="chAdminCountLabel">획득 횟수</span><input id="chAdminCount" type="number" min="1" value="1"></div>
         <div class="field" id="chAdminItemField" hidden style="grid-column:1/-1;">
           <span>아이템 (카탈로그 · 풀네임)</span>
           <div class="item-ac-wrap">
@@ -3124,6 +3144,14 @@
             <div class="item-ac-dropdown" id="chAdminItemDropdown" hidden></div>
           </div>
           <p style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);"><strong>아이템 추가</strong> 탭에 등록된 이름만 도전 조건으로 쓸 수 있어요.</p>
+        </div>
+        <div class="field" id="chAdminMonsterField" hidden style="grid-column:1/-1;">
+          <span>몬스터</span>
+          <div class="item-ac-wrap">
+            <input id="chAdminMonster" type="text" autocomplete="off" placeholder="글자 입력 → 목록에서 선택">
+            <div class="item-ac-dropdown" id="chAdminMonsterDropdown" hidden></div>
+          </div>
+          <p style="margin:4px 0 0;font-size:11px;color:var(--ink-soft);"><strong>몬스터 추가</strong> 탭에 등록된 몬스터 · 장부 획득 아이템명과 매칭해 처치 횟수를 셉니다.</p>
         </div>
         <div class="field"><span>도전 완료 XP</span><input id="chAdminXp" type="number" min="0" step="1" value="120" title="달성 시 훈장 + 경험치 내역(훈장·도전)"></div>
         <div class="field" style="grid-column:1/-1;">
@@ -3168,6 +3196,22 @@
       </div>
       <button type="button" class="btn-settle btn-sm" id="masterItemAddBtn" style="margin-bottom:12px;">카탈로그에 추가</button>
       <div class="challenge-list" id="masterItemCatalogList"></div>
+    </div>
+    <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelMonsters" hidden>
+      <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">처치 도전에 쓸 <strong>몬스터 이름</strong> · 아이콘은 PNG(투명) 권장 · GIF는 등록 후 PNG로 교체해도 돼요.</p>
+      <div class="modal-grid">
+        <div class="field" style="grid-column:1/-1;"><span>몬스터 이름</span><input id="masterMonsterCanonical" type="text" autocomplete="off" placeholder="예: 파풀라투스"></div>
+        <div class="field" style="grid-column:1/-1;">
+          <span>아이콘 경로 (선택)</span>
+          <input id="masterMonsterIcon" type="text" autocomplete="off" placeholder="예: image/몬스터/파풀라투스.png">
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <span>별칭 (쉼표 또는 줄바꿈)</span>
+          <textarea id="masterMonsterAliases" rows="2" autocomplete="off" placeholder="예: 파풀"></textarea>
+        </div>
+      </div>
+      <button type="button" class="btn-settle btn-sm" id="masterMonsterAddBtn" style="margin-bottom:12px;">몬스터 등록</button>
+      <div class="challenge-list" id="masterMonsterCatalogList"></div>
     </div>
     <div class="ch-admin-tab-panel ch-admin-scroll" id="chAdminPanelLevel" hidden>
       <p style="margin:0 0 10px;font-size:12px;color:var(--ink-soft);">레벨 달성 훈장 4종 · 색·설명·옵션 수정 후 카드마다 <strong>저장</strong>.</p>
@@ -3427,8 +3471,8 @@
     <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">그날 기억할 일 · <strong>Ctrl+V</strong>로 캡처 붙여넣기 또는 사진 첨부 · 공대원과 실시간 공유</p>
     <div class="hot-compose">
       <div class="hot-compose-target">
-        <label for="hotIssueTarget">핫이슈 대상</label>
-        <select id="hotIssueTarget"></select>
+        <span class="hot-compose-target-label">핫이슈 대상 (복수 선택)</span>
+        <div class="hot-compose-target-picks" id="hotIssueTargetPicks"></div>
       </div>
       <textarea id="hotIssueCompose" placeholder="예: 오늘 어크 2연속 드랍, 3시에 보스 터짐…" autocomplete="off"></textarea>
       <div class="hot-draft-imgs" id="hotIssueDraftImgs"></div>
@@ -5012,6 +5056,18 @@
     }));
   }
 
+  function hotIssueTargetMemberIdxs(post) {
+    if (!post) return [];
+    if (Array.isArray(post.targetMemberIdxs) && post.targetMemberIdxs.length) {
+      return [...new Set(post.targetMemberIdxs.map((i) => Number(i)).filter((i) => i >= 0 && i <= 2))];
+    }
+    if (post.targetMemberIdx != null) {
+      const t = Number(post.targetMemberIdx);
+      if (t >= 0 && t <= 2) return [t];
+    }
+    return [];
+  }
+
   function normalizeHotIssues(list) {
     const out = [];
     (list || []).forEach((raw) => {
@@ -5022,13 +5078,13 @@
       if (!text && !images.length) return;
       const updatedAt = raw && raw.updatedAt ? String(raw.updatedAt) : null;
       const authorMemberIdx = raw && raw.authorMemberIdx != null ? Number(raw.authorMemberIdx) : null;
-      const targetMemberIdx = raw && raw.targetMemberIdx != null ? Number(raw.targetMemberIdx) : null;
+      const targetMemberIdxs = hotIssueTargetMemberIdxs(raw);
       out.push({
         id: (raw && raw.id) || genId(),
         createdAt: (raw && raw.createdAt) || new Date().toISOString(),
         updatedAt: updatedAt || null,
         authorMemberIdx: authorMemberIdx >= 0 && authorMemberIdx <= 2 ? authorMemberIdx : null,
-        targetMemberIdx: targetMemberIdx >= 0 && targetMemberIdx <= 2 ? targetMemberIdx : null,
+        targetMemberIdxs,
         text,
         images
       });
@@ -5214,9 +5270,7 @@
     if (!post) return;
     editingHotIssueId = id;
     $('hotIssueCompose').value = post.text || '';
-    if ($('hotIssueTarget') && post.targetMemberIdx != null) {
-      $('hotIssueTarget').value = String(post.targetMemberIdx);
-    }
+    setHotIssueTargetIdxsToUi(hotIssueTargetMemberIdxs(post));
     hotIssueDraftImages = (post.images || []).slice();
     renderHotIssueDraftImgs();
     updateHotIssueComposeHint();
@@ -5233,7 +5287,8 @@
     renderHotIssueDraftImgs();
     updateHotIssueComposeHint();
     $('hotIssueFile').value = '';
-    if ($('hotIssueTarget') && authSession) $('hotIssueTarget').value = String(authSession.memberIdx);
+    if (authSession) setHotIssueTargetIdxsToUi([authSession.memberIdx]);
+    else setHotIssueTargetIdxsToUi([]);
     updateHotIssueComposeModeUi();
   }
 
@@ -5248,9 +5303,9 @@
       const card = document.createElement('article');
       card.className = 'hot-post' + (post.id === editingHotIssueId ? ' hot-post--editing' : '');
       const authorName = post.authorMemberIdx != null ? state.members[post.authorMemberIdx] : '';
-      const targetName = post.targetMemberIdx != null ? state.members[post.targetMemberIdx] : '';
+      const targetNames = hotIssueTargetMemberIdxs(post).map((i) => state.members[i] || loginIdForMemberIdx(i)).filter(Boolean);
       const authorBit = authorName ? ` · ${escapeHtml(authorName)}` : '';
-      const targetBit = targetName ? ` · 대상 ${escapeHtml(targetName)}` : '';
+      const targetBit = targetNames.length ? ` · 대상 ${escapeHtml(targetNames.join(', '))}` : '';
       const whenLabel = escapeHtml(formatHotIssueWhen(post.createdAt)) + authorBit + targetBit
         + (post.updatedAt ? ` <span class="hot-post-edited">· 수정 ${escapeHtml(formatHotIssueWhen(post.updatedAt))}</span>` : '');
       const head = document.createElement('div');
@@ -5336,16 +5391,24 @@
       post.text = text;
       post.images = images;
       post.updatedAt = new Date().toISOString();
-      const tEdit = Number($('hotIssueTarget').value);
-      post.targetMemberIdx = tEdit >= 0 && tEdit <= 2 ? tEdit : post.targetMemberIdx;
+      post.targetMemberIdxs = getHotIssueTargetIdxsFromUi();
+      if (!post.targetMemberIdxs.length) {
+        alert('핫이슈 대상을 한 명 이상 선택해 주세요.');
+        return;
+      }
     } else {
-      const tNew = Number($('hotIssueTarget').value);
+      let targets = getHotIssueTargetIdxsFromUi();
+      if (!targets.length && authSession) targets = [authSession.memberIdx];
+      if (!targets.length) {
+        alert('핫이슈 대상을 한 명 이상 선택해 주세요.');
+        return;
+      }
       state.hotIssues.unshift({
         id: genId(),
         createdAt: new Date().toISOString(),
         updatedAt: null,
         authorMemberIdx: authSession ? authSession.memberIdx : null,
-        targetMemberIdx: tNew >= 0 && tNew <= 2 ? tNew : (authSession ? authSession.memberIdx : 0),
+        targetMemberIdxs: targets,
         text,
         images
       });
@@ -5374,6 +5437,9 @@
     }
     if (Array.isArray(parsed.challengeItemCatalog)) {
       next.challengeItemCatalog = migrateChallengeItemCatalog(parsed.challengeItemCatalog);
+    }
+    if (Array.isArray(parsed.challengeMonsterCatalog)) {
+      next.challengeMonsterCatalog = migrateChallengeMonsterCatalog(parsed.challengeMonsterCatalog);
     }
     if (parsed.catalogSearchFlags && typeof parsed.catalogSearchFlags === 'object') {
       next.catalogSearchFlags = {
@@ -5814,6 +5880,123 @@
     return added;
   }
 
+  function builtinMonsterSeedRows() {
+    return [
+      { canonical: '피아누스(좌붕)', aliases: ['피아누스 좌', '좌붕'], icon: 'image/몬스터/피아누스(좌붕).png' },
+      { canonical: '피아누스(우붕)', aliases: ['피아누스 우', '우붕'], icon: 'image/몬스터/피아누스(우붕).png' },
+      { canonical: '파풀라투스', aliases: ['파풀'], icon: 'image/몬스터/파풀라투스.png' },
+    ];
+  }
+
+  function mergeBuiltinMonsterSeeds() {
+    if (!Array.isArray(state.challengeMonsterCatalog)) state.challengeMonsterCatalog = [];
+    let added = 0;
+    builtinMonsterSeedRows().forEach((seed) => {
+      const canonical = String(seed.canonical || '').trim();
+      if (!canonical) return;
+      const norm = normalizeGamificationText(canonical);
+      let entry = state.challengeMonsterCatalog.find(
+        (x) => normalizeGamificationText(x.canonical) === norm
+      );
+      if (!entry) {
+        entry = { id: genId(), canonical, aliases: (seed.aliases || []).slice(), icon: seed.icon || '' };
+        state.challengeMonsterCatalog.push(entry);
+        added += 1;
+      } else {
+        if (seed.icon) entry.icon = seed.icon;
+        if (seed.aliases && seed.aliases.length) {
+          const aliasSet = new Set((entry.aliases || []).map((a) => normalizeGamificationText(a)));
+          seed.aliases.forEach((a) => {
+            const an = normalizeGamificationText(a);
+            if (!an || an === norm || aliasSet.has(an)) return;
+            aliasSet.add(an);
+            if (!entry.aliases) entry.aliases = [];
+            entry.aliases.push(a);
+          });
+        }
+      }
+    });
+    return added;
+  }
+
+  function migrateChallengeMonsterCatalog(list) {
+    return (list || []).map((raw) => {
+      if (typeof raw === 'string') {
+        const canonical = raw.trim();
+        if (!canonical) return null;
+        return { id: genId(), canonical, aliases: [], icon: '' };
+      }
+      const canonical = String(raw.canonical || '').trim();
+      if (!canonical) return null;
+      const aliases = Array.isArray(raw.aliases)
+        ? raw.aliases.map((a) => String(a).trim()).filter(Boolean)
+        : parseCatalogAliasText(raw.aliases);
+      return {
+        id: raw.id || genId(),
+        canonical,
+        aliases,
+        icon: raw.icon ? String(raw.icon) : '',
+      };
+    }).filter(Boolean);
+  }
+
+  function findMonsterEntryByCanonicalName(name) {
+    const norm = normalizeGamificationText(name);
+    if (!norm) return null;
+    return (state.challengeMonsterCatalog || []).find(
+      (x) => normalizeGamificationText(x.canonical) === norm
+    ) || null;
+  }
+
+  function findMonsterEntryByAnyLabel(text) {
+    const norm = normalizeGamificationText(text);
+    if (!norm) return null;
+    for (const entry of state.challengeMonsterCatalog || []) {
+      if (normalizeGamificationText(entry.canonical) === norm) return entry;
+      for (const a of entry.aliases || []) {
+        if (normalizeGamificationText(a) === norm) return entry;
+      }
+    }
+    return null;
+  }
+
+  function resolveMonsterCatalogInput(raw) {
+    const entry = findMonsterEntryByAnyLabel(raw);
+    return entry ? String(entry.canonical).trim() : '';
+  }
+
+  function filterMonsterNameSuggestions(query) {
+    const q = normalizeGamificationText(query);
+    const list = (state.challengeMonsterCatalog || []).slice();
+    if (!q) return list.map((e) => ({ canonical: e.canonical, icon: e.icon }));
+    return list.filter((e) => {
+      const labels = [e.canonical, ...(e.aliases || [])];
+      return labels.some((l) => normalizeGamificationText(l).includes(q));
+    }).map((e) => ({ canonical: e.canonical, icon: e.icon }));
+  }
+
+  function challengeMatchTokensForMonsterEntry(entry) {
+    if (!entry) return [];
+    const set = new Set();
+    const add = (s) => {
+      const n = normalizeGamificationText(s);
+      if (n) set.add(n);
+    };
+    add(entry.canonical);
+    (entry.aliases || []).forEach(add);
+    add(String(entry.canonical).replace(/\s+/g, ''));
+    return [...set];
+  }
+
+  function syncChallengeMonsterMatchFromCatalog(ch) {
+    if (!ch || ch.type !== 'monster_kill') return;
+    const entry = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+    if (!entry) return;
+    ch.monsterCanonical = entry.canonical;
+    ch.monsterMatchTokens = challengeMatchTokensForMonsterEntry(entry);
+    if (entry.icon) ch.icon = entry.icon;
+  }
+
   function migrateChallengeItemCatalog(list) {
     return (list || []).map((raw) => {
       if (typeof raw === 'string') {
@@ -5844,6 +6027,10 @@
     return p.includes('주문서 아이콘') || p.includes('주문서아이콘');
   }
 
+  function isMonsterCatalogIconPath(iconPath) {
+    return String(iconPath || '').includes('몬스터');
+  }
+
   function catalogIconMarkup(iconPath, opts) {
     const o = opts || {};
     if (!iconPath) return '';
@@ -5851,6 +6038,9 @@
     const lazy = o.lazy ? ' loading="lazy"' : '';
     if (isScrollCatalogIconPath(iconPath)) {
       return `<span class="catalog-scroll-icon-slot"><img class="catalog-item-icon catalog-item-icon--scroll" src="${src}" alt=""${lazy}></span>`;
+    }
+    if (isMonsterCatalogIconPath(iconPath)) {
+      return `<span class="catalog-monster-icon-slot"><img class="catalog-item-icon catalog-item-icon--monster" src="${src}" alt=""${lazy}></span>`;
     }
     return `<img class="catalog-item-icon" src="${src}" alt=""${lazy}>`;
   }
@@ -5963,10 +6153,23 @@
       if (ch.type === 'item_acquire' && ch.requiredCount != null) {
         ch.requiredCount = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
       }
+      if (ch.type === 'monster_kill' && ch.requiredCount != null) {
+        ch.requiredCount = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
+      }
       if (ch.xpReward != null) ch.xpReward = Math.max(0, Math.round(Number(ch.xpReward) || 0));
       out.push(ch);
     });
     return out;
+  }
+
+  function challengeConditionSummary(ch, prog) {
+    if (ch.type === 'sale_amount') {
+      return `1건 등록가 ${fmtNum(ch.threshold)} 이상`;
+    }
+    if (ch.type === 'monster_kill') {
+      return `${escapeHtml(ch.monsterCanonical || '')} 처치 ${prog.target}회`;
+    }
+    return `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`;
   }
 
   function ensureGamificationState() {
@@ -5998,10 +6201,14 @@
     ensureCatalogSearchFlags();
     if (!Array.isArray(state.challengeItemCatalog)) state.challengeItemCatalog = [];
     else state.challengeItemCatalog = migrateChallengeItemCatalog(state.challengeItemCatalog);
+    if (!Array.isArray(state.challengeMonsterCatalog)) state.challengeMonsterCatalog = [];
+    else state.challengeMonsterCatalog = migrateChallengeMonsterCatalog(state.challengeMonsterCatalog);
     const catalogAdded = mergeBuiltinCatalogSeeds();
-    if (catalogAdded > 0) scheduleSave();
+    const monsterAdded = mergeBuiltinMonsterSeeds();
+    if (catalogAdded > 0 || monsterAdded > 0) scheduleSave();
     state.challengeDefs.forEach((ch) => {
       if (ch.type === 'item_acquire') syncChallengeItemMatchFromCatalog(ch);
+      if (ch.type === 'monster_kill') syncChallengeMonsterMatchFromCatalog(ch);
     });
     if (!state.levelTitleBadgeColors || typeof state.levelTitleBadgeColors !== 'object') {
       state.levelTitleBadgeColors = {};
@@ -6222,6 +6429,10 @@
   function challengeIconFor(ch) {
     const assets = resolveChallengeTitleAssets(ch);
     if (assets?.icon) return assets.icon;
+    if (ch.type === 'monster_kill') {
+      const entry = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+      if (entry?.icon) return entry.icon;
+    }
     if (ch.icon && ch.icon !== DEFAULT_TITLE_ICON) return ch.icon;
     return ch.icon || DEFAULT_TITLE_ICON;
   }
@@ -6696,6 +6907,37 @@
     return Math.min(XP_SALE_CAP, Math.floor(p / XP_SALE_DIVISOR));
   }
 
+  function itemTextMatchesMonsterChallenge(itemText, ch) {
+    const normItem = normalizeGamificationText(itemText);
+    if (!normItem) return false;
+    const cat = findMonsterEntryByCanonicalName(ch.monsterCanonical);
+    if (cat) {
+      const labels = [cat.canonical, ...(cat.aliases || [])];
+      for (const label of labels) {
+        const n = normalizeGamificationText(label);
+        if (n && normItem === n) return true;
+      }
+      const canonNorm = normalizeGamificationText(cat.canonical);
+      if (canonNorm && (normItem.includes(canonNorm) || canonNorm.includes(normItem))) return true;
+    }
+    const canon = normalizeGamificationText(ch.monsterCanonical || ch.titleName || '');
+    if (canon && (normItem === canon || normItem.includes(canon))) return true;
+    const tokens = (ch.monsterMatchTokens || []).map(normalizeGamificationText).filter(Boolean);
+    return tokens.some((t) => t && (normItem === t || normItem.includes(t)));
+  }
+
+  function countMonsterKillForMember(memberIdx, ch) {
+    let count = 0;
+    (state.cycles || []).forEach((cycle) => {
+      (cycle.entries || []).forEach((entry) => {
+        if (!itemTextMatchesMonsterChallenge(entry.item, ch)) return;
+        if (!entryParticipantIdxs(entry).includes(memberIdx)) return;
+        count += 1;
+      });
+    });
+    return count;
+  }
+
   function itemTextMatchesChallenge(itemText, ch) {
     const normItem = normalizeGamificationText(itemText);
     if (!normItem) return false;
@@ -6750,6 +6992,11 @@
       const need = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
       return { current: cur, target: need, done: cur >= need };
     }
+    if (ch.type === 'monster_kill') {
+      const cur = countMonsterKillForMember(memberIdx, ch);
+      const need = Math.max(1, Math.round(Number(ch.requiredCount) || 1));
+      return { current: cur, target: need, done: cur >= need };
+    }
     return { current: 0, target: 1, done: false };
   }
 
@@ -6796,9 +7043,9 @@
     });
 
     (state.hotIssues || []).forEach((post) => {
-      const t = post.targetMemberIdx;
-      if (t == null || t < 0 || t > 2) return;
-      grantXp(t, XP_HOT_ISSUE, `hot:${post.id}:${t}`);
+      hotIssueTargetMemberIdxs(post).forEach((t) => {
+        grantXp(t, XP_HOT_ISSUE, `hot:${post.id}:${t}`);
+      });
     });
 
     (state.challengeDefs || []).forEach((ch) => {
@@ -6903,19 +7150,40 @@
     return titleBadgePreviewHtml(def, `${eq}:${memberIdx}`, true);
   }
 
-  function populateHotIssueTargetSelect() {
-    const sel = $('hotIssueTarget');
-    if (!sel) return;
-    const prev = sel.value;
-    sel.innerHTML = '';
-    state.members.forEach((name, i) => {
-      const opt = document.createElement('option');
-      opt.value = String(i);
-      opt.textContent = name || loginIdForMemberIdx(i) || `공대원 ${i + 1}`;
-      sel.appendChild(opt);
+  function getHotIssueTargetIdxsFromUi() {
+    const wrap = $('hotIssueTargetPicks');
+    if (!wrap) return [];
+    return [...wrap.querySelectorAll('input[type="checkbox"]:checked')]
+      .map((inp) => Number(inp.value))
+      .filter((i) => i >= 0 && i <= 2);
+  }
+
+  function setHotIssueTargetIdxsToUi(idxs) {
+    const wrap = $('hotIssueTargetPicks');
+    if (!wrap) return;
+    const set = new Set((idxs || []).map((i) => Number(i)).filter((i) => i >= 0 && i <= 2));
+    wrap.querySelectorAll('input[type="checkbox"]').forEach((inp) => {
+      inp.checked = set.has(Number(inp.value));
     });
-    if (authSession && prev === '') sel.value = String(authSession.memberIdx);
-    else if (prev !== '') sel.value = prev;
+  }
+
+  function populateHotIssueTargetSelect() {
+    const wrap = $('hotIssueTargetPicks');
+    if (!wrap) return;
+    const prev = getHotIssueTargetIdxsFromUi();
+    wrap.innerHTML = '';
+    state.members.forEach((name, i) => {
+      const lbl = document.createElement('label');
+      lbl.className = 'hot-compose-target-pick';
+      const inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.value = String(i);
+      inp.checked = prev.includes(i);
+      lbl.appendChild(inp);
+      lbl.appendChild(document.createTextNode(name || loginIdForMemberIdx(i) || `공대원 ${i + 1}`));
+      wrap.appendChild(lbl);
+    });
+    if (!prev.length && authSession) setHotIssueTargetIdxsToUi([authSession.memberIdx]);
   }
 
   let xpLogFilter = 'all';
@@ -7152,7 +7420,7 @@
         inner.innerHTML += `
           <div class="challenge-quest-block">
             <div class="challenge-badge-preview">${badge}</div>
-            <div class="challenge-meta">${ch.type === 'sale_amount' ? `1건 등록가 ${fmtNum(ch.threshold)} 이상` : `${escapeHtml(ch.itemCanonical || '')} 획득 ${prog.target}회`} · 보상 XP ${fmtNum(ch.xpReward || 0)}</div>
+            <div class="challenge-meta">${challengeConditionSummary(ch, prog)} · 보상 XP ${fmtNum(ch.xpReward || 0)}</div>
             <div class="challenge-progress"><div style="width:${pct}%"></div></div>
             <div class="challenge-meta${done ? ' done' : ''}">${done ? '완료 · 훈장 획득' : `${fmtNum(prog.current)} / ${fmtNum(prog.target)}`}</div>
           </div>`;
@@ -7446,6 +7714,7 @@
     const map = {
       add: ['chAdminTabAdd', 'chAdminPanelAdd'],
       items: ['chAdminTabItems', 'chAdminPanelItems'],
+      monsters: ['chAdminTabMonsters', 'chAdminPanelMonsters'],
       level: ['chAdminTabLevel', 'chAdminPanelLevel'],
       list: ['chAdminTabList', 'chAdminPanelList'],
       exclusive: ['chAdminTabExclusive', 'chAdminPanelExclusive'],
@@ -7461,6 +7730,7 @@
     if (tab === 'level') renderLevelTitleBadgeColorsAdmin();
     if (tab === 'list') renderChallengeAdminList();
     if (tab === 'items') renderMasterItemCatalogAdmin();
+    if (tab === 'monsters') renderMasterMonsterCatalogAdmin();
     if (tab === 'exclusive') renderExclusiveTitleAdmin();
     if (tab === 'timerSound') renderTimerSoundAdmin();
     if (tab === 'add') {
@@ -7618,7 +7888,9 @@
       row.className = 'challenge-card';
       const label = ch.type === 'sale_amount'
         ? `등록가 ≥ ${fmtNum(ch.threshold)}`
-        : `${ch.itemCanonical} × ${ch.requiredCount}`;
+        : ch.type === 'monster_kill'
+          ? `${ch.monsterCanonical} 처치 × ${ch.requiredCount}`
+          : `${ch.itemCanonical} × ${ch.requiredCount}`;
       const colorVal = normalizeBadgeColor(ch.badgeColor) || DEFAULT_BADGE_COLOR;
       const textVal = normalizeBadgeColor(ch.badgeTextColor) || DEFAULT_BADGE_TEXT_COLOR;
       row.innerHTML = `<div class="challenge-card-head"><strong>${escapeHtml(ch.titleName)}</strong></div>
@@ -7936,6 +8208,25 @@
     return true;
   }
 
+  function addMasterMonsterCatalogItem(canonical, aliasesRaw, iconRaw) {
+    ensureGamificationState();
+    const name = String(canonical || '').trim();
+    if (!name) return false;
+    const norm = normalizeGamificationText(name);
+    if ((state.challengeMonsterCatalog || []).some((x) => normalizeGamificationText(x.canonical) === norm)) {
+      return false;
+    }
+    const aliases = parseCatalogAliasText(aliasesRaw).filter(
+      (a) => normalizeGamificationText(a) !== norm
+    );
+    const row = { id: genId(), canonical: name, aliases, icon: String(iconRaw || '').trim() };
+    state.challengeMonsterCatalog.push(row);
+    state.challengeDefs.forEach((ch) => syncChallengeMonsterMatchFromCatalog(ch));
+    scheduleSave();
+    gamificationReplayAndRefresh();
+    return true;
+  }
+
   function syncCatalogReleaseFlagsUi() {
     ensureCatalogSearchFlags();
     const acc = $('catalogFlagAccuracyScrolls');
@@ -8022,7 +8313,9 @@
       if (hooks && typeof hooks.onPick === 'function') hooks.onPick();
     };
     const renderDrop = () => {
-      const list = filterItemNameSuggestions(input.value, hooks);
+      const list = hooks && typeof hooks.suggest === 'function'
+        ? hooks.suggest(input.value)
+        : filterItemNameSuggestions(input.value, hooks);
       if (!list.length) { drop.hidden = true; return; }
       drop.hidden = false;
       drop.innerHTML = '';
@@ -8076,6 +8369,66 @@
     bindItemNameAutocomplete($('chAdminItem'), $('chAdminItemDropdown'));
   }
 
+  function bindChallengeAdminMonsterAutocomplete() {
+    bindItemNameAutocomplete($('chAdminMonster'), $('chAdminMonsterDropdown'), {
+      suggest: (q) => filterMonsterNameSuggestions(q),
+    });
+  }
+
+  function renderMasterMonsterCatalogAdmin() {
+    const wrap = $('masterMonsterCatalogList');
+    if (!wrap) return;
+    ensureGamificationState();
+    wrap.innerHTML = '';
+    const list = (state.challengeMonsterCatalog || []).slice().sort((a, b) =>
+      String(a.canonical || '').localeCompare(String(b.canonical || ''), 'ko')
+    );
+    if (!list.length) {
+      wrap.innerHTML = '<p class="challenge-meta">등록된 몬스터가 없어요.</p>';
+      return;
+    }
+    list.forEach((entry) => {
+      const icon = entry.icon || '';
+      const iconHtml = icon ? catalogIconMarkup(icon) : '';
+      const card = document.createElement('div');
+      card.className = 'challenge-card';
+      card.innerHTML = `<div class="challenge-card-head">${iconHtml}<strong>${escapeHtml(entry.canonical)}</strong></div>
+        <div class="ch-medal-meta-fields">
+          <label>아이콘 경로</label>
+          <input type="text" class="master-monster-icon" value="${escapeHtml(entry.icon || '')}" placeholder="image/몬스터/…">
+          <label>별칭 (쉼표·줄바꿈)</label>
+          <textarea class="master-monster-aliases" rows="2">${escapeHtml((entry.aliases || []).join(', '))}</textarea>
+        </div>
+        <div class="ch-admin-save-row">
+          <button type="button" class="btn-settle btn-sm master-monster-save">저장</button>
+          <button type="button" class="btn-light btn-sm master-monster-del">삭제</button>
+        </div>`;
+      const saveBtn = card.querySelector('.master-monster-save');
+      const delBtn = card.querySelector('.master-monster-del');
+      const aliasTa = card.querySelector('.master-monster-aliases');
+      const iconInp = card.querySelector('.master-monster-icon');
+      saveBtn.addEventListener('click', () => {
+        entry.aliases = parseCatalogAliasText(aliasTa.value).filter(
+          (a) => normalizeGamificationText(a) !== normalizeGamificationText(entry.canonical)
+        );
+        entry.icon = String(iconInp.value || '').trim();
+        state.challengeDefs.forEach((ch) => syncChallengeMonsterMatchFromCatalog(ch));
+        scheduleSave();
+        gamificationReplayAndRefresh();
+        flashChAdminSaved(saveBtn);
+        renderMasterMonsterCatalogAdmin();
+      });
+      delBtn.addEventListener('click', () => {
+        if (!confirm(`「${entry.canonical}」을 몬스터 목록에서 삭제할까요?`)) return;
+        state.challengeMonsterCatalog = state.challengeMonsterCatalog.filter((x) => x.id !== entry.id);
+        scheduleSave();
+        gamificationReplayAndRefresh();
+        renderMasterMonsterCatalogAdmin();
+      });
+      wrap.appendChild(card);
+    });
+  }
+
   function addChallengeFromAdminForm() {
     if (!authSession || authSession.memberIdx !== 2) return;
     const type = $('chAdminType').value;
@@ -8087,7 +8440,7 @@
     if (type === 'sale_amount') {
       def.threshold = parseMoneyInput($('chAdminThreshold').value);
       if (!def.threshold) { $('chAdminThreshold').focus(); return; }
-    } else {
+    } else if (type === 'item_acquire') {
       ensureGamificationState();
       const itemRaw = $('chAdminItem').value.trim();
       def.requiredCount = Math.max(1, Math.round(Number($('chAdminCount').value) || 1));
@@ -8100,6 +8453,19 @@
       }
       def.itemCanonical = itemCanonical;
       syncChallengeItemMatchFromCatalog(def);
+    } else if (type === 'monster_kill') {
+      ensureGamificationState();
+      const monsterRaw = $('chAdminMonster').value.trim();
+      def.requiredCount = Math.max(1, Math.round(Number($('chAdminCount').value) || 1));
+      if (!monsterRaw) { $('chAdminMonster').focus(); return; }
+      const monsterCanonical = resolveMonsterCatalogInput(monsterRaw) || findMonsterEntryByCanonicalName(monsterRaw)?.canonical || '';
+      if (!monsterCanonical) {
+        alert('몬스터 추가 탭에 등록된 이름을 목록에서 선택해 주세요.');
+        $('chAdminMonster').focus();
+        return;
+      }
+      def.monsterCanonical = monsterCanonical;
+      syncChallengeMonsterMatchFromCatalog(def);
     }
     const badgeColor = normalizeBadgeColor($('chAdminBadgeColor').value);
     if (badgeColor) def.badgeColor = badgeColor;
@@ -8118,6 +8484,7 @@
     $('chAdminTitleName').value = '';
     $('chAdminThreshold').value = '';
     $('chAdminItem').value = '';
+    if ($('chAdminMonster')) $('chAdminMonster').value = '';
     $('chAdminDescription').value = '';
     if (chAdminBonusEditorCtrl) chAdminBonusEditorCtrl.setBonuses({});
     renderChallengeAdminPanel();
@@ -8127,8 +8494,12 @@
   function syncChallengeAdminTypeFields() {
     const type = $('chAdminType').value;
     $('chAdminThresholdField').hidden = type !== 'sale_amount';
-    $('chAdminCountField').hidden = type !== 'item_acquire';
+    const countField = type === 'item_acquire' || type === 'monster_kill';
+    $('chAdminCountField').hidden = !countField;
     $('chAdminItemField').hidden = type !== 'item_acquire';
+    $('chAdminMonsterField').hidden = type !== 'monster_kill';
+    const countLabel = $('chAdminCountLabel');
+    if (countLabel) countLabel.textContent = type === 'monster_kill' ? '처치 횟수' : '획득 횟수';
   }
 
   function positionTitleBadgeTooltip(wrap) {
@@ -10288,6 +10659,7 @@
   ensureChAdminBonusEditor();
   $('chAdminTabAdd').addEventListener('click', () => switchChAdminTab('add'));
   $('chAdminTabItems').addEventListener('click', () => switchChAdminTab('items'));
+  $('chAdminTabMonsters').addEventListener('click', () => switchChAdminTab('monsters'));
   $('chAdminTabLevel').addEventListener('click', () => switchChAdminTab('level'));
   $('chAdminTabList').addEventListener('click', () => switchChAdminTab('list'));
   $('chAdminTabExclusive').addEventListener('click', () => switchChAdminTab('exclusive'));
@@ -10304,6 +10676,23 @@
     $('masterItemAliases').value = '';
     renderMasterItemCatalogAdmin();
   });
+  $('masterMonsterAddBtn').addEventListener('click', () => {
+    if (!authSession || authSession.memberIdx !== 2) return;
+    const ok = addMasterMonsterCatalogItem(
+      $('masterMonsterCanonical').value,
+      $('masterMonsterAliases').value,
+      $('masterMonsterIcon').value
+    );
+    if (!ok) {
+      if (!$('masterMonsterCanonical').value.trim()) $('masterMonsterCanonical').focus();
+      else alert('이미 같은 몬스터명이 있거나 이름이 비어 있어요.');
+      return;
+    }
+    $('masterMonsterCanonical').value = '';
+    $('masterMonsterAliases').value = '';
+    $('masterMonsterIcon').value = '';
+    renderMasterMonsterCatalogAdmin();
+  });
   $('challengeAdminCloseBtn').addEventListener('click', () => { $('challengeAdminModal').hidden = true; });
   $('challengeAdminModal').addEventListener('click', (e) => {
     if (e.target.id === 'challengeAdminModal') $('challengeAdminModal').hidden = true;
@@ -10311,6 +10700,7 @@
   $('chAdminType').addEventListener('change', syncChallengeAdminTypeFields);
   $('chAdminAddBtn').addEventListener('click', addChallengeFromAdminForm);
   bindChallengeAdminItemAutocomplete();
+  bindChallengeAdminMonsterAutocomplete();
   bindItemNameAutocomplete($('eEditItem'), $('eEditItemDropdown'), {
     onPick: () => syncEntryEditFormForItem()
   });

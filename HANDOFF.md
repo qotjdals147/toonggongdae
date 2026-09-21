@@ -24,6 +24,7 @@
 | 파일 | 역할 |
 |------|------|
 | **`index.html`** | **유일한 실제 소스.** HTML + CSS + JS 한 파일. |
+| `image/몬스터/` | 보스·몬스터 GIF/PNG · 처치 도전 아이콘 (`challengeMonsterCatalog`) |
 | **`maple-party-ledger.html`** | **배포/미러용 복사본.** 변경 시 `index.html`과 **항상 동일**하게 유지 (`Copy-Item -Force`). |
 | **`party-timer-app.js`** | **퉁공대 타이머** 로직 · `#partyTimerModal` + Document PiP · `state.partyTimer`는 `scheduleSave` |
 | **`party-timer.html`** | 구 URL → `index.html?openTimer=1` 리다이렉트만 |
@@ -66,7 +67,8 @@ levelTitleMeta{}       // 레벨 · description, optionsText, badgeTextColor, bo
 exclusiveTitleMeta{} // 고유 훈장 UI 오버라이드 · id → description, badgeColor, badgeTextColor, bonuses?
 challengeItemCatalog[]  // { id, canonical, aliases[], icon? } · 장부·도전 자동완성 · 집계 매칭
 catalogSearchFlags      // { accuracyScrolls, shieldScrollsExtra } · 미출시 주문서 자동완성 공개(배퉁 토글)
-hotIssues: { id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }[]
+hotIssues: { id, …, authorMemberIdx?, **targetMemberIdxs[]**, text, images[] }[]
+challengeMonsterCatalog[]  // { id, canonical, aliases[], icon? } · 처치 도전
 partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
 ```
 
@@ -150,10 +152,10 @@ legacySummaryOnly (옛 회차 요약만)
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
-| 마스터 옵션(배퉁) | `#challengeAdminModal` · 탭 **타이머 사운드** · `PartyTimerApp.updateSoundProfile` · memberIdx **=== 2** |
+| 마스터 옵션(배퉁) | `#challengeAdminModal` · **몬스터 추가** · 도전 **monster_kill(처치)** · 타이머 사운드 · memberIdx **=== 2** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
-| 핫이슈 대상 | `#hotIssueTarget` — 대상 멤버 XP (`XP_HOT_ISSUE`) |
+| 핫이슈 대상 | `#hotIssueTargetPicks` **복수 체크** · 대상마다 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
 
@@ -187,7 +189,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 6.1 핫이슈
 
-- `state.hotIssues[]`: `{ id, createdAt, updatedAt?, authorMemberIdx?, targetMemberIdx?, text, images[] }`.
+- `state.hotIssues[]`: `{ id, createdAt, updatedAt?, authorMemberIdx?, **targetMemberIdxs[]**, text, images[] }` (구 `targetMemberIdx`는 로드 시 배열로 흡수).
 - **수정:** 피드 **수정** → 상단 작성란에 불러오기 → **저장** / **수정 취소** (`startHotIssueEdit`, `postHotIssue` 분기).
 - `images`: JPEG **data URL** — `compressImageBlobToDataUrl` (최대 약 1280px, 품질 자동 하향).
 - **입력:** `#hotIssueCompose` — 파일 첨부, **Ctrl+V** 캡처 붙여넣기, **Ctrl+Enter** 등록.
@@ -294,6 +296,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
 - **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
+- **2026-09-21** — 핫이슈 **대상 복수** · 도전 **처치(monster_kill)** · **몬스터 카탈로그** · PNG 아이콘
 - **2026-09-21** — 타이머 **반복 횟수 제거** · 알람음 **2초 전(00:02) 1회** · 0초는 플래시만
 - **2026-09-21** — 타이머 알람 **매회 새 Audio** · Web Audio 경로 제거(2회째 무음 fix)
 - **2026-09-21** — 타이머 0초 **`setTimeout(endsAt)`** 정밀 알람 + preload
@@ -522,4 +525,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (타이머 2초 전 알람·반복 제거)*
+*Last updated: 2026-09-21 (핫이슈 복수 대상·몬스터 처치 도전)*
