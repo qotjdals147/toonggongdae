@@ -128,7 +128,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **알람:** 0초 `is-alarm` 플래시(~2s) · `processSlotTimerLoops` → `playPipAlarm()` + `flashPipTileAlarm()` · **소리는 PIP 창이 열려 있을 때만** (`playPipAlarm`이 `pipWindow.closed`면 return) · 사냥 tick은 PiP 닫아도 **`syncHuntRuntimeTick` 유지**(반복 카운트만 백그라운드).
 - **소리:** `soundProfiles` · 슬롯별 **mp3/wav data URL** · **volume** · **repeatCount**(0초마다, 기본 1) · `playPipAlarmForSlot` · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
-- **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`**.
+- **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
 
 ---
 
@@ -292,6 +292,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 타이머 알람 **파일 재생 후 비프 제거** · repeat 시퀀스 정리 · **슬롯 간 겹침** 허용
 - **2026-09-21** — 타이머 0초 **알람·루프 버그** fix · `slotAlarmFired` 만료 키 · 사냥 종료 시 재생 중단
 - **2026-09-21** — 메이커 보석명 **gemsOnly** AC · 보석/주문서 **카탈로그 정렬** 보강
 - **2026-09-21** — 타이머 **슬롯별 사운드·볼륨·반복** · 배퉁 마스터 **타이머 사운드** 탭 · `soundProfiles` JSON

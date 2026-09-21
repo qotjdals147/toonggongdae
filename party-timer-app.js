@@ -13,7 +13,10 @@
   let pipWindow = null;
   let huntRuntimeTickId = null;
   let slotAlarmFired = {};
-  let slotAlarmCancel = {};
+  /** slotId → 재생 중 Audio (같은 슬롯만 정지 · 슬롯끼리 겹침 허용) */
+  let slotActiveAudios = {};
+  /** slotId → generation (stale 콜백 무시) */
+  let slotAlarmGen = {};
   let pipStyleEl = null;
   let pipClickBound = false;
   const pipUi = { muted: false, notice: '' };
@@ -232,16 +235,21 @@
     return Math.max(1000, Math.round(Number(slot.durationSec) || 60) * 1000);
   }
 
-  function cancelSlotAlarmPlayback(slotId) {
-    const fn = slotAlarmCancel[slotId];
-    if (fn) {
-      try { fn(); } catch (e) { /* ignore */ }
-      delete slotAlarmCancel[slotId];
-    }
+  function stopSlotAudios(slotId) {
+    const set = slotActiveAudios[slotId];
+    if (!set) return;
+    set.forEach((audio) => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (e) { /* ignore */ }
+    });
+    set.clear();
   }
 
-  function cancelAllSlotAlarmPlayback() {
-    Object.keys(slotAlarmCancel).forEach((id) => cancelSlotAlarmPlayback(id));
+  function stopAllSlotAudios() {
+    Object.keys(slotActiveAudios).forEach((id) => stopSlotAudios(id));
+    slotAlarmGen = {};
   }
 
   function slotDurationUnit(slot) {
@@ -681,119 +689,102 @@
     }
   }
 
-  function playOneAlarmSound(doc, profile, volume, onDone) {
+  function trackSlotAudio(slotId, audio) {
+    if (!slotActiveAudios[slotId]) slotActiveAudios[slotId] = new Set();
+    const set = slotActiveAudios[slotId];
+    set.add(audio);
+    const untrack = () => set.delete(audio);
+    audio.addEventListener('ended', untrack, { once: true });
+    audio.addEventListener('error', untrack, { once: true });
+  }
+
+  /** 1회 재생 · 파일 있으면 **비프 fallback 없음** (겹침 방지) */
+  function playAlarmOneShot(doc, slotId, profile, volume, onDone) {
     const done = typeof onDone === 'function' ? onDone : () => {};
-    if (profile && profile.src) {
-      try {
-        const audio = new doc.defaultView.Audio(profile.src);
-        audio.volume = Math.max(0, Math.min(1, volume));
-        audio.onended = () => done();
-        audio.onerror = () => playFallbackBeep(doc, volume, done);
-        const p = audio.play();
-        if (p && typeof p.catch === 'function') p.catch(() => playFallbackBeep(doc, volume, done));
-        return;
-      } catch (e) {
-        playFallbackBeep(doc, volume, done);
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      done();
+    };
+    const vol = Math.max(0, Math.min(1, volume));
+    if (!profile || !profile.src) {
+      playFallbackBeep(doc, vol, finish);
+      return;
+    }
+    try {
+      const audio = new doc.defaultView.Audio(profile.src);
+      audio.volume = vol;
+      trackSlotAudio(slotId, audio);
+      const watchdog = setTimeout(finish, 45000);
+      const wrapFinish = () => {
+        clearTimeout(watchdog);
+        finish();
+      };
+      audio.onended = wrapFinish;
+      audio.onerror = wrapFinish;
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(wrapFinish);
+    } catch (e) {
+      finish();
+    }
+  }
+
+  function runAlarmRepeatSequence(doc, slotId, profile, repeatCount, gen, onComplete) {
+    const repeat = Math.max(1, Math.min(20, Math.round(Number(repeatCount) || 1)));
+    const gapMs = 280;
+    let index = 0;
+
+    function isStale() {
+      return slotAlarmGen[slotId] !== gen
+        || pipUi.muted
+        || !pipWindow
+        || pipWindow.closed;
+    }
+
+    function next() {
+      if (isStale()) {
+        if (typeof onComplete === 'function') onComplete();
         return;
       }
+      if (index >= repeat) {
+        if (typeof onComplete === 'function') onComplete();
+        return;
+      }
+      index += 1;
+      playAlarmOneShot(doc, slotId, profile, profile.volume, () => {
+        if (isStale()) {
+          if (typeof onComplete === 'function') onComplete();
+          return;
+        }
+        if (index >= repeat) {
+          if (typeof onComplete === 'function') onComplete();
+          return;
+        }
+        setTimeout(next, gapMs);
+      });
     }
-    playFallbackBeep(doc, volume, done);
+    next();
   }
 
   function playPipAlarmForSlot(slotId) {
     if (pipUi.muted || !pipWindow || pipWindow.closed) return;
-    cancelSlotAlarmPlayback(slotId);
+    stopSlotAudios(slotId);
+    slotAlarmGen[slotId] = (slotAlarmGen[slotId] || 0) + 1;
+    const gen = slotAlarmGen[slotId];
     const profile = getSoundProfile(slotId);
-    const volume = profile.volume;
-    const repeat = profile.repeatCount;
     const doc = pipWindow.document;
     flashPipTileAlarm(slotId);
-    let played = 0;
-    let cancelled = false;
-    let activeAudio = null;
-    slotAlarmCancel[slotId] = () => {
-      cancelled = true;
-      if (activeAudio) {
-        try {
-          activeAudio.pause();
-          activeAudio.currentTime = 0;
-        } catch (e) { /* ignore */ }
-        activeAudio = null;
-      }
-    };
-    const gapMs = 200;
-    function finish() {
-      delete slotAlarmCancel[slotId];
-    }
-    function step() {
-      if (cancelled || pipUi.muted || !pipWindow || pipWindow.closed) {
-        finish();
-        return;
-      }
-      if (played >= repeat) {
-        finish();
-        return;
-      }
-      if (profile && profile.src) {
-        try {
-          const audio = new doc.defaultView.Audio(profile.src);
-          activeAudio = audio;
-          audio.volume = Math.max(0, Math.min(1, volume));
-          audio.onended = () => {
-            activeAudio = null;
-            if (cancelled) { finish(); return; }
-            played += 1;
-            if (played < repeat) setTimeout(step, gapMs);
-            else finish();
-          };
-          audio.onerror = () => {
-            activeAudio = null;
-            playFallbackBeep(doc, volume, () => {
-              if (cancelled) { finish(); return; }
-              played += 1;
-              if (played < repeat) setTimeout(step, gapMs);
-              else finish();
-            });
-          };
-          const p = audio.play();
-          if (p && typeof p.catch === 'function') {
-            p.catch(() => {
-              activeAudio = null;
-              playFallbackBeep(doc, volume, () => {
-                if (cancelled) { finish(); return; }
-                played += 1;
-                if (played < repeat) setTimeout(step, gapMs);
-                else finish();
-              });
-            });
-          }
-          return;
-        } catch (e) { /* fallback below */ }
-      }
-      playFallbackBeep(doc, volume, () => {
-        if (cancelled) { finish(); return; }
-        played += 1;
-        if (played < repeat) setTimeout(step, gapMs);
-        else finish();
-      });
-    }
-    step();
+    runAlarmRepeatSequence(doc, slotId, profile, profile.repeatCount, gen, () => {});
   }
 
   function previewAlarmSound(slotId, usePipWindow, patch) {
     const profile = normalizeSoundProfile({ ...getSoundProfile(slotId), ...(patch || {}) });
     const doc = usePipWindow && pipWindow && !pipWindow.closed ? pipWindow.document : document;
-    const repeat = profile.repeatCount;
-    let played = 0;
-    const gapMs = 200;
-    function step() {
-      if (played >= repeat) return;
-      playOneAlarmSound(doc, profile, profile.volume, () => {
-        played += 1;
-        if (played < repeat) setTimeout(step, gapMs);
-      });
-    }
-    step();
+    const previewSlot = `preview-${slotId}`;
+    slotAlarmGen[previewSlot] = (slotAlarmGen[previewSlot] || 0) + 1;
+    const gen = slotAlarmGen[previewSlot];
+    runAlarmRepeatSequence(doc, previewSlot, profile, profile.repeatCount, gen, () => {});
   }
 
   function flashPipTileAlarm(slotId) {
@@ -979,7 +970,7 @@
     });
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
-    cancelAllSlotAlarmPlayback();
+    stopAllSlotAudios();
     scheduleSave();
     renderPipView();
   }
@@ -996,7 +987,7 @@
     });
     bumpRuntimeRev();
     Object.keys(slotAlarmFired).forEach((k) => delete slotAlarmFired[k]);
-    cancelAllSlotAlarmPlayback();
+    stopAllSlotAudios();
     stopHuntRuntimeTick();
     scheduleSave();
     renderPipView();
