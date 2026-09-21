@@ -735,27 +735,102 @@
     border-radius: 10px;
     background: #fafafa;
   }
-  .monster-kill-stats-table {
-    width: 100%;
-    border-collapse: collapse;
+  .monster-kill-stats-heading {
     font-size: 12px;
+    font-weight: 800;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
   }
-  .monster-kill-stats-table th,
-  .monster-kill-stats-table td {
-    padding: 8px 6px;
-    border-bottom: 1px solid var(--line);
-    text-align: center;
-    vertical-align: middle;
+  .monster-kill-roster {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .monster-kill-stats-table th:first-child,
-  .monster-kill-stats-table td:first-child {
-    text-align: left;
+  .monster-kill-member-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
   }
-  .monster-kill-stats-monster {
-    display: inline-flex;
+  .monster-kill-member-card {
+    flex: 0 0 92px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 8px 6px 6px;
+    border-radius: 8px;
+    background: #f4f6f9;
+    border: 1px solid var(--line);
+  }
+  .monster-kill-member-card .member-char-wrap {
+    min-height: 48px;
+    max-height: 72px;
+  }
+  .monster-kill-member-card .member-char-sprite {
+    max-height: 68px;
+  }
+  .monster-kill-member-name {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.2;
+    text-align: center;
+  }
+  .monster-kill-boss-grid {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    align-content: flex-start;
+    align-items: flex-start;
+  }
+  .monster-kill-boss-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 76px;
+    text-align: center;
+  }
+  .monster-kill-boss-name {
+    font-size: 10.5px;
     font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 4px;
+    color: var(--ink);
+    word-break: keep-all;
+    max-width: 100%;
+  }
+  .monster-kill-boss-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 44px;
+  }
+  .monster-kill-boss-icon .catalog-monster-icon-slot,
+  .monster-kill-boss-icon .catalog-monster-icon-slot img {
+    max-width: 48px;
+    max-height: 48px;
+  }
+  .monster-kill-boss-count {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .monster-kill-boss-empty {
+    margin: 0;
+    padding: 8px 4px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    align-self: center;
   }
   .member-slot-body {
     flex: 1 1 auto;
@@ -3529,7 +3604,7 @@
 </div>
 
 <div class="modal-backdrop" id="monsterKillModal" hidden>
-  <div class="modal modal-monster-kill" role="dialog" aria-labelledby="monsterKillModalTitle" style="max-width:520px;">
+  <div class="modal modal-monster-kill" role="dialog" aria-labelledby="monsterKillModalTitle" style="max-width:680px;">
     <h3 id="monsterKillModalTitle">처치 기록</h3>
     <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">공대원 공동 · 몬스터 카탈로그 기준 · 선택한 멤버 <strong>각 +1</strong> · 같은 몬스터는 횟수만 누적.</p>
     <div class="monster-kill-compose">
@@ -3547,7 +3622,8 @@
       </div>
       <button type="button" class="btn-settle btn-sm" id="monsterKillAddBtn">처치 +1 기록</button>
     </div>
-    <div class="ch-admin-scroll" style="max-height:min(42vh,360px);margin-top:12px;" id="monsterKillStatsWrap"></div>
+    <p class="monster-kill-stats-heading" id="monsterKillStatsHeading">공대원별 현황 · 순퉁 → 지퉁 → 배퉁</p>
+    <div class="ch-admin-scroll" style="max-height:min(52vh,420px);margin-top:0;" id="monsterKillStatsWrap"></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="monsterKillCloseBtn">닫기</button>
     </div>
@@ -7231,6 +7307,7 @@
       if ($('exclusiveMedalView') && !$('exclusiveMedalView').hidden) renderExclusiveMedalView();
       else renderChallengeListView();
     }
+    if ($('monsterKillModal') && !$('monsterKillModal').hidden) renderMonsterKillModal();
   }
 
   function tryDailyLoginXp() {
@@ -7943,37 +8020,62 @@
     }
   }
 
+  function monsterKillBossCellHtml(entry, count) {
+    const iconInner = entry.icon
+      ? `<div class="monster-kill-boss-icon">${catalogIconMarkup(entry.icon)}</div>`
+      : '<div class="monster-kill-boss-icon"></div>';
+    return `<div class="monster-kill-boss-cell">
+      <span class="monster-kill-boss-name">${escapeHtml(entry.canonical)}</span>
+      ${iconInner}
+      <span class="monster-kill-boss-count">×${fmtNum(count)}</span>
+    </div>`;
+  }
+
+  function memberKillEntriesForIdx(memberIdx) {
+    ensureMonsterKillCounts();
+    const bucket = state.monsterKillCounts[String(memberIdx)] || {};
+    return Object.keys(bucket)
+      .map((id) => ({
+        entry: findMonsterEntryById(id),
+        count: getMonsterKillCount(memberIdx, id),
+      }))
+      .filter((k) => k.count > 0 && k.entry)
+      .sort((a, b) =>
+        String(a.entry.canonical || '').localeCompare(String(b.entry.canonical || ''), 'ko')
+      );
+  }
+
   function renderMonsterKillModal() {
     ensureGamificationState();
     ensureMonsterKillCounts();
     populateMonsterKillMemberPicks();
     const wrap = $('monsterKillStatsWrap');
     if (!wrap) return;
-    const monsters = (state.challengeMonsterCatalog || []).slice().sort((a, b) =>
-      String(a.canonical || '').localeCompare(String(b.canonical || ''), 'ko')
-    );
-    const rows = [];
-    monsters.forEach((entry) => {
-      const perMember = [0, 1, 2].map((i) => getMonsterKillCount(i, entry.id));
-      const total = perMember.reduce((s, n) => s + n, 0);
-      if (total <= 0) return;
-      rows.push({ entry, perMember, total });
-    });
-    if (!rows.length) {
-      wrap.innerHTML = '<p class="challenge-meta">아직 처치 기록이 없어요.</p>';
-      return;
-    }
-    const head = `<tr><th>몬스터</th>${state.members.map((n, i) =>
-      `<th>${escapeHtml(n || loginIdForMemberIdx(i) || `P${i + 1}`)}</th>`).join('')}<th>합계</th></tr>`;
-    const body = rows.map(({ entry, perMember, total }) => {
-      const icon = entry.icon ? catalogIconMarkup(entry.icon) : '';
-      const cells = perMember.map((n) => `<td>${fmtNum(n)}</td>`).join('');
-      return `<tr>
-        <td><span class="monster-kill-stats-monster">${icon}<span>${escapeHtml(entry.canonical)}</span></span></td>
-        ${cells}<td><strong>${fmtNum(total)}</strong></td>
-      </tr>`;
+    const memberOrder = [0, 1, 2];
+    let anyKill = false;
+    const rowsHtml = memberOrder.map((memberIdx) => {
+      const kills = memberKillEntriesForIdx(memberIdx);
+      if (kills.length) anyKill = true;
+      const rosterFallback = MEMBER_CHAR_ROSTER[memberIdx] || '';
+      const displayName =
+        (state.members[memberIdx] || '').trim() ||
+        loginIdForMemberIdx(memberIdx) ||
+        rosterFallback ||
+        `공대원 ${memberIdx + 1}`;
+      const charHtml = memberCharSpriteHtml(memberIdx);
+      const bossGrid = kills.length
+        ? kills.map(({ entry, count }) => monsterKillBossCellHtml(entry, count)).join('')
+        : '<p class="monster-kill-boss-empty">아직 처치 기록 없음</p>';
+      const rowCls = kills.length ? 'monster-kill-member-row' : 'monster-kill-member-row monster-kill-member-row--empty';
+      return `<div class="${rowCls}">
+        <div class="monster-kill-member-card">${charHtml}<span class="monster-kill-member-name">${escapeHtml(displayName)}</span></div>
+        <div class="monster-kill-boss-grid">${bossGrid}</div>
+      </div>`;
     }).join('');
-    wrap.innerHTML = `<div class="table-scroll"><table class="monster-kill-stats-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+    const hint = anyKill
+      ? ''
+      : '<p class="challenge-meta" style="margin:0 0 10px;">아직 처치 기록이 없어요. 위에서 +1 기록하면 아래에 쌓여요.</p>';
+    wrap.innerHTML = `${hint}<div class="monster-kill-roster">${rowsHtml}</div>`;
   }
 
   function addMonsterKillFromForm() {

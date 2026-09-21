@@ -153,7 +153,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
 | 마이페이지 | `#accountModal` — 닉·비밀번호·칭호 장착/해제 · 공대원 칸 **머리** `member-slot-mypage` |
 | 훈장·도전(전원) | `#challengeModal` — 도전 탭 **공대원별 접이 패널**(기본 접힘 · 펼쳐보기/▼) · `renderChallengeListView` |
-| 처치 기록 | `#monsterKillModal` · **로그인 공대원 전원** · `#monsterKillLogToolBtn` · `monsterKillCounts` |
+| 처치 기록 | `#monsterKillModal` · **로그인 공대원 전원** · `#monsterKillLogToolBtn` · `monsterKillCounts` · **공대원별 행**(캐릭터+보스 아이콘·이름·×횟수 · 순퉁→지퉁→배퉁) |
 | 마스터 옵션(배퉁) | 공대원 **M** → `#challengeAdminModal` · 몬스터 카탈로그(마스터) · monster AC **아이콘** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
@@ -296,6 +296,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-21** — 처치 기록 **공대원별 UI**(캐릭터 박스 · 보스명·아이콘·×횟수 · 0→1→2)
 - **2026-09-21** — 헤더 **NPC 박스 도구** (`image/NPC`) · 접이 제거 · hover lift
 - **2026-09-21** — 훈장·마스터·로그아웃 도구 카드 **`display:flex`** (inline-block 레이아웃 깨짐 fix)
 - **2026-09-21** — fix: `titleBadgePreviewHtml` **catalogAssetUrl 이중 인코딩** → 훈장 img 깨짐
@@ -531,4 +532,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-21 (훈장 아이콘 URL fix)*
+*Last updated: 2026-09-21 (처치 기록 공대원별 UI)*
