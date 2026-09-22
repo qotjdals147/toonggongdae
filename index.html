@@ -4529,6 +4529,73 @@
     return getViewCycle().makerRefines || [];
   }
 
+  /** 같은 회차 · 같은 재련자 · 같은 보석(카탈로그명) → 한 줄 합산 */
+  function makerRefineMergeKey(row) {
+    const r = normalizeMakerRefine(row);
+    return `${r.makerIdx}|${normalizeGamificationText(r.gemName)}`;
+  }
+
+  function mergeMakerRefineCounts(base, add) {
+    const A = normalizeMakerRefine(base);
+    const B = normalizeMakerRefine(add);
+    const date = String(A.date || '') >= String(B.date || '') ? A.date : B.date;
+    return normalizeMakerRefine({
+      id: A.id,
+      gemName: A.gemName || B.gemName,
+      makerIdx: A.makerIdx,
+      refineLow: A.refineLow + B.refineLow,
+      refineMid: A.refineMid + B.refineMid,
+      refineHigh: A.refineHigh + B.refineHigh,
+      yieldLow: A.yieldLow + B.yieldLow,
+      yieldMid: A.yieldMid + B.yieldMid,
+      yieldHigh: A.yieldHigh + B.yieldHigh,
+      date,
+    });
+  }
+
+  function consolidateMakerRefinesInCycle(cycle) {
+    if (!cycle || !Array.isArray(cycle.makerRefines) || cycle.makerRefines.length < 2) return false;
+    const map = new Map();
+    const order = [];
+    let changed = false;
+    cycle.makerRefines.forEach((raw) => {
+      const row = normalizeMakerRefine(raw);
+      const key = makerRefineMergeKey(row);
+      if (map.has(key)) {
+        map.set(key, mergeMakerRefineCounts(map.get(key), row));
+        changed = true;
+      } else {
+        map.set(key, row);
+        order.push(key);
+      }
+    });
+    if (!changed) return false;
+    cycle.makerRefines = order.map((k) => map.get(k));
+    return true;
+  }
+
+  function upsertMakerRefineInCycle(cycle, incoming) {
+    if (!cycle.makerRefines) cycle.makerRefines = [];
+    const row = normalizeMakerRefine(incoming);
+    const key = makerRefineMergeKey(row);
+    const idx = cycle.makerRefines.findIndex((x) => makerRefineMergeKey(x) === key);
+    if (idx >= 0) {
+      cycle.makerRefines[idx] = mergeMakerRefineCounts(cycle.makerRefines[idx], row);
+      return cycle.makerRefines[idx];
+    }
+    const next = { ...row, id: row.id || genId(), date: row.date || todayStr() };
+    cycle.makerRefines.push(next);
+    return next;
+  }
+
+  function migrateConsolidateMakerRefinesInState() {
+    let changed = false;
+    (state.cycles || []).forEach((cycle) => {
+      if (consolidateMakerRefinesInCycle(cycle)) changed = true;
+    });
+    return changed;
+  }
+
   function makerTierCountsHtml(low, mid, high, kind) {
     const yieldCls = kind === 'yield' ? ' maker-count-chip--yield' : '';
     const items = [
@@ -5820,6 +5887,7 @@
       state.monsterKillCounts = normalizeMonsterKillCounts(prevMonsterKillCounts);
     }
     const gemNamesMigrated = migrateLegacyGemNamesInState();
+    const makerRowsConsolidated = migrateConsolidateMakerRefinesInState();
     if (!state.warehouseChars) state.warehouseChars = [];
     if (!state.memberParcelReceive || state.memberParcelReceive.length !== 3) {
       state.memberParcelReceive = normalizeMemberParcelReceive(state);
@@ -5837,7 +5905,7 @@
     } else if (prevViewId && (state.cycles || []).some((c) => c.id === prevViewId)) {
       state.viewCycleId = prevViewId;
     }
-    if (needsResave || gemNamesMigrated) scheduleSave();
+    if (needsResave || gemNamesMigrated || makerRowsConsolidated) scheduleSave();
     runGamificationAfterStateLoad();
     syncMemberXpUiBaseline();
     if (window.PartyTimerApp) {
@@ -10448,6 +10516,8 @@
       return;
     }
     Object.assign(r, v.row);
+    const c = getViewCycle();
+    consolidateMakerRefinesInCycle(c);
     closeMakerEdit();
     scheduleSave();
     renderMakerRefines();
@@ -11190,8 +11260,7 @@
       }
     }
     const c = getViewCycle();
-    if (!c.makerRefines) c.makerRefines = [];
-    c.makerRefines.push({ ...v.row, id: genId(), date: todayStr() });
+    upsertMakerRefineInCycle(c, { ...v.row, date: todayStr() });
     ['fMakerRefineLow', 'fMakerRefineMid', 'fMakerRefineHigh', 'fMakerYieldLow', 'fMakerYieldMid', 'fMakerYieldHigh'].forEach((id) => { $(id).value = '0'; });
     updateMakerPreview('fMaker', 'fMakerPreview');
     scheduleSave();

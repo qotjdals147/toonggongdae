@@ -123,6 +123,7 @@ legacySummaryOnly (옛 회차 요약만)
 - 원석·재료 **기회비용 없음** (파티 재고).
 - `computeMakerBatchCosts` → `meso` = 11/33/55만 × 횟수, `total = meso`.
 - 재련자 `held`에서 meso 차감, 3명 **meso/3** 몫 차감.
+- **행 합산:** 같은 **회차** · 같은 `makerIdx` · 같은 `gemName`(카탈로그 canonical) → **한 줄** · 재련·획득 하/중/상·재련 메소 **누적** (`upsertMakerRefineInCycle` · load 시 `consolidateMakerRefinesInCycle`).
 
 ### 4.3 인수
 
@@ -161,7 +162,7 @@ legacySummaryOnly (옛 회차 요약만)
 |----|-----------|
 | 획득 장부 | `renderLedger`, `openEntryAdd`, `saveEntryEdit` |
 | 인수 | `renderTakeovers` |
-| 메이커 | `renderMakerRefines`, `computeMakerBatchCosts` |
+| 메이커 | `renderMakerRefines`, `computeMakerBatchCosts`, `upsertMakerRefineInCycle`, `consolidateMakerRefinesInCycle` |
 | 지출 | `renderExpenditures` |
 | 정산 | `renderSettlement`, `computeHeld`, `computeFairShare` |
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
@@ -323,6 +324,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-09-22** — 메이커 재련 **같은 회차·재련자·보석 → 한 줄 합산** (하/중/상·메소 누적 · 기존 중복 load 시 merge)
 - **2026-09-22** — fix: **차원의 균열** 훈장 아이콘 — 몬스터 sync가 `ch.icon` 덮어쓰지 않음 · `applyKnownChallengeAssets` 재적용 · 공대장 왕관 **+25%·상승·금빛 스파클**
 - **2026-09-21** — 도전 훈장 **차원의 균열** → `CHALLENGE_TITLE_ASSETS` · `image/훈장아이콘/차원의 균열.png`
 - **2026-09-21** — 공대장(슬롯0·순퉁) 캐릭터 **왕관** 오버레이 · `image/아이콘/공대장왕관.png` · 박스 크기 불변
