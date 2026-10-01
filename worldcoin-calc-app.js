@@ -184,6 +184,108 @@
     return combo.reduce((s, x) => s + x.count, 0);
   }
 
+  /** 간편 구매: 최저가 대비 허용 추가금 (10% · 최소 5,000원) */
+  function altWonPremiumCap(optimalWon) {
+    if (optimalWon <= 0) return 0;
+    return optimalWon + Math.max(5000, Math.round(optimalWon * 0.1));
+  }
+
+  function singlePackageCombos(target, packages, sizeKey, costKey) {
+    const need = Math.ceil(Number(target) || 0);
+    if (need <= 0) return [];
+    const valid = packages.filter((p) => p[sizeKey] > 0 && p[costKey] >= 0);
+    return valid.map((p) => {
+      const count = Math.ceil(need / p[sizeKey]);
+      return {
+        totalCost: count * p[costKey],
+        totalSize: count * p[sizeKey],
+        combo: [{ ...p, count }],
+      };
+    });
+  }
+
+  function collectStep1Candidates(need, packages, sizeKey, costKey) {
+    if (need <= 0) return [{ totalCost: 0, totalSize: 0, combo: [] }];
+    const out = [
+      solveMinCost(need, packages, sizeKey, costKey),
+      solveMinCount(need, packages, sizeKey, costKey),
+      ...singlePackageCombos(need, packages, sizeKey, costKey),
+    ];
+    return out;
+  }
+
+  function collectStep2Candidates(wcoinBuy, coins) {
+    if (wcoinBuy <= 0) return [{ totalCost: 0, totalSize: 0, combo: [] }];
+    return [
+      solveMinCost(wcoinBuy, coins, 'size', 'cost'),
+      solveMinCount(wcoinBuy, coins, 'size', 'cost'),
+      ...singlePackageCombos(wcoinBuy, coins, 'size', 'cost'),
+    ];
+  }
+
+  /**
+   * 최저가 조합보다 결제 횟수를 줄이되, 원화는 cap 이내인 경로만 추천
+   */
+  function findFewerPaymentsWithinPremium(opts) {
+    const {
+      need,
+      points,
+      coins,
+      sizeKey,
+      costKey,
+      ownedWcoin,
+      optimalStep1,
+      optimalStep2,
+    } = opts;
+    const optimalWon = optimalStep2.totalCost;
+    const cap = altWonPremiumCap(optimalWon);
+    const optPurchases = purchaseCount(optimalStep1.combo) + purchaseCount(optimalStep2.combo);
+    const owned = Math.max(0, Number(ownedWcoin) || 0);
+
+    let best = null;
+    collectStep1Candidates(need, points, sizeKey, costKey).forEach((s1) => {
+      const wBuy = Math.max(0, s1.totalCost - owned);
+      collectStep2Candidates(wBuy, coins).forEach((s2) => {
+        const purchases = purchaseCount(s1.combo) + purchaseCount(s2.combo);
+        const won = s2.totalCost;
+        if (won > cap) return;
+        if (purchases >= optPurchases) return;
+        if (
+          !best
+          || purchases < best.purchases
+          || (purchases === best.purchases && won < best.won)
+        ) {
+          best = { step1: s1, step2: s2, purchases, won };
+        }
+      });
+    });
+
+    return { best, cap, optPurchases, optimalWon };
+  }
+
+  function renderAltPurchaseBox(containerId, result, chipLabelMepo) {
+    const el = $(containerId);
+    if (!el || !result) return;
+    const { best, cap, optPurchases, optimalWon } = result;
+    const mepoLabel = chipLabelMepo || '메포';
+
+    if (!best) {
+      el.innerHTML = `
+        <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong> · 결제 <strong>${optPurchases}회</strong></div>
+        <p class="wcoin-alt-empty">비슷한 금액(최저가 +10% 또는 +5,000원 이내, 약 <strong>${fmt(cap)}원</strong>까지)으로는 결제 횟수를 더 줄이기 어려워요.</p>
+        <p class="wcoin-alt-empty wcoin-alt-empty--dim">결제만 크게 줄이면(예: 2회) 금액이 훨씬 올라갈 수 있어요 · 위 <strong>최종 결제 금액</strong> 조합을 쓰는 게 보통 이득입니다.</p>`;
+      return;
+    }
+
+    const diff = best.won - optimalWon;
+    el.innerHTML = `
+      <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong>(${optPurchases}회) · 아래 <strong>${best.purchases}회</strong> · 약 <strong>${fmt(cap)}원</strong> 이내</div>
+      <div class="wcoin-chip-row">${best.step1.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}${mepoLabel} × ${x.count}</span>`).join('')}</div>
+      <div class="wcoin-chip-row">${best.step2.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`).join('')}</div>
+      <div class="wcoin-alt-amount">${fmt(best.won)}원</div>
+      <div class="wcoin-alt-diff">${diff > 0 ? `최저가보다 +${fmt(diff)}원` : '최저가와 동일'}</div>`;
+  }
+
   function attachCommaFormatting(input) {
     if (!input || input.dataset.wcoinComma) return;
     input.dataset.wcoinComma = '1';
@@ -460,23 +562,18 @@
   }
 
   function renderAltCash() {
-    const { mepoNeed, wcoinNeed, ownedWcoin, step1, step2 } = lastCashResult;
-    const alt1 = mepoNeed > 0
-      ? solveMinCount(mepoNeed, settings.points, 'size', 'cost')
-      : { totalCost: 0, totalSize: 0, combo: [] };
-    const altWcoinBuy = Math.max(0, alt1.totalCost - ownedWcoin);
-    const alt2 = altWcoinBuy > 0
-      ? solveMinCount(altWcoinBuy, settings.coins, 'size', 'cost')
-      : { totalCost: 0, totalSize: 0, combo: [] };
-    const altPurchases = purchaseCount(alt1.combo) + purchaseCount(alt2.combo);
-    const optPurchases = purchaseCount(lastCashResult.step1.combo) + purchaseCount(lastCashResult.step2.combo);
-    const diff = alt2.totalCost - lastCashResult.step2.totalCost;
-    $('wcoinAltBoxCash').innerHTML = `
-      <div class="wcoin-alt-title">최저가 조합은 결제 <strong>${optPurchases}회</strong> · 아래는 결제 <strong>${altPurchases}회</strong>로 줄인 방법이에요</div>
-      <div class="wcoin-chip-row">${alt1.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}메포 × ${x.count}</span>`).join('')}</div>
-      <div class="wcoin-chip-row">${alt2.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`).join('')}</div>
-      <div class="wcoin-alt-amount">${fmt(alt2.totalCost)}원</div>
-      <div class="wcoin-alt-diff">${diff > 0 ? `최저가보다 +${fmt(diff)}원` : '최저가와 동일'}</div>`;
+    const { mepoNeed, ownedWcoin, step1, step2 } = lastCashResult;
+    const result = findFewerPaymentsWithinPremium({
+      need: mepoNeed,
+      points: settings.points,
+      coins: settings.coins,
+      sizeKey: 'size',
+      costKey: 'cost',
+      ownedWcoin,
+      optimalStep1: step1,
+      optimalStep2: step2,
+    });
+    renderAltPurchaseBox('wcoinAltBoxCash', result, '메포');
   }
 
   function renderMesoPriceMini() {
@@ -566,17 +663,18 @@
   }
 
   function renderAltMeso() {
-    const alt1 = solveMinCount(lastMesoResult.target, settings.points, 'meso', 'cost');
-    const alt2 = solveMinCount(alt1.totalCost, settings.coins, 'size', 'cost');
-    const altPurchases = purchaseCount(alt1.combo) + purchaseCount(alt2.combo);
-    const optPurchases = purchaseCount(lastMesoResult.step1.combo) + purchaseCount(lastMesoResult.step2.combo);
-    const diff = alt2.totalCost - lastMesoResult.step2.totalCost;
-    $('wcoinAltBoxMeso').innerHTML = `
-      <div class="wcoin-alt-title">최저가 조합은 결제 <strong>${optPurchases}회</strong> · 아래는 결제 <strong>${altPurchases}회</strong>로 줄인 방법이에요</div>
-      <div class="wcoin-chip-row">${alt1.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}메포 × ${x.count}</span>`).join('')}</div>
-      <div class="wcoin-chip-row">${alt2.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`).join('')}</div>
-      <div class="wcoin-alt-amount">${fmt(alt2.totalCost)}원</div>
-      <div class="wcoin-alt-diff">${diff > 0 ? `최저가보다 +${fmt(diff)}원` : '최저가와 동일'}</div>`;
+    const { target, step1, step2 } = lastMesoResult;
+    const result = findFewerPaymentsWithinPremium({
+      need: target,
+      points: settings.points,
+      coins: settings.coins,
+      sizeKey: 'meso',
+      costKey: 'cost',
+      ownedWcoin: 0,
+      optimalStep1: step1,
+      optimalStep2: step2,
+    });
+    renderAltPurchaseBox('wcoinAltBoxMeso', result, '메포');
   }
 
   function renderSettings() {
