@@ -223,8 +223,13 @@
     ];
   }
 
+  /** 캐시샵 원화 결제 = 월드코인 충전 패키지 구매 횟수만 */
+  function cashShopPurchaseCount(step2) {
+    return purchaseCount(step2?.combo || []);
+  }
+
   /**
-   * 최저가 조합보다 결제 횟수를 줄이되, 원화는 cap 이내인 경로만 추천
+   * 최저가 대비 캐시샵(원화) 결제 횟수를 줄이되, 금액은 cap 이내인 경로만 추천
    */
   function findFewerPaymentsWithinPremium(opts) {
     const {
@@ -239,49 +244,69 @@
     } = opts;
     const optimalWon = optimalStep2.totalCost;
     const cap = altWonPremiumCap(optimalWon);
-    const optPurchases = purchaseCount(optimalStep1.combo) + purchaseCount(optimalStep2.combo);
+    const optCashPurchases = cashShopPurchaseCount(optimalStep2);
     const owned = Math.max(0, Number(ownedWcoin) || 0);
 
     let best = null;
     collectStep1Candidates(need, points, sizeKey, costKey).forEach((s1) => {
       const wBuy = Math.max(0, s1.totalCost - owned);
       collectStep2Candidates(wBuy, coins).forEach((s2) => {
-        const purchases = purchaseCount(s1.combo) + purchaseCount(s2.combo);
+        const cashPurchases = cashShopPurchaseCount(s2);
         const won = s2.totalCost;
         if (won > cap) return;
-        if (purchases >= optPurchases) return;
+        if (cashPurchases >= optCashPurchases) return;
         if (
           !best
-          || purchases < best.purchases
-          || (purchases === best.purchases && won < best.won)
+          || cashPurchases < best.cashPurchases
+          || (cashPurchases === best.cashPurchases && won < best.won)
         ) {
-          best = { step1: s1, step2: s2, purchases, won };
+          best = { step1: s1, step2: s2, cashPurchases, won };
         }
       });
     });
 
-    return { best, cap, optPurchases, optimalWon };
+    return { best, cap, optCashPurchases, optimalWon, optimalStep1, optimalStep2 };
+  }
+
+  function altMepoChipsHtml(combo, mepoLabel) {
+    if (!combo || !combo.length) {
+      return '<span class="wcoin-alt-muted">추가 메포 구매 없음</span>';
+    }
+    return combo
+      .map((x) => `<span class="wcoin-chip">${fmt(x.size)}${mepoLabel} × ${x.count}</span>`)
+      .join('');
+  }
+
+  function altWcoinChipsHtml(combo) {
+    if (!combo || !combo.length) {
+      return '<span class="wcoin-alt-muted">캐시샵 충전 없음 (보유 월코로 충분)</span>';
+    }
+    return combo
+      .map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`)
+      .join('');
   }
 
   function renderAltPurchaseBox(containerId, result, chipLabelMepo) {
     const el = $(containerId);
     if (!el || !result) return;
-    const { best, cap, optPurchases, optimalWon } = result;
+    const { best, cap, optCashPurchases, optimalWon } = result;
     const mepoLabel = chipLabelMepo || '메포';
 
     if (!best) {
       el.innerHTML = `
-        <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong> · 결제 <strong>${optPurchases}회</strong></div>
-        <p class="wcoin-alt-empty">비슷한 금액(최저가 +10% 또는 +5,000원 이내, 약 <strong>${fmt(cap)}원</strong>까지)으로는 결제 횟수를 더 줄이기 어려워요.</p>
-        <p class="wcoin-alt-empty wcoin-alt-empty--dim">결제만 크게 줄이면(예: 2회) 금액이 훨씬 올라갈 수 있어요 · 위 <strong>최종 결제 금액</strong> 조합을 쓰는 게 보통 이득입니다.</p>`;
+        <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong> · 캐시샵(원화) <strong>${optCashPurchases}회</strong></div>
+        <p class="wcoin-alt-empty">비슷한 금액(최저가 +10% 또는 +5,000원 이내, 약 <strong>${fmt(cap)}원</strong>까지)으로는 <strong>캐시샵 결제</strong>를 더 줄이기 어려워요.</p>
+        <p class="wcoin-alt-empty wcoin-alt-empty--dim">원화 결제만 1~2번으로 줄이려면 금액이 크게 올라갈 수 있어요 · 위 <strong>최종 결제 금액</strong> 조합을 쓰는 게 보통 이득입니다.</p>`;
       return;
     }
 
     const diff = best.won - optimalWon;
     el.innerHTML = `
-      <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong>(${optPurchases}회) · 아래 <strong>${best.purchases}회</strong> · 약 <strong>${fmt(cap)}원</strong> 이내</div>
-      <div class="wcoin-chip-row">${best.step1.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}${mepoLabel} × ${x.count}</span>`).join('')}</div>
-      <div class="wcoin-chip-row">${best.step2.combo.map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`).join('')}</div>
+      <div class="wcoin-alt-title">캐시샵(원화) <strong>${optCashPurchases}회</strong> → <strong>${best.cashPurchases}회</strong> · 약 <strong>${fmt(cap)}원</strong> 이내</div>
+      <p class="wcoin-alt-section-label">① 월코로 메포 구매 <span class="wcoin-alt-section-hint">게임 내 · 원화 결제 아님</span></p>
+      <div class="wcoin-chip-row">${altMepoChipsHtml(best.step1.combo, mepoLabel)}</div>
+      <p class="wcoin-alt-section-label">② 캐시샵 월코 충전 <span class="wcoin-alt-section-hint">원화 결제</span></p>
+      <div class="wcoin-chip-row">${altWcoinChipsHtml(best.step2.combo)}</div>
       <div class="wcoin-alt-amount">${fmt(best.won)}원</div>
       <div class="wcoin-alt-diff">${diff > 0 ? `최저가보다 +${fmt(diff)}원` : '최저가와 동일'}</div>`;
   }
@@ -336,7 +361,7 @@
           <div class="wcoin-input-row">
             <input type="text" id="wcoinCashInput" placeholder="예: 23,000" inputmode="numeric" autocomplete="off">
           </div>
-          <p class="wcoin-owned-hint">보유 메포·월코는 <strong>선택</strong> · 비우면 0 · 확인 후 자동으로 비워져요 (저장 안 함)</p>
+          <p class="wcoin-owned-hint">보유 메포·월코는 <strong>선택</strong> · 비우면 0 · 팝업을 다시 열면 칸이 비워져요 (저장 안 함)</p>
           <div class="wcoin-owned-row">
             <div class="wcoin-field wcoin-field--owned">
               <span class="wcoin-unit-tag wcoin-unit-tag--mepo">보유 메포</span>
@@ -374,7 +399,7 @@
               <button type="button" class="btn-linkish" id="wcoinCopyCashBtn">결과 복사</button>
             </div>
             <div class="wcoin-alt-toggle">
-              <button type="button" class="btn-linkish" id="wcoinAltToggleCash">🛒 결제 횟수 줄인 방법 보기</button>
+              <button type="button" class="btn-linkish" id="wcoinAltToggleCash">🛒 캐시샵 결제(원화) 줄이기</button>
             </div>
             <div class="wcoin-alt-box wcoin-result-hidden" id="wcoinAltBoxCash"></div>
           </div>
@@ -418,7 +443,7 @@
               <button type="button" class="btn-linkish" id="wcoinCopyMesoBtn">결과 복사</button>
             </div>
             <div class="wcoin-alt-toggle">
-              <button type="button" class="btn-linkish" id="wcoinAltToggleMeso">🛒 결제 횟수 줄인 방법 보기</button>
+              <button type="button" class="btn-linkish" id="wcoinAltToggleMeso">🛒 캐시샵 결제(원화) 줄이기</button>
             </div>
             <div class="wcoin-alt-box wcoin-result-hidden" id="wcoinAltBoxMeso"></div>
           </div>
@@ -488,7 +513,7 @@
       : { totalCost: 0, totalSize: 0, combo: [] };
 
     $('wcoinAltBoxCash').classList.add('wcoin-result-hidden');
-    $('wcoinAltToggleCash').textContent = '🛒 결제 횟수 줄인 방법 보기';
+    $('wcoinAltToggleCash').textContent = '🛒 캐시샵 결제(원화) 줄이기';
 
     $('wcoinCashResultArea').classList.remove('wcoin-result-hidden');
     $('wcoinCCash').textContent = `${fmt(target)} 캐시`;
@@ -541,7 +566,6 @@
 
     $('wcoinCashFinalWon').textContent = `${fmt(step2.totalCost)}원`;
     lastCashResult = { target, ownedMepo, ownedWcoin, mepoNeed, wcoinNeed, step1, step2 };
-    clearCashOwnedInputs();
   }
 
   function buildCashSummaryText() {
@@ -622,7 +646,7 @@
     }
 
     $('wcoinAltBoxMeso').classList.add('wcoin-result-hidden');
-    $('wcoinAltToggleMeso').textContent = '🛒 결제 횟수 줄인 방법 보기';
+    $('wcoinAltToggleMeso').textContent = '🛒 캐시샵 결제(원화) 줄이기';
 
     const step1 = solveMinCost(target, settings.points, 'meso', 'cost');
     const step2 = solveMinCost(step1.totalCost, settings.coins, 'size', 'cost');
