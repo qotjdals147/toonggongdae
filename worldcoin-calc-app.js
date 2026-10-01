@@ -233,6 +233,19 @@
           <label class="wcoin-label" for="wcoinCashInput">지출 캐시 (캐시템 가격 합계)</label>
           <div class="wcoin-input-row">
             <input type="text" id="wcoinCashInput" placeholder="예: 23,000" inputmode="numeric" autocomplete="off">
+          </div>
+          <p class="wcoin-owned-hint">보유 메포·월코는 <strong>선택</strong> · 비우면 0 · 확인 후 자동으로 비워져요 (저장 안 함)</p>
+          <div class="wcoin-owned-row">
+            <div class="wcoin-field wcoin-field--owned">
+              <span class="wcoin-unit-tag wcoin-unit-tag--mepo">보유 메포</span>
+              <input type="text" id="wcoinOwnedMepo" placeholder="비움 = 0" inputmode="numeric" autocomplete="off" aria-label="보유 메이플포인트">
+            </div>
+            <div class="wcoin-field wcoin-field--owned">
+              <span class="wcoin-unit-tag wcoin-unit-tag--wcoin">보유 월코</span>
+              <input type="text" id="wcoinOwnedWcoin" placeholder="비움 = 0" inputmode="numeric" autocomplete="off" aria-label="보유 월드코인">
+            </div>
+          </div>
+          <div class="wcoin-cash-actions">
             <button type="button" class="btn-settle btn-sm" id="wcoinCalcCashBtn">확인</button>
           </div>
         </div>
@@ -242,6 +255,7 @@
               <div class="wcoin-flow-label">지출 캐시</div>
               <div class="wcoin-flow-value" id="wcoinCCash">-</div>
             </div>
+            <p class="wcoin-flow-note" id="wcoinCCashOwned" hidden></p>
             <div class="wcoin-flow-step">
               <div class="wcoin-flow-label">메이플포인트 구매 <span id="wcoinC1Over"></span></div>
               <div class="wcoin-flow-value" id="wcoinC1Bought">-</div>
@@ -333,6 +347,13 @@
     wireUi();
   }
 
+  function clearCashOwnedInputs() {
+    const mepo = $('wcoinOwnedMepo');
+    const wcoin = $('wcoinOwnedWcoin');
+    if (mepo) mepo.value = '';
+    if (wcoin) wcoin.value = '';
+  }
+
   function setActiveTab(tab) {
     document.querySelectorAll('[data-wcoin-tab]').forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.wcoinTab === tab);
@@ -353,48 +374,100 @@
     }
     if (!checkLimit(target, 50000000)) return;
 
+    const ownedMepo = parseNum($('wcoinOwnedMepo')?.value);
+    const ownedWcoin = parseNum($('wcoinOwnedWcoin')?.value);
+    const mepoNeed = Math.max(0, target - ownedMepo);
+    const step1 = mepoNeed > 0
+      ? solveMinCost(mepoNeed, settings.points, 'size', 'cost')
+      : { totalCost: 0, totalSize: 0, combo: [] };
+    const wcoinNeed = Math.max(0, step1.totalCost - ownedWcoin);
+    const step2 = wcoinNeed > 0
+      ? solveMinCost(wcoinNeed, settings.coins, 'size', 'cost')
+      : { totalCost: 0, totalSize: 0, combo: [] };
+
     $('wcoinAltBoxCash').classList.add('wcoin-result-hidden');
     $('wcoinAltToggleCash').textContent = '🛒 결제 횟수 줄인 방법 보기';
-
-    const step1 = solveMinCost(target, settings.points, 'size', 'cost');
-    const step2 = solveMinCost(step1.totalCost, settings.coins, 'size', 'cost');
 
     $('wcoinCashResultArea').classList.remove('wcoin-result-hidden');
     $('wcoinCCash').textContent = `${fmt(target)} 캐시`;
 
-    $('wcoinC1Bought').textContent = `${fmt(step1.totalSize)} 메포`;
-    const over1 = step1.totalSize - target;
-    $('wcoinC1Over').textContent = over1 > 0 ? `(+${fmt(over1)} 여유)` : '';
-    $('wcoinC1Chips').innerHTML = step1.combo
-      .map((x) => `<span class="wcoin-chip">${fmt(x.size)}메포 × ${x.count}</span>`)
-      .join('');
+    const ownedEl = $('wcoinCCashOwned');
+    if (ownedEl) {
+      const parts = [];
+      if (ownedMepo > 0) {
+        parts.push(`보유 메포 ${fmt(ownedMepo)} 차감 → 추가 필요 ${fmt(mepoNeed)}`);
+      }
+      if (ownedWcoin > 0 && step1.totalCost > 0) {
+        parts.push(`보유 월코 ${fmt(ownedWcoin)} 차감 → 충전 필요 ${fmt(wcoinNeed)}`);
+      } else if (ownedWcoin > 0 && step1.totalCost === 0 && ownedMepo > 0) {
+        parts.push(`보유 월코 ${fmt(ownedWcoin)} (메포 추가 구매 없음)`);
+      }
+      if (parts.length) {
+        ownedEl.textContent = parts.join(' · ');
+        ownedEl.hidden = false;
+      } else {
+        ownedEl.textContent = '';
+        ownedEl.hidden = true;
+      }
+    }
 
-    $('wcoinC2Bought').textContent = `${fmt(step2.totalSize)} 월드코인`;
-    const over2 = step2.totalSize - step1.totalCost;
-    $('wcoinC2Over').textContent = over2 > 0 ? `(+${fmt(over2)} 여유)` : '';
-    $('wcoinC2Chips').innerHTML = step2.combo
-      .map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`)
-      .join('');
+    if (mepoNeed <= 0) {
+      $('wcoinC1Bought').textContent = '추가 구매 없음';
+      $('wcoinC1Over').textContent = ownedMepo >= target ? '(보유로 충분)' : '';
+      $('wcoinC1Chips').innerHTML = '';
+    } else {
+      $('wcoinC1Bought').textContent = `${fmt(step1.totalSize)} 메포`;
+      const over1 = step1.totalSize - mepoNeed;
+      $('wcoinC1Over').textContent = over1 > 0 ? `(+${fmt(over1)} 여유)` : '';
+      $('wcoinC1Chips').innerHTML = step1.combo
+        .map((x) => `<span class="wcoin-chip">${fmt(x.size)}메포 × ${x.count}</span>`)
+        .join('');
+    }
+
+    if (wcoinNeed <= 0) {
+      $('wcoinC2Bought').textContent = '추가 충전 없음';
+      $('wcoinC2Over').textContent = ownedWcoin >= step1.totalCost && step1.totalCost > 0 ? '(보유로 충분)' : '';
+      $('wcoinC2Chips').innerHTML = '';
+    } else {
+      $('wcoinC2Bought').textContent = `${fmt(step2.totalSize)} 월드코인`;
+      const over2 = step2.totalSize - wcoinNeed;
+      $('wcoinC2Over').textContent = over2 > 0 ? `(+${fmt(over2)} 여유)` : '';
+      $('wcoinC2Chips').innerHTML = step2.combo
+        .map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`)
+        .join('');
+    }
 
     $('wcoinCashFinalWon').textContent = `${fmt(step2.totalCost)}원`;
-    lastCashResult = { target, step1, step2 };
+    lastCashResult = { target, ownedMepo, ownedWcoin, mepoNeed, wcoinNeed, step1, step2 };
+    clearCashOwnedInputs();
   }
 
   function buildCashSummaryText() {
     if (!lastCashResult) return '';
-    const { target, step1, step2 } = lastCashResult;
-    return [
-      `[캐시템 구매] 목표 캐시 ${fmt(target)}`,
-      `- 메이플포인트: ${step1.combo.map((x) => `${fmt(x.size)}메포×${x.count}`).join(' + ')} = ${fmt(step1.totalSize)}메포`,
-      `- 필요 월드코인: ${fmt(step1.totalCost)}`,
-      `- 월드코인 구매: ${step2.combo.map((x) => `${fmt(x.size)}개×${x.count}`).join(' + ')} = ${fmt(step2.totalSize)}개`,
-      `- 최종 결제 금액: ${fmt(step2.totalCost)}원`,
-    ].join('\n');
+    const { target, ownedMepo, ownedWcoin, mepoNeed, wcoinNeed, step1, step2 } = lastCashResult;
+    const lines = [`[캐시템 구매] 목표 캐시 ${fmt(target)}`];
+    if (ownedMepo > 0) lines.push(`- 보유 메포 ${fmt(ownedMepo)} → 추가 필요 ${fmt(mepoNeed)}`);
+    if (mepoNeed > 0) {
+      lines.push(`- 메이플포인트: ${step1.combo.map((x) => `${fmt(x.size)}메포×${x.count}`).join(' + ')} = ${fmt(step1.totalSize)}메포`);
+      lines.push(`- 필요 월드코인(메포 구매): ${fmt(step1.totalCost)}`);
+    } else lines.push('- 메이플포인트: 보유로 충분 · 추가 구매 없음');
+    if (ownedWcoin > 0) lines.push(`- 보유 월코 ${fmt(ownedWcoin)} → 충전 필요 ${fmt(wcoinNeed)}`);
+    if (wcoinNeed > 0) {
+      lines.push(`- 월드코인 구매: ${step2.combo.map((x) => `${fmt(x.size)}개×${x.count}`).join(' + ')} = ${fmt(step2.totalSize)}개`);
+    } else lines.push('- 월드코인: 보유로 충분 · 추가 충전 없음');
+    lines.push(`- 최종 결제 금액: ${fmt(step2.totalCost)}원`);
+    return lines.join('\n');
   }
 
   function renderAltCash() {
-    const alt1 = solveMinCount(lastCashResult.target, settings.points, 'size', 'cost');
-    const alt2 = solveMinCount(alt1.totalCost, settings.coins, 'size', 'cost');
+    const { mepoNeed, wcoinNeed, ownedWcoin, step1, step2 } = lastCashResult;
+    const alt1 = mepoNeed > 0
+      ? solveMinCount(mepoNeed, settings.points, 'size', 'cost')
+      : { totalCost: 0, totalSize: 0, combo: [] };
+    const altWcoinBuy = Math.max(0, alt1.totalCost - ownedWcoin);
+    const alt2 = altWcoinBuy > 0
+      ? solveMinCount(altWcoinBuy, settings.coins, 'size', 'cost')
+      : { totalCost: 0, totalSize: 0, combo: [] };
     const altPurchases = purchaseCount(alt1.combo) + purchaseCount(alt2.combo);
     const optPurchases = purchaseCount(lastCashResult.step1.combo) + purchaseCount(lastCashResult.step2.combo);
     const diff = alt2.totalCost - lastCashResult.step2.totalCost;
@@ -657,6 +730,8 @@
     });
 
     attachCommaFormatting($('wcoinCashInput'));
+    attachCommaFormatting($('wcoinOwnedMepo'));
+    attachCommaFormatting($('wcoinOwnedWcoin'));
     attachCommaFormatting($('wcoinMesoInput'));
     renderSettings();
     renderMesoPriceMini();
@@ -669,7 +744,13 @@
   }
 
   function openModal() {
+    if (mounted && !$('wcoinOwnedMepo')) {
+      mounted = false;
+      const root = $('worldcoinCalcApp');
+      if (root) root.innerHTML = '';
+    }
     mountTemplate();
+    clearCashOwnedInputs();
     settings = loadSettings();
     renderSettings();
     renderMesoPriceMini();
