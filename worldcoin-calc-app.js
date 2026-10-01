@@ -788,10 +788,10 @@
       if (box.classList.contains('wcoin-result-hidden')) {
         renderAltCash();
         box.classList.remove('wcoin-result-hidden');
-        btn.textContent = '간편 구매 방법 숨기기';
+        btn.textContent = '캐시샵 결제 줄이기 숨기기';
       } else {
         box.classList.add('wcoin-result-hidden');
-        btn.textContent = '🛒 결제 횟수 줄인 방법 보기';
+        btn.textContent = '🛒 캐시샵 결제(원화) 줄이기';
       }
     });
 
@@ -812,10 +812,10 @@
       if (box.classList.contains('wcoin-result-hidden')) {
         renderAltMeso();
         box.classList.remove('wcoin-result-hidden');
-        btn.textContent = '간편 구매 방법 숨기기';
+        btn.textContent = '캐시샵 결제 줄이기 숨기기';
       } else {
         box.classList.add('wcoin-result-hidden');
-        btn.textContent = '🛒 결제 횟수 줄인 방법 보기';
+        btn.textContent = '🛒 캐시샵 결제(원화) 줄이기';
       }
     });
 
