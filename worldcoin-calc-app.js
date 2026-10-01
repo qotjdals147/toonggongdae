@@ -313,11 +313,13 @@
         <div class="wcoin-settings-body">
           <div class="wcoin-settings-col">
             <h4>메이플포인트 · 월드코인 · 메소시세</h4>
+            <p class="wcoin-settings-legend">한 줄 = <strong>메포 패키지</strong> 구매에 쓰는 <strong>월코(월드코인)</strong> · 그 메포를 팔면 받는 <strong>메소</strong></p>
             <div id="wcoinPointRows"></div>
             <button type="button" class="btn-linkish" id="wcoinAddPointRow">+ 항목 추가</button>
           </div>
           <div class="wcoin-settings-col">
             <h4>월드코인 · 원화</h4>
+            <p class="wcoin-settings-legend">캐시샵에서 <strong>월드코인 ○○개</strong> 충전 = <strong>○○원</strong> 결제</p>
             <div id="wcoinCoinRows"></div>
             <button type="button" class="btn-linkish" id="wcoinAddCoinRow">+ 항목 추가</button>
           </div>
@@ -508,21 +510,39 @@
     $('wcoinPointRows').innerHTML = settings.points
       .map(
         (p, idx) => `
-    <div class="wcoin-row-edit" data-type="points" data-idx="${idx}">
-      <input type="text" inputmode="numeric" autocomplete="off" class="size" value="${fmt(p.size)}"> <span>메포 /</span>
-      <input type="text" inputmode="numeric" autocomplete="off" class="cost" value="${fmt(p.cost)}"> <span>월코 /</span>
-      <input type="text" inputmode="numeric" autocomplete="off" class="meso" value="${p.meso ? fmt(p.meso) : ''}"> <span>메소</span>
-      <button type="button" class="wcoin-rm remove-row" aria-label="삭제">✕</button>
+    <div class="wcoin-row-edit wcoin-row-edit--points" data-type="points" data-idx="${idx}">
+      <div class="wcoin-field">
+        <span class="wcoin-unit-tag wcoin-unit-tag--mepo">메포 · 패키지</span>
+        <input type="text" inputmode="numeric" autocomplete="off" class="size" value="${fmt(p.size)}" aria-label="메이플포인트 패키지 크기">
+      </div>
+      <span class="wcoin-field-sep" aria-hidden="true">→</span>
+      <div class="wcoin-field">
+        <span class="wcoin-unit-tag wcoin-unit-tag--wcoin">월코 · 구매가</span>
+        <input type="text" inputmode="numeric" autocomplete="off" class="cost" value="${fmt(p.cost)}" aria-label="월드코인 가격">
+      </div>
+      <span class="wcoin-field-sep" aria-hidden="true">→</span>
+      <div class="wcoin-field">
+        <span class="wcoin-unit-tag wcoin-unit-tag--meso">메소 · 판매가</span>
+        <input type="text" inputmode="numeric" autocomplete="off" class="meso" value="${p.meso ? fmt(p.meso) : ''}" aria-label="메포 판매 시 받는 메소">
+      </div>
+      <button type="button" class="wcoin-rm remove-row" aria-label="이 줄 삭제">✕</button>
     </div>`
       )
       .join('');
     $('wcoinCoinRows').innerHTML = settings.coins
       .map(
         (c, idx) => `
-    <div class="wcoin-row-edit" data-type="coins" data-idx="${idx}">
-      <input type="text" inputmode="numeric" autocomplete="off" class="size" value="${fmt(c.size)}"> <span>개 =</span>
-      <input type="text" inputmode="numeric" autocomplete="off" class="cost" value="${fmt(c.cost)}"> <span>원</span>
-      <button type="button" class="wcoin-rm remove-row" aria-label="삭제">✕</button>
+    <div class="wcoin-row-edit wcoin-row-edit--coins" data-type="coins" data-idx="${idx}">
+      <div class="wcoin-field">
+        <span class="wcoin-unit-tag wcoin-unit-tag--count">월드코인 · 개수</span>
+        <input type="text" inputmode="numeric" autocomplete="off" class="size" value="${fmt(c.size)}" aria-label="월드코인 개수">
+      </div>
+      <span class="wcoin-field-sep" aria-hidden="true">=</span>
+      <div class="wcoin-field">
+        <span class="wcoin-unit-tag wcoin-unit-tag--won">원화 · 결제</span>
+        <input type="text" inputmode="numeric" autocomplete="off" class="cost" value="${fmt(c.cost)}" aria-label="결제 원화">
+      </div>
+      <button type="button" class="wcoin-rm remove-row" aria-label="이 줄 삭제">✕</button>
     </div>`
       )
       .join('');
