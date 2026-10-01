@@ -179,7 +179,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 마스터 옵션(배퉁) | 공대원 **M** → `#challengeAdminModal` · 몬스터 카탈로그(마스터) · monster AC **아이콘** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
-| 월드코인 계산기 | `#worldcoinCalcBtn` · `#worldcoinCalcModal` · 캐시템/메포 탭 · DP 최저가·결제횟수 대안 · `worldcoin-calc-app.js` |
+| 월드코인 계산기 | `#worldcoinCalcBtn` · `#worldcoinCalcModal` · **§5.4** · `worldcoin-calc-app.js` |
 | 핫이슈 대상 | `#hotIssueTargetPicks` **복수 체크** · 대상마다 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -194,6 +194,41 @@ legacySummaryOnly (옛 회차 요약만)
 - **배경 스크롤 잠금:** `installOverlayScrollLock()` · `.modal-backdrop` / `#hotIssueLightbox` `hidden` 감시 → `body.is-modal-scroll-locked` (`position: fixed` + scrollY 복원).
 - **체이닝 완화:** `.modal` · `.hot-feed` — `overscroll-behavior: contain` · backdrop `overflow: hidden`.
 - **핫이슈:** `.modal-hot-issue` flex · 피드만 세로 스크롤 (모달 전체+피드 이중 스크롤 축소).
+
+### 5.4 월드코인 계산기 (`worldcoin-calc-app.js`)
+
+**장부와 분리:** `state` / Supabase **무관** · 패키지 표는 **`localStorage`** `maple_worldcoin_calc_settings_v3` · Realtime만 **`modalBlocksRemote()`**에 `#worldcoinCalcModal` 등록.
+
+**화폐 모델 (UI 문구 기준):**
+
+| 층 | 이름 | 비유 |
+|----|------|------|
+| 원화 | 카드/플랫폼 결제 | — |
+| **플랫폼** | **월드코인** | 로블록스 **로벅스** |
+| **메이플 랜드** | **메이플포인트(메포)** | 해당 월드 **캐시** (캐시템 1:1) |
+
+흐름: **원화 → 플랫폼 월코 충전 → 랜드에서 메포 충전(월코) → 캐시템/메소**.
+
+**진입:** 헤더 **참고** 탭 `#worldcoinCalcBtn` · `WorldcoinCalcApp.init({ $ })` · `openModal` / `closeModal` · 셸·CSS는 `index.html` (`#worldcoinCalcModal`, `.wcoin-*`).
+
+**탭:**
+
+1. **캐시템 구매** — 목표 **메포**(캐시템 합계, 1:1) · 선택 **보유 메포·보유 월코** → `mepoNeed = target - ownedMepo` · step1 **월코로 메포** · `wcoinNeed = step1.totalCost - ownedWcoin` · step2 **원화로 월코**.
+2. **메포 판매** — 목표 **메소** · 패키지별 **메소 시세**(`settings.points[].meso`) 필요 · step1 메소 달성용 메포(월코) · step2 월코(원화).
+
+**알고리즘 (핵심):**
+
+- 기본 조합: **`solveMinCost`** — ① 필요 **월코 총량** / ② 필요 **원화 총액** 각각 **최소** (무한 knapsack DP, 큰 수는 `DP_SAFE_LIMIT` 분할).
+- **「플랫폼 원화 결제 줄이기」** (`findFewerPaymentsWithinPremium`): **② 캐시샵 원화 결제 횟수**(`cashShopPurchaseCount` = step2 패키지 count 합)만 줄임 · ① 후보는 `solveMinCost` / `solveMinCount` / 단일 패키지 ceil 등 **`collectStep1Candidates`** · 허용 추가금 **`altWonPremiumCap`**: `optimalWon + max(5000, round(10%))` · cap 밖·횟수 개선 없으면 empty 안내 (**48k×2 같은 극단 조합 미표시**).
+- **① 메포 구매 횟수(5,000×4 vs 10,000×2)는 기본 목표 아님** — 월코 최소가 우선 · 패키지 효율이 다르면 조합별 **월코·원화가 달라짐** · 월코 같을 때 “적게 사기” 전용 UI는 **미구현**(요청 시 ①용 min-count+premium 패턴 가능).
+
+**보유 입력:** `#wcoinOwnedMepo` / `#wcoinOwnedWcoin` — **저장 안 함** · **`openModal()` 때만** `clearCashOwnedInputs()` · **확인(계산) 후에는 유지**.
+
+**설정 UI:** `details#wcoinSettingsPanel` — points(메포 패키지↔월코↔메소) · coins(플랫폼 월코↔원화) · 단위 태그 `.wcoin-unit-tag--*`.
+
+**회귀·캐시:** GitHub Pages는 배포 후 **Ctrl+F5** · 구 UI(「결제 11회·2회」·캐시샵 혼용 문구)는 구 JS 캐시.
+
+**최근 main (월드코인):** `551f995` (문구) ← `f135193` (원화 횟수·보유 초기화) ← `5989723` (premium cap).
 
 ### 5.2 공대원 카드 (`#membersGrid` · `gamificationActive()`)
 
@@ -326,6 +361,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-01** — **HANDOFF §5.4** 월드코인 계산기 인수인계 (화폐 모델·DP·원화 횟수 줄이기·보유 입력·미구현 ① 횟수)
 - **2026-10-01** — 월드코인 계산기 UI — **플랫폼(월코·원화)** vs **메이플 랜드(메포)** 문구 정리
 - **2026-10-01** — 월드코인 **플랫폼 원화 결제 줄이기** — **원화(월코 충전) 횟수**만 집계 · 보유 칸 **팝업 열 때만** 초기화
 - **2026-10-01** — 월드코인 **간편 구매** — **최저가 +10%/+5천원 이내**만 추천 (극단 조합 미표시)
@@ -526,17 +562,18 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 ---
 
-## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-09-21)
+## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-10-01)
 
-**최근 main:** `7b46119` (처치 unlock sync · 어싸만코 assets) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
+**최근 main:** `551f995` (월드코인 문구·§5.4) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
 
 | 영역 | 상태 |
 |------|------|
+| **월드코인 계산기** | §5.4 · `worldcoin-calc-app.js` · localStorage · **장부 state 무관** |
 | **처치 기록** | 공동 `#monsterKillModal` · `monsterKillCounts` · +1→unlock sync · stale bucket fix |
 | **훈장** | 좌/우붕어싸만코 = **monster_kill 도전** + `CHALLENGE_TITLE_ASSETS` · 고유≠어싸만코 |
 | **마스터** | **M** → `#challengeAdminModal` · 도구 **처치 기록** |
 | **타이머** | PIP · soundProfiles(마스터) |
-| **헤더** | NPC 도구 카드 · 배너 |
+| **헤더** | NPC 도구 카드 · 배너 · **참고=월드코인** |
 
 **회귀 주의:** Realtime 구버전 JSON · `catalogAssetUrl` 이중 인코딩 · progress만 “완료”인데 unlock 없음.
 
@@ -583,4 +620,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-01 (월드코인 계산기)*
+*Last updated: 2026-10-01 (HANDOFF §5.4 월드코인 인수인계)*
