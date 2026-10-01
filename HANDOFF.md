@@ -27,6 +27,7 @@
 | `image/몬스터/` | 보스·몬스터 GIF/PNG · 처치 도전 아이콘 (`challengeMonsterCatalog`) |
 | **`maple-party-ledger.html`** | **배포/미러용 복사본.** 변경 시 `index.html`과 **항상 동일**하게 유지 (`Copy-Item -Force`). |
 | **`party-timer-app.js`** | **퉁공대 타이머** 로직 · `#partyTimerModal` + Document PiP · `state.partyTimer`는 `scheduleSave` |
+| **`worldcoin-calc-app.js`** | **월드코인 계산기** · `#worldcoinCalcModal` · 패키지 설정은 **localStorage** (`maple_worldcoin_calc_settings_v3`) · 장부 state **무관** |
 | **`party-timer.html`** | 구 URL → `index.html?openTimer=1` 리다이렉트만 |
 | `image/아이콘/` | meso·섹션 아이콘 |
 | `image/훈장아이콘/` | 레벨·도전 칭호 PNG |
@@ -168,7 +169,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `#appHeaderBanner` · **공대 도구** 상시 노출 · `app-tool-card` + `image/NPC/*` · **연결 상태=마스터 옵션만** |
+| 상단 헤더 | `#appHeaderBanner` · **공대 도구** 상시 노출 · `app-tool-card` + `image/NPC/*` · **참고:** 수수료·**월드코인 계산기** · **연결 상태=마스터 옵션만** |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -178,6 +179,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 마스터 옵션(배퉁) | 공대원 **M** → `#challengeAdminModal` · 몬스터 카탈로그(마스터) · monster AC **아이콘** |
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
+| 월드코인 계산기 | `#worldcoinCalcBtn` · `#worldcoinCalcModal` · 캐시템/메포 탭 · DP 최저가·결제횟수 대안 · `worldcoin-calc-app.js` |
 | 핫이슈 대상 | `#hotIssueTargetPicks` **복수 체크** · 대상마다 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -324,6 +326,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-01** — **월드코인 계산기** 모달 · `worldcoin-calc-app.js` · 공대 도구 **참고** 탭 · `image/아이콘/월드코인.png`
 - **2026-09-22** — 메이커 재련 **같은 회차·재련자·보석 → 한 줄 합산** (하/중/상·메소 누적 · 기존 중복 load 시 merge)
 - **2026-09-22** — fix: **차원의 균열** 훈장 아이콘 — 몬스터 sync가 `ch.icon` 덮어쓰지 않음 · `applyKnownChallengeAssets` 재적용 · 공대장 왕관 **+25%·상승·금빛 스파클**
 - **2026-09-21** — 도전 훈장 **차원의 균열** → `CHALLENGE_TITLE_ASSETS` · `image/훈장아이콘/차원의 균열.png`
@@ -575,4 +578,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-09-22 (차원의 균열 아이콘 fix · 공대장 왕관 FX)*
+*Last updated: 2026-10-01 (월드코인 계산기)*
