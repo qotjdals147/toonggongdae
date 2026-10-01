@@ -270,7 +270,7 @@
 
   function altMepoChipsHtml(combo, mepoLabel) {
     if (!combo || !combo.length) {
-      return '<span class="wcoin-alt-muted">추가 메포 구매 없음</span>';
+      return '<span class="wcoin-alt-muted">메포 추가 충전 없음</span>';
     }
     return combo
       .map((x) => `<span class="wcoin-chip">${fmt(x.size)}${mepoLabel} × ${x.count}</span>`)
@@ -279,7 +279,7 @@
 
   function altWcoinChipsHtml(combo) {
     if (!combo || !combo.length) {
-      return '<span class="wcoin-alt-muted">캐시샵 충전 없음 (보유 월코로 충분)</span>';
+      return '<span class="wcoin-alt-muted">플랫폼 충전 없음 (보유 월코로 충분)</span>';
     }
     return combo
       .map((x) => `<span class="wcoin-chip">${fmt(x.size)}개 × ${x.count}</span>`)
@@ -294,18 +294,18 @@
 
     if (!best) {
       el.innerHTML = `
-        <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong> · 캐시샵(원화) <strong>${optCashPurchases}회</strong></div>
-        <p class="wcoin-alt-empty">비슷한 금액(최저가 +10% 또는 +5,000원 이내, 약 <strong>${fmt(cap)}원</strong>까지)으로는 <strong>캐시샵 결제</strong>를 더 줄이기 어려워요.</p>
-        <p class="wcoin-alt-empty wcoin-alt-empty--dim">원화 결제만 1~2번으로 줄이려면 금액이 크게 올라갈 수 있어요 · 위 <strong>최종 결제 금액</strong> 조합을 쓰는 게 보통 이득입니다.</p>`;
+        <div class="wcoin-alt-title">최저가 <strong>${fmt(optimalWon)}원</strong> · 플랫폼 원화 <strong>${optCashPurchases}회</strong></div>
+        <p class="wcoin-alt-empty">비슷한 금액(최저가 +10% 또는 +5,000원 이내, 약 <strong>${fmt(cap)}원</strong>까지)으로는 <strong>플랫폼에서 월코 충전(원화)</strong> 횟수를 더 줄이기 어려워요.</p>
+        <p class="wcoin-alt-empty wcoin-alt-empty--dim">원화 결제만 1~2번으로 줄이려면 금액이 크게 올라갈 수 있어요 · 위 <strong>최종 원화 결제</strong> 조합을 쓰는 게 보통 이득입니다.</p>`;
       return;
     }
 
     const diff = best.won - optimalWon;
     el.innerHTML = `
-      <div class="wcoin-alt-title">캐시샵(원화) <strong>${optCashPurchases}회</strong> → <strong>${best.cashPurchases}회</strong> · 약 <strong>${fmt(cap)}원</strong> 이내</div>
-      <p class="wcoin-alt-section-label">① 월코로 메포 구매 <span class="wcoin-alt-section-hint">게임 내 · 원화 결제 아님</span></p>
+      <div class="wcoin-alt-title">플랫폼 원화 <strong>${optCashPurchases}회</strong> → <strong>${best.cashPurchases}회</strong> · 약 <strong>${fmt(cap)}원</strong> 이내</div>
+      <p class="wcoin-alt-section-label">① 메이플 랜드 · 메포 충전 <span class="wcoin-alt-section-hint">월코 결제 · 원화 아님</span></p>
       <div class="wcoin-chip-row">${altMepoChipsHtml(best.step1.combo, mepoLabel)}</div>
-      <p class="wcoin-alt-section-label">② 캐시샵 월코 충전 <span class="wcoin-alt-section-hint">원화 결제</span></p>
+      <p class="wcoin-alt-section-label">② 플랫폼 · 월드코인 충전 <span class="wcoin-alt-section-hint">원화 결제</span></p>
       <div class="wcoin-chip-row">${altWcoinChipsHtml(best.step2.combo)}</div>
       <div class="wcoin-alt-amount">${fmt(best.won)}원</div>
       <div class="wcoin-alt-diff">${diff > 0 ? `최저가보다 +${fmt(diff)}원` : '최저가와 동일'}</div>`;
@@ -357,11 +357,11 @@
       </div>
       <div class="wcoin-panel is-active" id="wcoinTabCash" data-wcoin-panel="cash">
         <div class="wcoin-card">
-          <label class="wcoin-label" for="wcoinCashInput">지출 캐시 (캐시템 가격 합계)</label>
+          <label class="wcoin-label" for="wcoinCashInput">캐시템 지출 (메이플 랜드 · 메포 1:1 합계)</label>
           <div class="wcoin-input-row">
             <input type="text" id="wcoinCashInput" placeholder="예: 23,000" inputmode="numeric" autocomplete="off">
           </div>
-          <p class="wcoin-owned-hint">보유 메포·월코는 <strong>선택</strong> · 비우면 0 · 팝업을 다시 열면 칸이 비워져요 (저장 안 함)</p>
+          <p class="wcoin-owned-hint">보유 메포(랜드 캐시)·월코(플랫폼)는 <strong>선택</strong> · 비우면 0 · 팝업을 다시 열면 칸이 비워져요 (저장 안 함)</p>
           <div class="wcoin-owned-row">
             <div class="wcoin-field wcoin-field--owned">
               <span class="wcoin-unit-tag wcoin-unit-tag--mepo">보유 메포</span>
@@ -379,27 +379,27 @@
         <div id="wcoinCashResultArea" class="wcoin-result-hidden">
           <div class="wcoin-card">
             <div class="wcoin-flow-step">
-              <div class="wcoin-flow-label">지출 캐시</div>
+              <div class="wcoin-flow-label">캐시템 지출 (메포)</div>
               <div class="wcoin-flow-value" id="wcoinCCash">-</div>
             </div>
             <p class="wcoin-flow-note" id="wcoinCCashOwned" hidden></p>
             <div class="wcoin-flow-step">
-              <div class="wcoin-flow-label">메이플포인트 구매 <span id="wcoinC1Over"></span></div>
+              <div class="wcoin-flow-label">메이플 랜드 · 메포 충전 (월코) <span id="wcoinC1Over"></span></div>
               <div class="wcoin-flow-value" id="wcoinC1Bought">-</div>
               <div class="wcoin-chip-row" id="wcoinC1Chips"></div>
             </div>
             <div class="wcoin-flow-step">
-              <div class="wcoin-flow-label">월드코인 구매 <span id="wcoinC2Over"></span></div>
+              <div class="wcoin-flow-label">플랫폼 · 월드코인 충전 (원화) <span id="wcoinC2Over"></span></div>
               <div class="wcoin-flow-value" id="wcoinC2Bought">-</div>
               <div class="wcoin-chip-row" id="wcoinC2Chips"></div>
             </div>
             <div class="wcoin-final-box">
-              <div class="wcoin-final-label">최종 결제 금액</div>
+              <div class="wcoin-final-label">최종 원화 결제 (플랫폼)</div>
               <div class="wcoin-final-amount" id="wcoinCashFinalWon">-</div>
               <button type="button" class="btn-linkish" id="wcoinCopyCashBtn">결과 복사</button>
             </div>
             <div class="wcoin-alt-toggle">
-              <button type="button" class="btn-linkish" id="wcoinAltToggleCash">🛒 캐시샵 결제(원화) 줄이기</button>
+              <button type="button" class="btn-linkish" id="wcoinAltToggleCash">🛒 플랫폼 원화 결제 줄이기</button>
             </div>
             <div class="wcoin-alt-box wcoin-result-hidden" id="wcoinAltBoxCash"></div>
           </div>
@@ -427,23 +427,23 @@
               <div class="wcoin-flow-value" id="wcoinMMeso">-</div>
             </div>
             <div class="wcoin-flow-step">
-              <div class="wcoin-flow-label">판매용 메포 구매 <span id="wcoinM1Over"></span></div>
+              <div class="wcoin-flow-label">메이플 랜드 · 메포 충전 (월코) <span id="wcoinM1Over"></span></div>
               <div class="wcoin-flow-value" id="wcoinM1Bought">-</div>
               <div class="wcoin-chip-row" id="wcoinM1Chips"></div>
             </div>
             <div class="wcoin-flow-step">
-              <div class="wcoin-flow-label">월드코인 구매 <span id="wcoinM2Over"></span></div>
+              <div class="wcoin-flow-label">플랫폼 · 월드코인 충전 (원화) <span id="wcoinM2Over"></span></div>
               <div class="wcoin-flow-value" id="wcoinM2Bought">-</div>
               <div class="wcoin-chip-row" id="wcoinM2Chips"></div>
             </div>
             <div class="wcoin-final-box">
-              <div class="wcoin-final-label">필요 결제 금액</div>
+              <div class="wcoin-final-label">필요 원화 결제 (플랫폼)</div>
               <div class="wcoin-final-amount" id="wcoinMesoFinalWon">-</div>
               <div class="wcoin-final-sub" id="wcoinMesoEfficiency"></div>
               <button type="button" class="btn-linkish" id="wcoinCopyMesoBtn">결과 복사</button>
             </div>
             <div class="wcoin-alt-toggle">
-              <button type="button" class="btn-linkish" id="wcoinAltToggleMeso">🛒 캐시샵 결제(원화) 줄이기</button>
+              <button type="button" class="btn-linkish" id="wcoinAltToggleMeso">🛒 플랫폼 원화 결제 줄이기</button>
             </div>
             <div class="wcoin-alt-box wcoin-result-hidden" id="wcoinAltBoxMeso"></div>
           </div>
@@ -453,14 +453,14 @@
         <summary>⚙ 패키지 값 수정</summary>
         <div class="wcoin-settings-body">
           <div class="wcoin-settings-col">
-            <h4>메이플포인트 · 월드코인 · 메소시세</h4>
-            <p class="wcoin-settings-legend">한 줄 = <strong>메포 패키지</strong> 구매에 쓰는 <strong>월코(월드코인)</strong> · 그 메포를 팔면 받는 <strong>메소</strong></p>
+            <h4>메이플 랜드 · 메포 · 메소 시세</h4>
+            <p class="wcoin-settings-legend">한 줄 = 랜드에서 <strong>메포 패키지 충전</strong>에 쓰는 <strong>월코(플랫폼)</strong> · 그 메포를 팔면 받는 <strong>메소</strong></p>
             <div id="wcoinPointRows"></div>
             <button type="button" class="btn-linkish" id="wcoinAddPointRow">+ 항목 추가</button>
           </div>
           <div class="wcoin-settings-col">
-            <h4>월드코인 · 원화</h4>
-            <p class="wcoin-settings-legend">캐시샵에서 <strong>월드코인 ○○개</strong> 충전 = <strong>○○원</strong> 결제</p>
+            <h4>플랫폼 · 월드코인 · 원화</h4>
+            <p class="wcoin-settings-legend">플랫폼에서 <strong>월드코인 ○○개</strong> 충전 = <strong>○○원</strong> 결제</p>
             <div id="wcoinCoinRows"></div>
             <button type="button" class="btn-linkish" id="wcoinAddCoinRow">+ 항목 추가</button>
           </div>
@@ -513,10 +513,10 @@
       : { totalCost: 0, totalSize: 0, combo: [] };
 
     $('wcoinAltBoxCash').classList.add('wcoin-result-hidden');
-    $('wcoinAltToggleCash').textContent = '🛒 캐시샵 결제(원화) 줄이기';
+    $('wcoinAltToggleCash').textContent = '🛒 플랫폼 원화 결제 줄이기';
 
     $('wcoinCashResultArea').classList.remove('wcoin-result-hidden');
-    $('wcoinCCash').textContent = `${fmt(target)} 캐시`;
+    $('wcoinCCash').textContent = `${fmt(target)} 메포`;
 
     const ownedEl = $('wcoinCCashOwned');
     if (ownedEl) {
@@ -525,9 +525,9 @@
         parts.push(`보유 메포 ${fmt(ownedMepo)} 차감 → 추가 필요 ${fmt(mepoNeed)}`);
       }
       if (ownedWcoin > 0 && step1.totalCost > 0) {
-        parts.push(`보유 월코 ${fmt(ownedWcoin)} 차감 → 충전 필요 ${fmt(wcoinNeed)}`);
+        parts.push(`보유 월코 ${fmt(ownedWcoin)} 차감 → 플랫폼 충전 필요 ${fmt(wcoinNeed)}`);
       } else if (ownedWcoin > 0 && step1.totalCost === 0 && ownedMepo > 0) {
-        parts.push(`보유 월코 ${fmt(ownedWcoin)} (메포 추가 구매 없음)`);
+        parts.push(`보유 월코 ${fmt(ownedWcoin)} (메포 추가 충전 없음)`);
       }
       if (parts.length) {
         ownedEl.textContent = parts.join(' · ');
@@ -539,7 +539,7 @@
     }
 
     if (mepoNeed <= 0) {
-      $('wcoinC1Bought').textContent = '추가 구매 없음';
+      $('wcoinC1Bought').textContent = '추가 충전 없음';
       $('wcoinC1Over').textContent = ownedMepo >= target ? '(보유로 충분)' : '';
       $('wcoinC1Chips').innerHTML = '';
     } else {
@@ -571,17 +571,17 @@
   function buildCashSummaryText() {
     if (!lastCashResult) return '';
     const { target, ownedMepo, ownedWcoin, mepoNeed, wcoinNeed, step1, step2 } = lastCashResult;
-    const lines = [`[캐시템 구매] 목표 캐시 ${fmt(target)}`];
+    const lines = [`[캐시템 구매] 목표 메포 ${fmt(target)}`];
     if (ownedMepo > 0) lines.push(`- 보유 메포 ${fmt(ownedMepo)} → 추가 필요 ${fmt(mepoNeed)}`);
     if (mepoNeed > 0) {
-      lines.push(`- 메이플포인트: ${step1.combo.map((x) => `${fmt(x.size)}메포×${x.count}`).join(' + ')} = ${fmt(step1.totalSize)}메포`);
-      lines.push(`- 필요 월드코인(메포 구매): ${fmt(step1.totalCost)}`);
-    } else lines.push('- 메이플포인트: 보유로 충분 · 추가 구매 없음');
-    if (ownedWcoin > 0) lines.push(`- 보유 월코 ${fmt(ownedWcoin)} → 충전 필요 ${fmt(wcoinNeed)}`);
+      lines.push(`- 메이플 랜드 메포 충전(월코): ${step1.combo.map((x) => `${fmt(x.size)}메포×${x.count}`).join(' + ')} = ${fmt(step1.totalSize)}메포`);
+      lines.push(`- 필요 월코(플랫폼): ${fmt(step1.totalCost)}`);
+    } else lines.push('- 메이플 랜드 메포: 보유로 충분 · 추가 충전 없음');
+    if (ownedWcoin > 0) lines.push(`- 보유 월코 ${fmt(ownedWcoin)} → 플랫폼 충전 필요 ${fmt(wcoinNeed)}`);
     if (wcoinNeed > 0) {
-      lines.push(`- 월드코인 구매: ${step2.combo.map((x) => `${fmt(x.size)}개×${x.count}`).join(' + ')} = ${fmt(step2.totalSize)}개`);
-    } else lines.push('- 월드코인: 보유로 충분 · 추가 충전 없음');
-    lines.push(`- 최종 결제 금액: ${fmt(step2.totalCost)}원`);
+      lines.push(`- 플랫폼 월코 충전(원화): ${step2.combo.map((x) => `${fmt(x.size)}개×${x.count}`).join(' + ')} = ${fmt(step2.totalSize)}개`);
+    } else lines.push('- 플랫폼 월코: 보유로 충분 · 추가 충전 없음');
+    lines.push(`- 최종 원화 결제: ${fmt(step2.totalCost)}원`);
     return lines.join('\n');
   }
 
@@ -646,7 +646,7 @@
     }
 
     $('wcoinAltBoxMeso').classList.add('wcoin-result-hidden');
-    $('wcoinAltToggleMeso').textContent = '🛒 캐시샵 결제(원화) 줄이기';
+    $('wcoinAltToggleMeso').textContent = '🛒 플랫폼 원화 결제 줄이기';
 
     const step1 = solveMinCost(target, settings.points, 'meso', 'cost');
     const step2 = solveMinCost(step1.totalCost, settings.coins, 'size', 'cost');
@@ -679,10 +679,10 @@
     const { target, step1, step2, per1M } = lastMesoResult;
     return [
       `[메포 판매] 목표 메소 ${fmt(target)}`,
-      `- 판매용 메포: ${step1.combo.map((x) => `${fmt(x.size)}메포×${x.count}`).join(' + ')} = 메소 ${fmt(step1.totalSize)}`,
-      `- 필요 월드코인: ${fmt(step1.totalCost)}`,
-      `- 월드코인 구매: ${step2.combo.map((x) => `${fmt(x.size)}개×${x.count}`).join(' + ')} = ${fmt(step2.totalSize)}개`,
-      `- 필요 결제 금액: ${fmt(step2.totalCost)}원 (메소 100만당 약 ${fmt(per1M)}원)`,
+      `- 랜드 메포 충전(월코): ${step1.combo.map((x) => `${fmt(x.size)}메포×${x.count}`).join(' + ')} = 메소 ${fmt(step1.totalSize)}`,
+      `- 필요 월코(플랫폼): ${fmt(step1.totalCost)}`,
+      `- 플랫폼 월코 충전(원화): ${step2.combo.map((x) => `${fmt(x.size)}개×${x.count}`).join(' + ')} = ${fmt(step2.totalSize)}개`,
+      `- 필요 원화 결제: ${fmt(step2.totalCost)}원 (메소 100만당 약 ${fmt(per1M)}원)`,
     ].join('\n');
   }
 
@@ -712,8 +712,8 @@
       </div>
       <span class="wcoin-field-sep" aria-hidden="true">→</span>
       <div class="wcoin-field">
-        <span class="wcoin-unit-tag wcoin-unit-tag--wcoin">월코 · 구매가</span>
-        <input type="text" inputmode="numeric" autocomplete="off" class="cost" value="${fmt(p.cost)}" aria-label="월드코인 가격">
+        <span class="wcoin-unit-tag wcoin-unit-tag--wcoin">월코 · 충전 비용</span>
+        <input type="text" inputmode="numeric" autocomplete="off" class="cost" value="${fmt(p.cost)}" aria-label="메포 충전에 필요한 월코">
       </div>
       <span class="wcoin-field-sep" aria-hidden="true">→</span>
       <div class="wcoin-field">
@@ -788,10 +788,10 @@
       if (box.classList.contains('wcoin-result-hidden')) {
         renderAltCash();
         box.classList.remove('wcoin-result-hidden');
-        btn.textContent = '캐시샵 결제 줄이기 숨기기';
+        btn.textContent = '플랫폼 원화 결제 줄이기 숨기기';
       } else {
         box.classList.add('wcoin-result-hidden');
-        btn.textContent = '🛒 캐시샵 결제(원화) 줄이기';
+        btn.textContent = '🛒 플랫폼 원화 결제 줄이기';
       }
     });
 
@@ -812,10 +812,10 @@
       if (box.classList.contains('wcoin-result-hidden')) {
         renderAltMeso();
         box.classList.remove('wcoin-result-hidden');
-        btn.textContent = '캐시샵 결제 줄이기 숨기기';
+        btn.textContent = '플랫폼 원화 결제 줄이기 숨기기';
       } else {
         box.classList.add('wcoin-result-hidden');
-        btn.textContent = '🛒 캐시샵 결제(원화) 줄이기';
+        btn.textContent = '🛒 플랫폼 원화 결제 줄이기';
       }
     });
 
