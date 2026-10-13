@@ -590,7 +590,7 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 ## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-10-13)
 
-**최근 main:** (보스 쿨타임 커밋) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
+**최근 main:** `9aa44c5` (보스 쿨타임) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
 
 | 영역 | 상태 |
 |------|------|
