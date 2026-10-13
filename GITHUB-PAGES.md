@@ -40,12 +40,18 @@ git push -u origin main
 
 ## 3. GitHub Pages 켜기
 
-1. GitHub에서 해당 저장소 → **Settings**
-2. 왼쪽 **Pages**
-3. **Build and deployment**
-   - Source: **Deploy from a branch**
-   - Branch: **main** / **/(root)**
-4. **Save**
+### 권장: GitHub Actions (main push → 자동 배포)
+
+1. 저장소 → **Settings** → **Pages**
+2. **Build and deployment** → Source: **GitHub Actions**
+3. `main`에 push 하면 `.github/workflows/deploy-pages.yml` 이 사이트를 배포 (보통 1~3분)
+
+> 예전에 **Deploy from a branch** 로 쓰던 경우, 위처럼 **GitHub Actions** 로 바꾸면 push와 배포가 한 줄로 맞춰집니다.
+
+### (레거시) 브랜치 배포
+
+1. **Settings** → **Pages** → Source: **Deploy from a branch**
+2. Branch: **main** / **/(root)** → **Save**
 
 1~2분 뒤 주소:
 

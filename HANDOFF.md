@@ -365,6 +365,7 @@ legacySummaryOnly (옛 회차 요약만)
 1. 코드 (`index.html` → mirror)
 2. **`HANDOFF.md` 자동 인수인계 갱신** (§13.2)
 3. **`git commit` + `git push origin main`** — **매번 자동.** 별도 “푸시해줘” 없어도 push.
+4. **배포:** push 후 GitHub Actions **`Deploy GitHub Pages`** (`.github/workflows/deploy-pages.yml`) → [Pages URL](https://qotjdals147.github.io/toonggongdae/) 반영 · 저장소 **Settings → Pages → Source: GitHub Actions** (최초 1회)
 
 커밋 메시지: 한국어 한 줄, **why** 위주. HANDOFF만 고친 commit도 push.
 
@@ -386,6 +387,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-13** — **GitHub Pages** main push 자동 배포 · `.github/workflows/deploy-pages.yml` · `.nojekyll`
 - **2026-10-13** — **보스 쿨타임** 모달 안내 문구 사용자용으로 단순화
 - **2026-10-13** — fix: **보스 쿨타임** 입력 포커스(1초 tick DOM 전체 갱신 제거) · 제목 아이콘 PNG
 - **2026-10-13** — **보스 쿨타임** 도구 · `boss-cooldown-app.js` · `state.bossCooldown` · 보스 5종·캐릭별 endsAt · §5.5
@@ -649,4 +651,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-13 (보스 쿨타임 §5.5)*
+*Last updated: 2026-10-13 (GitHub Actions Pages 배포)*
