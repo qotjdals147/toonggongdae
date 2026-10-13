@@ -2705,6 +2705,18 @@
   .boss-cd-ctl:active { transform: scale(0.96); }
   .boss-cd-start-btn { margin-right: 8px; vertical-align: middle; }
   .boss-cd-del { font-size: 12px; vertical-align: middle; }
+  .boss-cd-manual-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+  }
+  .boss-cd-manual-label { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; }
+  .boss-cd-manual-caption { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+  .boss-cd-manual-input { font-size: 13px; max-width: 100%; }
   .boss-cd-readonly { font-size: 11px; color: var(--ink-soft); margin: 8px 0 0; }
   .boss-cd-add {
     display: flex;
@@ -6178,6 +6190,11 @@
     if (window.BossCooldownApp) {
       state.bossCooldown = BossCooldownApp.mergeBossCooldown(prevBossCooldown, state.bossCooldown);
       BossCooldownApp.ensureBossCooldownState();
+      try {
+        bossCooldownRemoteSnapshot = JSON.parse(JSON.stringify(state.bossCooldown));
+      } catch (e) {
+        bossCooldownRemoteSnapshot = null;
+      }
     } else if (state.bossCooldown == null && prevBossCooldown != null) {
       state.bossCooldown = prevBossCooldown;
     }

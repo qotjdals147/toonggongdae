@@ -249,7 +249,7 @@ legacySummaryOnly (옛 회차 요약만)
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
 
-**타이머:** **쿨타임 시작** → `endsAt = now + duration` (끄고 켜도 경과) · **⏸** → `pausedRemainingMs` · **▶** 재개 · **↻** 초기화 · 1초 tick(모달 열림).
+**타이머:** **쿨타임 시작** → `endsAt = now + duration` · **클리어(완료) 시각** 직접 입력 → `endsAt = 입력 + duration` · **⏸** / **▶** / **↻** · 1초 tick(모달 열림).
 
 **Realtime·저장:** `mergeBossCooldown` — 원격/로컬·저장 직전 스냅샷 병합(돌아가던 `endsAt`이 idle JSON에 덮이지 않음) · **보스 모달은 `modalBlocksRemote` 제외**(열어둔 채 동기화).
 
@@ -389,7 +389,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-10-13** — fix: **보스 쿨타임** Realtime·저장 merge(`endsAt` 유실) · 모달 열림 시에도 원격 반영 · DB 순퉁 밍글냥이 자쿰 10/13 20:19 복구
+- **2026-10-13** — **보스 쿨타임** **클리어 시각 직접 입력**(`datetime-local`+적용)
+- **2026-10-13** — fix: **보스 쿨타임** Realtime merge · DB **순퉁-밍글냥이 피아누스** 10/13 20:19→7일 (자쿰 오복구 제거)
 - **2026-10-13** — **보스 쿨타임** 자쿰·혼테일 GIF 에셋 배포 · `catalogAssetUrl` · 혼테일 `.gif`
 - **2026-10-13** — **GitHub Pages** main push 자동 배포 · `.github/workflows/deploy-pages.yml` · `.nojekyll`
 - **2026-10-13** — **보스 쿨타임** 모달 안내 문구 사용자용으로 단순화

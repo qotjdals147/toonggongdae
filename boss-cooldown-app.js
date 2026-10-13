@@ -215,6 +215,21 @@
     return d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
+  function toDatetimeLocalValue(ms) {
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function defaultManualCompleteValue(entry, bossDef) {
+    if (entry.endsAt != null && bossDef.durationMs) {
+      const started = entry.endsAt - bossDef.durationMs;
+      if (started > 0) return toDatetimeLocalValue(started);
+    }
+    return toDatetimeLocalValue(Date.now());
+  }
+
   function pianusNpcHint(entry) {
     return entry.tailQuestDone
       ? '다음 주기 수령: 켄타 (꼬리비늘·역습 완료)'
@@ -309,6 +324,28 @@
     render();
   }
 
+  function applyManualCompleteTime(bossId, entryId) {
+    const def = BOSS_DEFS.find((b) => b.id === bossId);
+    const entry = findEntry(bossId, entryId);
+    if (!def || !entry || !canEditMember(entry.memberIdx)) return;
+    const input = document.querySelector(
+      `input[data-boss-manual-time="${bossId}"][data-entry-id="${entryId}"]`
+    );
+    if (!input || !input.value) {
+      if (input) input.focus();
+      return;
+    }
+    const started = new Date(input.value).getTime();
+    if (!Number.isFinite(started)) {
+      alert('완료 시각 형식을 확인해 주세요.');
+      return;
+    }
+    entry.endsAt = started + def.durationMs;
+    entry.pausedRemainingMs = null;
+    scheduleSave();
+    render(true);
+  }
+
   function statusMetaForEntry(entry) {
     const phase = timerPhase(entry);
     const rem = remainingMs(entry);
@@ -380,7 +417,14 @@
         <button type="button" class="boss-cd-ctl" data-act="reset" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
       </div>
       <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">쿨타임 시작</button>
-      <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">캐릭 삭제</button>`
+      <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">캐릭 삭제</button>
+      <div class="boss-cd-manual-row">
+        <label class="boss-cd-manual-label">
+          <span class="boss-cd-manual-caption">클리어(완료) 시각</span>
+          <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(defaultManualCompleteValue(entry, bossDef))}">
+        </label>
+        <button type="button" class="btn-light btn-sm" data-act="manual-apply" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">적용</button>
+      </div>`
       : `<p class="boss-cd-readonly">다른 공대원 캐릭 · 보기만</p>`;
 
     return `
@@ -479,6 +523,7 @@
         else startCooldown(boss, id);
       } else if (act === 'pause') pauseCooldown(boss, id);
       else if (act === 'reset') resetCooldown(boss, id);
+      else if (act === 'manual-apply') applyManualCompleteTime(boss, id);
       else if (act === 'delete') {
         if (confirm('이 캐릭터 타이머를 목록에서 삭제할까요?')) deleteEntry(boss, id);
       }
