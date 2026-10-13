@@ -208,13 +208,6 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  function formatReadyAt(entry) {
-    if (entry.endsAt == null) return '';
-    const d = new Date(entry.endsAt);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  }
-
   function toDatetimeLocalValue(ms) {
     const d = new Date(ms);
     if (Number.isNaN(d.getTime())) return '';
@@ -397,7 +390,6 @@
     const { statusClass, statusText } = statusMetaForEntry(entry);
 
     const editable = canEditMember(entry.memberIdx);
-    const readyLine = entry.endsAt ? `<div class="boss-cd-ready-at">목표: ${escapeHtml(formatReadyAt(entry))} 전후</div>` : '';
 
     let pianusBlock = '';
     if (bossDef.pianus) {
@@ -434,7 +426,6 @@
           <div class="boss-cd-card-title">
             <div class="boss-cd-char-label">${escapeHtml(label)}</div>
             <div class="boss-cd-status ${statusClass}">${escapeHtml(statusText)}</div>
-            ${readyLine}
           </div>
         </div>
         ${pianusBlock}
