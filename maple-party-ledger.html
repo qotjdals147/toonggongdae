@@ -2616,20 +2616,31 @@
   #bossCooldownApp {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-right: 2px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   .boss-cd-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin: 0 0 12px;
-    position: sticky;
-    top: 0;
-    z-index: 2;
+    margin: 0 0 10px;
+    flex-shrink: 0;
+  }
+  .boss-cd-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    padding-bottom: 8px;
+  }
+  .boss-cd-add-dock {
+    flex-shrink: 0;
+    margin-top: 4px;
+    padding-top: 12px;
+    border-top: 2px solid var(--line);
     background: var(--surface);
-    padding-bottom: 6px;
   }
   .boss-cd-tab-badge {
     font-size: 10px;
@@ -2643,33 +2654,76 @@
     line-height: 1.45;
     margin: 0 0 12px;
   }
-  .boss-cd-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .boss-cd-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 4px; }
   .boss-cd-empty { font-size: 13px; color: var(--ink-soft); text-align: center; padding: 16px 8px; }
-  .boss-cd-card {
-    border: 1px solid var(--line);
+  .boss-cd-member-group {
+    border: 2px solid color-mix(in srgb, var(--ink-soft) 35%, var(--line));
     border-radius: var(--radius);
-    background: var(--surface-muted);
-    padding: 12px 14px;
-  }
-  .boss-cd-card-head { display: flex; gap: 10px; align-items: flex-start; }
-  .boss-cd-card-icon {
-    width: 44px;
-    height: 44px;
-    object-fit: contain;
-    object-position: center;
-    border-radius: 8px;
     background: var(--surface);
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.07);
+  }
+  .boss-cd-member-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--surface-muted);
+    border-bottom: 2px solid var(--line);
+    border-left: 4px solid var(--accent-net);
+  }
+  .boss-cd-member-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 8px;
     flex-shrink: 0;
   }
-  .boss-cd-card-title { flex: 1; min-width: 0; }
-  .boss-cd-char-label { font-weight: 800; font-size: 14px; color: var(--ink); word-break: break-all; }
+  .boss-cd-member-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .boss-cd-member-name { font-weight: 800; font-size: 15px; color: var(--ink); }
+  .boss-cd-member-count { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+  .boss-cd-char-rows { display: flex; flex-direction: column; }
+  .boss-cd-char-row {
+    padding: 11px 14px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .boss-cd-char-row:first-child { border-top: none; }
+  .boss-cd-char-row:nth-child(even) { background: color-mix(in srgb, var(--surface-muted) 55%, var(--surface)); }
+  .boss-cd-char-row-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .boss-cd-char-name { font-weight: 700; font-size: 14px; color: var(--ink); word-break: break-all; }
+  .boss-cd-char-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-bottom: 6px;
+    font-size: 11.5px;
+  }
+  .boss-cd-flag--inline { margin: 0; font-size: 11.5px; }
+  .boss-cd-npc-hint--inline { margin: 0; font-size: 11px; }
+  .boss-cd-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin-bottom: 8px;
+  }
   .boss-cd-status {
     font-family: ui-monospace, 'Consolas', monospace;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
-    margin-top: 4px;
+    text-align: right;
+    flex-shrink: 0;
   }
-  .boss-cd-status--idle { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .boss-cd-status--idle { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
   .boss-cd-status--run { color: var(--accent-net); }
   .boss-cd-status--pause { color: #b45309; font-size: 15px; }
   .boss-cd-status--ready { color: var(--forest); }
@@ -2686,8 +2740,6 @@
   .boss-cd-controls {
     display: inline-flex;
     gap: 6px;
-    margin: 8px 8px 8px 0;
-    vertical-align: middle;
   }
   .boss-cd-ctl {
     width: 36px;
@@ -2702,17 +2754,15 @@
   }
   .boss-cd-ctl:hover { background: var(--surface-muted); border-color: var(--ink-soft); }
   .boss-cd-ctl:active { transform: scale(0.96); }
-  .boss-cd-start-btn { margin-right: 8px; vertical-align: middle; }
-  .boss-cd-del { font-size: 12px; vertical-align: middle; }
+  .boss-cd-start-btn { font-size: 12px; padding: 6px 10px; }
+  .boss-cd-del { font-size: 11.5px; }
   .boss-cd-manual-row {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 8px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed var(--line);
   }
+  .boss-cd-manual-row--compact { margin-top: 0; padding-top: 0; border-top: none; }
   .boss-cd-manual-label { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; }
   .boss-cd-manual-caption { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
   .boss-cd-manual-input { font-size: 13px; max-width: 100%; }
@@ -2722,8 +2772,12 @@
     flex-wrap: wrap;
     gap: 8px;
     align-items: flex-end;
+  }
+  .modal-boss-cooldown .modal-foot {
+    flex-shrink: 0;
+    margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px dashed var(--line);
+    border-top: 1px solid var(--line);
   }
   .boss-cd-add-field { display: flex; flex-direction: column; gap: 4px; min-width: 100px; }
   .boss-cd-add-field--grow { flex: 1; min-width: 140px; }
@@ -5177,13 +5231,18 @@
   }
 
   /** 저장 시 회차 보기는 남기지 않음 → 새로고침하면 항상 작성 중 회차 */
-  function stateForPersistence() {
-    if (window.BossCooldownApp) {
-      BossCooldownApp.ensureBossCooldownState();
-      if (bossCooldownRemoteSnapshot) {
-        state.bossCooldown = BossCooldownApp.mergeBossCooldown(bossCooldownRemoteSnapshot, state.bossCooldown);
-      }
+  function touchBossCooldownLocalSnapshot() {
+    if (!window.BossCooldownApp) return;
+    BossCooldownApp.ensureBossCooldownState();
+    try {
+      bossCooldownRemoteSnapshot = JSON.parse(JSON.stringify(state.bossCooldown));
+    } catch (e) {
+      bossCooldownRemoteSnapshot = null;
     }
+  }
+
+  function stateForPersistence() {
+    if (window.BossCooldownApp) BossCooldownApp.ensureBossCooldownState();
     const payload = JSON.parse(JSON.stringify(state));
     delete payload.viewCycleId;
     return payload;
@@ -11643,6 +11702,7 @@
       scheduleSave,
       getAuthSession: () => authSession,
       catalogAssetUrl,
+      syncLocalSnapshot: touchBossCooldownLocalSnapshot,
     });
     $('bossCooldownBtn').addEventListener('click', () => BossCooldownApp.openModal());
     $('bossCooldownCloseBtn').addEventListener('click', () => BossCooldownApp.closeModal());

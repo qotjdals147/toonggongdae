@@ -251,7 +251,9 @@ legacySummaryOnly (옛 회차 요약만)
 
 **타이머:** `completedAt`(클리어 시각) + `endsAt` · **쿨타임 시작** = now · **직접 입력+적용** = `completedAt` 저장 · 입력칸은 **completedAt만** 표시(endsAt 역산·오늘 날짜 자동 채움 없음) · **⏸** / **▶** / **↻**.
 
-**Realtime·저장:** `mergeBossCooldown` — 원격/로컬·저장 직전 스냅샷 병합(돌아가던 `endsAt`이 idle JSON에 덮이지 않음) · **보스 모달은 `modalBlocksRemote` 제외**(열어둔 채 동기화).
+**Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** (원격 수신 시 돌아가던 `endsAt` 보호) · **↻ 초기화**(endsAt·completedAt·paused 전부 null)는 병합 시 **active 타이머보다 우선** · 로컬 편집 직후 `touchBossCooldownLocalSnapshot` · **`stateForPersistence`에서는 merge 하지 않음**(↻ 후 저장이 스냅샷에 되돌아가던 회귀 방지) · **보스 모달은 `modalBlocksRemote` 제외**.
+
+**레이아웃:** 탭 고정 · **목록만** `.boss-cd-scroll` · **캐릭 추가**는 `.boss-cd-add-dock`(스크롤 밖) · **닫기** `modal-foot`와 겹치지 않음 · 공대원 박스 **2px 테두리·좌 accent**.
 
 **권한:** **본인 슬롯** 캐릭만 편집 · **배퉁(memberIdx 2)** 은 전 슬롯 편집 · 추가 시 마스터는 공대원 select.
 
@@ -389,6 +391,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-13** — fix: **보스 쿨타임** ↻ 초기화·저장 merge 회귀 · UI 구분선·스크롤/추가/닫기 겹침
 - **2026-10-13** — **보스 쿨타임** UI — **공대원별 한 박스** · 캐릭은 안쪽 줄(컴팩트)
 - **2026-10-13** — fix: **보스 쿨타임** `completedAt` 저장 · 클리어 입력 endsAt 역산/now() 제거 · draft 유지
 - **2026-10-13** — **보스 쿨타임** **클리어 시각 직접 입력**(`datetime-local`+적용)
@@ -658,4 +661,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-13 (GitHub Actions Pages 배포)*
+*Last updated: 2026-10-13 (보스 쿨타임 reset·UI·스크롤 레이아웃)*

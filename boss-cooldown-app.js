@@ -8,6 +8,8 @@
   let scheduleSave = () => {};
   let getAuthSession = () => null;
   let assetUrl = (relativePath) => String(relativePath || '');
+  /** 로컬 편집 직후 index.html의 bossCooldownRemoteSnapshot 갱신 */
+  let syncLocalSnapshot = () => {};
 
   const MS_DAY = 86400000;
   const MS_WEEK = 7 * MS_DAY;
@@ -132,10 +134,25 @@
     return 0;
   }
 
-  /** Realtime·저장 경합 시 돌아가던 타이머(endsAt)가 idle JSON에 덮이지 않게 */
+  function isTimerActive(entry) {
+    return !!entry && (entry.endsAt != null || entry.pausedRemainingMs != null);
+  }
+
+  function isTimerFullyCleared(entry) {
+    return (
+      !!entry &&
+      entry.endsAt == null &&
+      entry.pausedRemainingMs == null &&
+      entry.completedAt == null
+    );
+  }
+
+  /** Realtime·저장 경합 — active 유지 vs 의도적 ↻(전 필드 null) 동기화 */
   function pickMergedEntry(a, b) {
     if (!a) return b;
     if (!b) return a;
+    if (isTimerFullyCleared(b) && isTimerActive(a)) return b;
+    if (isTimerFullyCleared(a) && isTimerActive(b)) return a;
     const sa = entryTimerScore(a);
     const sb = entryTimerScore(b);
     let picked = sb > sa ? b : sa > sb ? a : b;
@@ -283,6 +300,7 @@
     entry.endsAt = now + def.durationMs;
     entry.pausedRemainingMs = null;
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    syncLocalSnapshot();
     scheduleSave();
     render(true);
   }
@@ -294,6 +312,7 @@
     const rem = Math.max(0, entry.endsAt - Date.now());
     entry.pausedRemainingMs = rem;
     entry.endsAt = null;
+    syncLocalSnapshot();
     scheduleSave();
     render();
   }
@@ -304,6 +323,7 @@
     if (entry.pausedRemainingMs == null) return;
     entry.endsAt = Date.now() + entry.pausedRemainingMs;
     entry.pausedRemainingMs = null;
+    syncLocalSnapshot();
     scheduleSave();
     render();
   }
@@ -315,6 +335,7 @@
     entry.completedAt = null;
     entry.pausedRemainingMs = null;
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    syncLocalSnapshot();
     scheduleSave();
     render(true);
   }
@@ -326,6 +347,7 @@
     const idx = list.findIndex((x) => x.id === entryId);
     if (idx >= 0) list.splice(idx, 1);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    syncLocalSnapshot();
     scheduleSave();
     render(true);
   }
@@ -348,6 +370,7 @@
     if (!entry) return;
     entriesForBoss(bossId).push(entry);
     if (nameInput) nameInput.value = '';
+    syncLocalSnapshot();
     scheduleSave();
     render();
   }
@@ -356,6 +379,7 @@
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
     entry.tailQuestDone = !!checked;
+    syncLocalSnapshot();
     scheduleSave();
     render();
   }
@@ -380,6 +404,7 @@
     entry.endsAt = started + def.durationMs;
     entry.pausedRemainingMs = null;
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    syncLocalSnapshot();
     scheduleSave();
     render(true);
   }
@@ -492,15 +517,10 @@
       </section>`;
   }
 
-  function panelHtml(bossDef) {
-    const list = entriesForBoss(bossDef.id);
+  function addFormHtml(bossDef) {
     const session = getAuthSession();
-    const isMaster = session && session.memberIdx === MASTER_IDX;
-    const groups = groupEntriesByMember(list);
-    const cards = groups.length
-      ? groups.map((g) => memberGroupHtml(bossDef, g)).join('')
-      : '<p class="boss-cd-empty">캐릭터를 추가하면 여기에 타이머가 생겨요.</p>';
-
+    if (!session) return '';
+    const isMaster = session.memberIdx === MASTER_IDX;
     let memberPick = '';
     if (isMaster) {
       memberPick = `
@@ -513,24 +533,28 @@
           </select>
         </label>`;
     }
-
-    const addBlock = session
-      ? `
-      <div class="boss-cd-add">
+    return `
+      <div class="boss-cd-add" data-boss-add-panel="${bossDef.id}" ${bossDef.id === activeBossId ? '' : 'hidden'}>
         ${memberPick}
         <label class="boss-cd-add-field boss-cd-add-field--grow">
           <span class="boss-cd-add-label">캐릭 닉네임</span>
           <input type="text" id="bossCdAddName-${bossDef.id}" placeholder="예: LeoSooN" maxlength="32" autocomplete="off">
         </label>
         <button type="button" class="btn-settle btn-sm" data-boss-add="${bossDef.id}">추가</button>
-      </div>`
-      : '';
+      </div>`;
+  }
+
+  function panelHtml(bossDef) {
+    const list = entriesForBoss(bossDef.id);
+    const groups = groupEntriesByMember(list);
+    const cards = groups.length
+      ? groups.map((g) => memberGroupHtml(bossDef, g)).join('')
+      : '<p class="boss-cd-empty">캐릭터를 추가하면 여기에 타이머가 생겨요.</p>';
 
     return `
       <div class="boss-cd-panel" id="bossCdPanel-${bossDef.id}" data-boss-panel="${bossDef.id}" ${bossDef.id === activeBossId ? '' : 'hidden'}>
         <p class="boss-cd-hint">${escapeHtml(bossDef.hint)}</p>
         <div class="boss-cd-list">${cards}</div>
-        ${addBlock}
       </div>`;
   }
 
@@ -548,9 +572,11 @@
       return `<button type="button" class="mypage-tab${active}" data-boss-tab="${b.id}">${escapeHtml(b.label)} <span class="boss-cd-tab-badge">${count}</span></button>`;
     }).join('');
     const panels = BOSS_DEFS.map((b) => panelHtml(b)).join('');
+    const addDock = BOSS_DEFS.map((b) => addFormHtml(b)).join('');
     root.innerHTML = `
       <div class="boss-cd-tabs" role="tablist">${tabs}</div>
-      ${panels}`;
+      <div class="boss-cd-scroll">${panels}</div>
+      <div class="boss-cd-add-dock">${addDock}</div>`;
   }
 
   function onRootClick(e) {
@@ -652,6 +678,7 @@
     if (opts.scheduleSave) scheduleSave = opts.scheduleSave;
     if (opts.getAuthSession) getAuthSession = opts.getAuthSession;
     if (opts.catalogAssetUrl) assetUrl = opts.catalogAssetUrl;
+    if (opts.syncLocalSnapshot) syncLocalSnapshot = opts.syncLocalSnapshot;
   }
 
   global.BossCooldownApp = {
