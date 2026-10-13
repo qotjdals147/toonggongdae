@@ -39,8 +39,8 @@ alwaysApply: true
 1. mirror sync (해당 시)
 2. **`HANDOFF.md` 갱신** — §10 한 줄 + 해당 섹션 + `Last updated` (**항상**, “나중에” 금지)
 3. `git commit` (한국어, why)
-4. **`git push origin main`** — **매 구현마다 자동** (사용자가 push 금지라고 한 경우만 제외)
-5. 사용자에게 commit hash 보고
+4. **`git push origin main`** — **매 구현마다 자동** (사용자가 push 금지라고 한 경우만 제외) · push = **GitHub Actions Pages 배포** (별도 “배포해줘” 불필요)
+5. 사용자에게 **commit hash** + **배포는 push로 자동 반영됨**(Actions 성공 시) 보고
 
 HANDOFF만 바꾼 경우도 commit + push.
 

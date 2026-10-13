@@ -367,7 +367,7 @@ legacySummaryOnly (옛 회차 요약만)
 1. 코드 (`index.html` → mirror)
 2. **`HANDOFF.md` 자동 인수인계 갱신** (§13.2)
 3. **`git commit` + `git push origin main`** — **매번 자동.** 별도 “푸시해줘” 없어도 push.
-4. **배포:** push 후 GitHub Actions **`Deploy GitHub Pages`** (`.github/workflows/deploy-pages.yml`) → [Pages URL](https://qotjdals147.github.io/toonggongdae/) 반영 · 저장소 **Settings → Pages → Source: GitHub Actions** (최초 1회)
+4. **배포(자동):** `git push origin main` 만 하면 Actions **`Deploy GitHub Pages`** 가 돌아 [Pages](https://qotjdals147.github.io/toonggongdae/) 반영(보통 1~3분) · **사용자에게 “배포해줘” 요청 금지** · 캐시만 Ctrl+F5
 
 커밋 메시지: 한국어 한 줄, **why** 위주. HANDOFF만 고친 commit도 push.
 
