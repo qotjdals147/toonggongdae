@@ -10,6 +10,10 @@
   let assetUrl = (relativePath) => String(relativePath || '');
   /** 로컬 편집 직후 index.html의 bossCooldownRemoteSnapshot 갱신 */
   let syncLocalSnapshot = () => {};
+  let flushSave = () => {};
+  /** 저장 완료 전 Realtime이 삭제·추가를 되돌리지 않게 */
+  const pendingBossEntryDeletes = new Set();
+  const pendingBossEntryAdds = new Set();
 
   const MS_DAY = 86400000;
   const MS_WEEK = 7 * MS_DAY;
@@ -168,15 +172,22 @@
     const next = normalizeBossCooldown(nextRaw);
     const merged = { entries: emptyBossEntries() };
     BOSS_IDS.forEach((bossId) => {
-      const byId = new Map();
-      prev.entries[bossId].forEach((e) => byId.set(e.id, e));
-      next.entries[bossId].forEach((e) => {
-        const existing = byId.get(e.id);
-        byId.set(e.id, pickMergedEntry(existing, e));
+      const prevById = new Map(prev.entries[bossId].map((e) => [e.id, e]));
+      const nextFiltered = next.entries[bossId].filter((e) => !pendingBossEntryDeletes.has(e.id));
+      merged.entries[bossId] = nextFiltered.map((e) => pickMergedEntry(prevById.get(e.id), e));
+      const mergedIds = new Set(merged.entries[bossId].map((e) => e.id));
+      prev.entries[bossId].forEach((e) => {
+        if (!mergedIds.has(e.id) && pendingBossEntryAdds.has(e.id)) {
+          merged.entries[bossId].push(e);
+        }
       });
-      merged.entries[bossId] = [...byId.values()];
     });
     return merged;
+  }
+
+  function clearBossCooldownPendingSync() {
+    pendingBossEntryDeletes.clear();
+    pendingBossEntryAdds.clear();
   }
 
   function ensureBossCooldownState() {
@@ -344,12 +355,14 @@
     const list = entriesForBoss(bossId);
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
+    pendingBossEntryAdds.delete(entryId);
+    pendingBossEntryDeletes.add(entryId);
     const idx = list.findIndex((x) => x.id === entryId);
     if (idx >= 0) list.splice(idx, 1);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     syncLocalSnapshot();
-    scheduleSave();
     render(true);
+    flushSave();
   }
 
   function addCharacter(bossId) {

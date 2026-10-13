@@ -2765,7 +2765,13 @@
   .boss-cd-ctl:active { transform: scale(0.96); }
   .boss-cd-start-btn { font-size: 11px; padding: 4px 8px; flex-shrink: 0; }
   .boss-cd-apply-btn { font-size: 11px; padding: 4px 8px; flex-shrink: 0; }
-  .boss-cd-del { font-size: 11px; padding: 0 2px; flex-shrink: 0; }
+  .boss-cd-del {
+    font-size: 11px;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
   .boss-cd-manual-input {
     font-size: 11px;
     padding: 4px 6px;
@@ -5244,11 +5250,18 @@
   function touchBossCooldownLocalSnapshot() {
     if (!window.BossCooldownApp) return;
     BossCooldownApp.ensureBossCooldownState();
+    suppressRemoteUntil = Math.max(suppressRemoteUntil, Date.now() + 2800);
     try {
       bossCooldownRemoteSnapshot = JSON.parse(JSON.stringify(state.bossCooldown));
     } catch (e) {
       bossCooldownRemoteSnapshot = null;
     }
+  }
+
+  function flushSaveState() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = null;
+    saveState();
   }
 
   function stateForPersistence() {
@@ -6483,6 +6496,9 @@
     try {
       setSaveStatusHint('저장 중…');
       await saveStateToBackend();
+      if (window.BossCooldownApp && BossCooldownApp.clearBossCooldownPendingSync) {
+        BossCooldownApp.clearBossCooldownPendingSync();
+      }
       updateStatusUi();
       setSaveStatusHint('');
     } catch (e) {
