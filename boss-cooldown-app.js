@@ -534,7 +534,7 @@
         </label>`;
     }
     return `
-      <div class="boss-cd-add" data-boss-add-panel="${bossDef.id}" ${bossDef.id === activeBossId ? '' : 'hidden'}>
+      <div class="boss-cd-add" data-boss-add-panel="${bossDef.id}">
         ${memberPick}
         <label class="boss-cd-add-field boss-cd-add-field--grow">
           <span class="boss-cd-add-label">캐릭 닉네임</span>
@@ -572,7 +572,8 @@
       return `<button type="button" class="mypage-tab${active}" data-boss-tab="${b.id}">${escapeHtml(b.label)} <span class="boss-cd-tab-badge">${count}</span></button>`;
     }).join('');
     const panels = BOSS_DEFS.map((b) => panelHtml(b)).join('');
-    const addDock = BOSS_DEFS.map((b) => addFormHtml(b)).join('');
+    const activeDef = BOSS_DEFS.find((b) => b.id === activeBossId) || BOSS_DEFS[0];
+    const addDock = addFormHtml(activeDef);
     root.innerHTML = `
       <div class="boss-cd-tabs" role="tablist">${tabs}</div>
       <div class="boss-cd-scroll">${panels}</div>
