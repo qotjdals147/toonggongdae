@@ -260,6 +260,20 @@
     });
   }
 
+  function groupEntriesByMember(list) {
+    const sorted = sortEntries(list);
+    const groups = [];
+    sorted.forEach((entry) => {
+      const last = groups[groups.length - 1];
+      if (!last || last.memberIdx !== entry.memberIdx) {
+        groups.push({ memberIdx: entry.memberIdx, entries: [entry] });
+      } else {
+        last.entries.push(entry);
+      }
+    });
+    return groups;
+  }
+
   function startCooldown(bossId, entryId) {
     const def = BOSS_DEFS.find((b) => b.id === bossId);
     const entry = findEntry(bossId, entryId);
@@ -404,7 +418,7 @@
       const badge = root.querySelector(`[data-boss-tab="${bossDef.id}"] .boss-cd-tab-badge`);
       if (badge) badge.textContent = String(entriesForBoss(bossDef.id).length);
       entriesForBoss(bossDef.id).forEach((entry) => {
-        const card = root.querySelector(`.boss-cd-card[data-entry-id="${entry.id}"]`);
+        const card = root.querySelector(`.boss-cd-char-row[data-entry-id="${entry.id}"]`);
         if (!card) return;
         const { statusClass, statusText } = statusMetaForEntry(entry);
         const statusEl = card.querySelector('.boss-cd-status');
@@ -416,60 +430,75 @@
     });
   }
 
-  function cardHtml(bossDef, entry) {
-    const label = `${memberDisplayName(entry.memberIdx)}-${entry.charName}`;
+  function charRowHtml(bossDef, entry) {
     const { statusClass, statusText } = statusMetaForEntry(entry);
-
     const editable = canEditMember(entry.memberIdx);
 
     let pianusBlock = '';
     if (bossDef.pianus) {
       pianusBlock = `
-        <label class="boss-cd-flag${editable ? '' : ' boss-cd-flag--readonly'}">
+        <label class="boss-cd-flag boss-cd-flag--inline${editable ? '' : ' boss-cd-flag--readonly'}">
           <input type="checkbox" data-boss-tail="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" ${entry.tailQuestDone ? 'checked' : ''} ${editable ? '' : 'disabled'}>
-          <span>꼬리비늘 퀘스트 완료 (이후 켄타 루트)</span>
+          <span>꼬리비늘 퀘 완료</span>
         </label>
-        <p class="boss-cd-npc-hint">${escapeHtml(pianusNpcHint(entry))}</p>`;
+        <span class="boss-cd-npc-hint boss-cd-npc-hint--inline">${escapeHtml(pianusNpcHint(entry))}</span>`;
     }
 
     const controls = editable
       ? `
-      <div class="boss-cd-controls" role="group" aria-label="타이머 조작">
-        <button type="button" class="boss-cd-ctl" data-act="play" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="재생 / 재개" aria-label="재생">▶</button>
-        <button type="button" class="boss-cd-ctl" data-act="pause" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
-        <button type="button" class="boss-cd-ctl" data-act="reset" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
+      <div class="boss-cd-row-actions">
+        <div class="boss-cd-controls" role="group" aria-label="타이머 조작">
+          <button type="button" class="boss-cd-ctl" data-act="play" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="재생 / 재개" aria-label="재생">▶</button>
+          <button type="button" class="boss-cd-ctl" data-act="pause" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
+          <button type="button" class="boss-cd-ctl" data-act="reset" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
+        </div>
+        <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">쿨 시작</button>
+        <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">삭제</button>
       </div>
-      <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">쿨타임 시작</button>
-      <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">캐릭 삭제</button>
-      <div class="boss-cd-manual-row">
+      <div class="boss-cd-manual-row boss-cd-manual-row--compact">
         <label class="boss-cd-manual-label">
-          <span class="boss-cd-manual-caption">클리어(완료) 시각</span>
+          <span class="boss-cd-manual-caption">클리어 시각</span>
           <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" placeholder="">
         </label>
         <button type="button" class="btn-light btn-sm" data-act="manual-apply" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">적용</button>
       </div>`
-      : `<p class="boss-cd-readonly">다른 공대원 캐릭 · 보기만</p>`;
+      : `<p class="boss-cd-readonly">보기만</p>`;
 
     return `
-      <article class="boss-cd-card" data-entry-id="${escapeHtml(entry.id)}">
-        <div class="boss-cd-card-head">
-          <img class="boss-cd-card-icon" src="${escapeHtml(assetUrl(bossDef.image))}" alt="" width="44" height="44" decoding="async" draggable="false">
-          <div class="boss-cd-card-title">
-            <div class="boss-cd-char-label">${escapeHtml(label)}</div>
-            <div class="boss-cd-status ${statusClass}">${escapeHtml(statusText)}</div>
-          </div>
+      <div class="boss-cd-char-row" data-entry-id="${escapeHtml(entry.id)}">
+        <div class="boss-cd-char-row-top">
+          <div class="boss-cd-char-name">${escapeHtml(entry.charName)}</div>
+          <div class="boss-cd-status ${statusClass}">${escapeHtml(statusText)}</div>
         </div>
-        ${pianusBlock}
+        ${pianusBlock ? `<div class="boss-cd-char-row-meta">${pianusBlock}</div>` : ''}
         ${controls}
-      </article>`;
+      </div>`;
+  }
+
+  function memberGroupHtml(bossDef, group) {
+    const name = memberDisplayName(group.memberIdx);
+    const count = group.entries.length;
+    const rows = group.entries.map((e) => charRowHtml(bossDef, e)).join('');
+    return `
+      <section class="boss-cd-member-group" data-member-idx="${group.memberIdx}">
+        <header class="boss-cd-member-head">
+          <img class="boss-cd-member-icon" src="${escapeHtml(assetUrl(bossDef.image))}" alt="" width="36" height="36" decoding="async" draggable="false">
+          <div class="boss-cd-member-title">
+            <span class="boss-cd-member-name">${escapeHtml(name)}</span>
+            <span class="boss-cd-member-count">캐릭 ${count}</span>
+          </div>
+        </header>
+        <div class="boss-cd-char-rows">${rows}</div>
+      </section>`;
   }
 
   function panelHtml(bossDef) {
-    const list = sortEntries(entriesForBoss(bossDef.id));
+    const list = entriesForBoss(bossDef.id);
     const session = getAuthSession();
     const isMaster = session && session.memberIdx === MASTER_IDX;
-    const cards = list.length
-      ? list.map((e) => cardHtml(bossDef, e)).join('')
+    const groups = groupEntriesByMember(list);
+    const cards = groups.length
+      ? groups.map((g) => memberGroupHtml(bossDef, g)).join('')
       : '<p class="boss-cd-empty">캐릭터를 추가하면 여기에 타이머가 생겨요.</p>';
 
     let memberPick = '';
