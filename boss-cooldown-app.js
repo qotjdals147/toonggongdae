@@ -412,19 +412,25 @@
   function statusMetaForEntry(entry) {
     const phase = timerPhase(entry);
     const rem = remainingMs(entry);
-    let statusClass = 'boss-cd-status--idle';
-    let statusText = '쿨 없음 · 시작 누르면 돌아가요';
+    let phaseClass = 'boss-cd-phase--idle';
+    let phaseText = '쿨 없음';
+    let timerClass = 'boss-cd-timer--empty';
+    let timerText = '';
     if (phase === 'running') {
-      statusClass = 'boss-cd-status--run';
-      statusText = formatDuration(rem);
+      phaseText = '';
+      phaseClass = 'boss-cd-phase--empty';
+      timerClass = 'boss-cd-timer--run';
+      timerText = formatDuration(rem);
     } else if (phase === 'paused') {
-      statusClass = 'boss-cd-status--pause';
-      statusText = `일시정지 ${formatDuration(rem)}`;
+      phaseText = '⏸';
+      phaseClass = 'boss-cd-phase--pause';
+      timerClass = 'boss-cd-timer--pause';
+      timerText = formatDuration(rem);
     } else if (phase === 'ready') {
-      statusClass = 'boss-cd-status--ready';
-      statusText = '입장 가능';
+      phaseText = '입장 가능';
+      phaseClass = 'boss-cd-phase--ready';
     }
-    return { phase, statusClass, statusText };
+    return { phase, phaseClass, phaseText, timerClass, timerText };
   }
 
   function isAddFieldFocused() {
@@ -445,58 +451,52 @@
       entriesForBoss(bossDef.id).forEach((entry) => {
         const card = root.querySelector(`.boss-cd-char-row[data-entry-id="${entry.id}"]`);
         if (!card) return;
-        const { statusClass, statusText } = statusMetaForEntry(entry);
-        const statusEl = card.querySelector('.boss-cd-status');
-        if (statusEl) {
-          statusEl.textContent = statusText;
-          statusEl.className = `boss-cd-status ${statusClass}`;
+        const { timerClass, timerText } = statusMetaForEntry(entry);
+        const timerEl = card.querySelector('.boss-cd-timer');
+        if (timerEl) {
+          timerEl.textContent = timerText;
+          timerEl.className = `boss-cd-timer ${timerClass}`;
         }
       });
     });
   }
 
   function charRowHtml(bossDef, entry) {
-    const { statusClass, statusText } = statusMetaForEntry(entry);
+    const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry);
     const editable = canEditMember(entry.memberIdx);
 
-    let pianusBlock = '';
+    let pianusInline = '';
     if (bossDef.pianus) {
-      pianusBlock = `
-        <label class="boss-cd-flag boss-cd-flag--inline${editable ? '' : ' boss-cd-flag--readonly'}">
+      pianusInline = `
+        <label class="boss-cd-pianus-inline${editable ? '' : ' boss-cd-flag--readonly'}" title="${escapeHtml(pianusNpcHint(entry))}">
           <input type="checkbox" data-boss-tail="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" ${entry.tailQuestDone ? 'checked' : ''} ${editable ? '' : 'disabled'}>
-          <span>꼬리비늘 퀘 완료</span>
-        </label>
-        <span class="boss-cd-npc-hint boss-cd-npc-hint--inline">${escapeHtml(pianusNpcHint(entry))}</span>`;
+          <span>꼬리</span>
+        </label>`;
     }
 
-    const controls = editable
+    const line = editable
       ? `
-      <div class="boss-cd-row-actions">
-        <div class="boss-cd-controls" role="group" aria-label="타이머 조작">
-          <button type="button" class="boss-cd-ctl" data-act="play" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="재생 / 재개" aria-label="재생">▶</button>
+        <span class="boss-cd-char-name" title="캐릭">${escapeHtml(entry.charName)}</span>
+        <div class="boss-cd-controls" role="group" aria-label="타이머">
+          <button type="button" class="boss-cd-ctl" data-act="play" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="재생" aria-label="재생">▶</button>
           <button type="button" class="boss-cd-ctl" data-act="pause" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
           <button type="button" class="boss-cd-ctl" data-act="reset" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
         </div>
-        <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">쿨 시작</button>
-        <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">삭제</button>
-      </div>
-      <div class="boss-cd-manual-row boss-cd-manual-row--compact">
-        <label class="boss-cd-manual-label">
-          <span class="boss-cd-manual-caption">클리어 시각</span>
-          <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" placeholder="">
-        </label>
-        <button type="button" class="btn-light btn-sm" data-act="manual-apply" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">적용</button>
-      </div>`
-      : `<p class="boss-cd-readonly">보기만</p>`;
+        <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">시작</button>
+        <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
+        <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" aria-label="클리어 시각">
+        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">적용</button>
+        <span class="boss-cd-timer ${timerClass}">${escapeHtml(timerText)}</span>
+        ${pianusInline}
+        <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">삭제</button>`
+      : `
+        <span class="boss-cd-char-name">${escapeHtml(entry.charName)}</span>
+        <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
+        <span class="boss-cd-timer ${timerClass}">${escapeHtml(timerText)}</span>`;
 
     return `
       <div class="boss-cd-char-row" data-entry-id="${escapeHtml(entry.id)}">
-        <div class="boss-cd-char-row-top">
-          <div class="boss-cd-char-name">${escapeHtml(entry.charName)}</div>
-          <div class="boss-cd-status ${statusClass}">${escapeHtml(statusText)}</div>
-        </div>
-        ${pianusBlock ? `<div class="boss-cd-char-row-meta">${pianusBlock}</div>` : ''}
-        ${controls}
+        <div class="boss-cd-char-line">${line}</div>
       </div>`;
   }
 
@@ -507,7 +507,6 @@
     return `
       <section class="boss-cd-member-group" data-member-idx="${group.memberIdx}">
         <header class="boss-cd-member-head">
-          <img class="boss-cd-member-icon" src="${escapeHtml(assetUrl(bossDef.image))}" alt="" width="36" height="36" decoding="async" draggable="false">
           <div class="boss-cd-member-title">
             <span class="boss-cd-member-name">${escapeHtml(name)}</span>
             <span class="boss-cd-member-count">캐릭 ${count}</span>
