@@ -121,6 +121,39 @@
     return base;
   }
 
+  function entryTimerScore(entry) {
+    if (!entry) return -1;
+    if (entry.endsAt != null && Number.isFinite(Number(entry.endsAt))) return Number(entry.endsAt);
+    if (entry.pausedRemainingMs != null) return Date.now() + Number(entry.pausedRemainingMs);
+    return 0;
+  }
+
+  /** Realtime·저장 경합 시 돌아가던 타이머(endsAt)가 idle JSON에 덮이지 않게 */
+  function pickMergedEntry(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const sa = entryTimerScore(a);
+    const sb = entryTimerScore(b);
+    if (sa === sb) return b;
+    return sb > sa ? b : a;
+  }
+
+  function mergeBossCooldown(prevRaw, nextRaw) {
+    const prev = normalizeBossCooldown(prevRaw);
+    const next = normalizeBossCooldown(nextRaw);
+    const merged = { entries: emptyBossEntries() };
+    BOSS_IDS.forEach((bossId) => {
+      const byId = new Map();
+      prev.entries[bossId].forEach((e) => byId.set(e.id, e));
+      next.entries[bossId].forEach((e) => {
+        const existing = byId.get(e.id);
+        byId.set(e.id, pickMergedEntry(existing, e));
+      });
+      merged.entries[bossId] = [...byId.values()];
+    });
+    return merged;
+  }
+
   function ensureBossCooldownState() {
     const st = getState();
     if (!st.bossCooldown || typeof st.bossCooldown !== 'object') {
@@ -521,6 +554,7 @@
     closeModal,
     renderIfOpen,
     normalizeBossCooldown,
+    mergeBossCooldown,
     ensureBossCooldownState,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

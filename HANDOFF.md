@@ -251,6 +251,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 **타이머:** **쿨타임 시작** → `endsAt = now + duration` (끄고 켜도 경과) · **⏸** → `pausedRemainingMs` · **▶** 재개 · **↻** 초기화 · 1초 tick(모달 열림).
 
+**Realtime·저장:** `mergeBossCooldown` — 원격/로컬·저장 직전 스냅샷 병합(돌아가던 `endsAt`이 idle JSON에 덮이지 않음) · **보스 모달은 `modalBlocksRemote` 제외**(열어둔 채 동기화).
+
 **권한:** **본인 슬롯** 캐릭만 편집 · **배퉁(memberIdx 2)** 은 전 슬롯 편집 · 추가 시 마스터는 공대원 select.
 
 **미구현(요청 시):** 메포 구매 횟수 줄이기급 **① 랜드 메포 충전 min-count** · 파풀 **00시 2회 카운터** · 자쿰 **2트 별도 슬롯**.
@@ -387,6 +389,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-13** — fix: **보스 쿨타임** Realtime·저장 merge(`endsAt` 유실) · 모달 열림 시에도 원격 반영 · DB 순퉁 밍글냥이 자쿰 10/13 20:19 복구
 - **2026-10-13** — **보스 쿨타임** 자쿰·혼테일 GIF 에셋 배포 · `catalogAssetUrl` · 혼테일 `.gif`
 - **2026-10-13** — **GitHub Pages** main push 자동 배포 · `.github/workflows/deploy-pages.yml` · `.nojekyll`
 - **2026-10-13** — **보스 쿨타임** 모달 안내 문구 사용자용으로 단순화

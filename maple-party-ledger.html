@@ -4424,6 +4424,8 @@
   let sortState = { column: 'date', direction: 'asc' };
   let currentExpSplit = [...DEFAULT_SPLIT];
   let saveTimeout = null;
+  /** 보스 쿨 Realtime merge · 저장 시 타이머 유실 방지 */
+  let bossCooldownRemoteSnapshot = null;
   let editingField = false;
   let gamificationReplayInProgress = false;
   let memberXpUiBaseline = null;
@@ -5165,6 +5167,12 @@
 
   /** 저장 시 회차 보기는 남기지 않음 → 새로고침하면 항상 작성 중 회차 */
   function stateForPersistence() {
+    if (window.BossCooldownApp) {
+      BossCooldownApp.ensureBossCooldownState();
+      if (bossCooldownRemoteSnapshot) {
+        state.bossCooldown = BossCooldownApp.mergeBossCooldown(bossCooldownRemoteSnapshot, state.bossCooldown);
+      }
+    }
     const payload = JSON.parse(JSON.stringify(state));
     delete payload.viewCycleId;
     return payload;
@@ -5657,8 +5665,7 @@
       || !$('makerEditModal').hidden
       || ($('monsterKillModal') && !$('monsterKillModal').hidden)
       || ($('partyTimerModal') && !$('partyTimerModal').hidden)
-      || ($('worldcoinCalcModal') && !$('worldcoinCalcModal').hidden)
-      || ($('bossCooldownModal') && !$('bossCooldownModal').hidden);
+      || ($('worldcoinCalcModal') && !$('worldcoinCalcModal').hidden);
   }
 
   function parcelFeeRateForAmount(amount) {
@@ -6168,10 +6175,12 @@
     if (state.monsterKillCounts == null) {
       state.monsterKillCounts = normalizeMonsterKillCounts(prevMonsterKillCounts);
     }
-    if (state.bossCooldown == null && prevBossCooldown != null) {
+    if (window.BossCooldownApp) {
+      state.bossCooldown = BossCooldownApp.mergeBossCooldown(prevBossCooldown, state.bossCooldown);
+      BossCooldownApp.ensureBossCooldownState();
+    } else if (state.bossCooldown == null && prevBossCooldown != null) {
       state.bossCooldown = prevBossCooldown;
     }
-    if (window.BossCooldownApp) BossCooldownApp.ensureBossCooldownState();
     const gemNamesMigrated = migrateLegacyGemNamesInState();
     const makerRowsConsolidated = migrateConsolidateMakerRefinesInState();
     if (!state.warehouseChars) state.warehouseChars = [];
