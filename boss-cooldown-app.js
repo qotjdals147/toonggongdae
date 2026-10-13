@@ -118,15 +118,44 @@
     return out;
   }
 
+  function tombstoneIdSet(raw, bossId) {
+    if (!raw || typeof raw !== 'object') return new Set();
+    const t = raw.tombstones && raw.tombstones[bossId];
+    if (!Array.isArray(t)) return new Set();
+    return new Set(t.map((x) => String(x)).filter(Boolean));
+  }
+
+  function mergeTombstoneLists(prev, next) {
+    const out = emptyBossEntries();
+    BOSS_IDS.forEach((bossId) => {
+      const set = new Set([
+        ...(prev.tombstones[bossId] || []),
+        ...(next.tombstones[bossId] || []),
+      ]);
+      out[bossId] = [...set];
+    });
+    return out;
+  }
+
+  function addBossEntryTombstone(bossId, entryId) {
+    const bc = ensureBossCooldownState();
+    if (!bc.tombstones) bc.tombstones = emptyBossEntries();
+    const id = String(entryId);
+    if (!bc.tombstones[bossId].includes(id)) bc.tombstones[bossId].push(id);
+  }
+
   function normalizeBossCooldown(raw) {
-    const base = { entries: emptyBossEntries() };
+    const base = { entries: emptyBossEntries(), tombstones: emptyBossEntries() };
     if (!raw || typeof raw !== 'object') return base;
     const src = raw.entries && typeof raw.entries === 'object' ? raw.entries : raw;
     BOSS_IDS.forEach((bossId) => {
+      const blocked = tombstoneIdSet(raw, bossId);
+      base.tombstones[bossId] = [...blocked];
       const list = Array.isArray(src[bossId]) ? src[bossId] : [];
       base.entries[bossId] = list
         .map((row) => normalizeEntry(row, bossId))
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter((e) => !blocked.has(e.id));
     });
     return base;
   }
@@ -170,14 +199,21 @@
   function mergeBossCooldown(prevRaw, nextRaw) {
     const prev = normalizeBossCooldown(prevRaw);
     const next = normalizeBossCooldown(nextRaw);
-    const merged = { entries: emptyBossEntries() };
+    const merged = { entries: emptyBossEntries(), tombstones: mergeTombstoneLists(prev, next) };
     BOSS_IDS.forEach((bossId) => {
+      const blocked = new Set(merged.tombstones[bossId] || []);
       const prevById = new Map(prev.entries[bossId].map((e) => [e.id, e]));
-      const nextFiltered = next.entries[bossId].filter((e) => !pendingBossEntryDeletes.has(e.id));
+      const nextFiltered = next.entries[bossId].filter(
+        (e) => !pendingBossEntryDeletes.has(e.id) && !blocked.has(e.id)
+      );
       merged.entries[bossId] = nextFiltered.map((e) => pickMergedEntry(prevById.get(e.id), e));
       const mergedIds = new Set(merged.entries[bossId].map((e) => e.id));
       prev.entries[bossId].forEach((e) => {
-        if (!mergedIds.has(e.id) && pendingBossEntryAdds.has(e.id)) {
+        if (
+          !mergedIds.has(e.id) &&
+          pendingBossEntryAdds.has(e.id) &&
+          !blocked.has(e.id)
+        ) {
           merged.entries[bossId].push(e);
         }
       });
@@ -354,7 +390,12 @@
   function deleteEntry(bossId, entryId) {
     const list = entriesForBoss(bossId);
     const entry = findEntry(bossId, entryId);
-    if (!entry || !canEditMember(entry.memberIdx)) return;
+    if (!entry) return;
+    if (!canEditMember(entry.memberIdx)) {
+      alert('이 캐릭터는 삭제할 권한이 없어요.');
+      return;
+    }
+    addBossEntryTombstone(bossId, entryId);
     pendingBossEntryAdds.delete(entryId);
     pendingBossEntryDeletes.add(entryId);
     const idx = list.findIndex((x) => x.id === entryId);
@@ -382,6 +423,7 @@
     const entry = normalizeEntry({ id: genId(), memberIdx, charName }, bossId);
     if (!entry) return;
     entriesForBoss(bossId).push(entry);
+    pendingBossEntryAdds.add(entry.id);
     if (nameInput) nameInput.value = '';
     syncLocalSnapshot();
     scheduleSave();
@@ -491,17 +533,17 @@
       ? `
         <span class="boss-cd-char-name" title="캐릭">${escapeHtml(entry.charName)}</span>
         <div class="boss-cd-controls" role="group" aria-label="타이머">
-          <button type="button" class="boss-cd-ctl" data-act="play" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="재생" aria-label="재생">▶</button>
-          <button type="button" class="boss-cd-ctl" data-act="pause" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
-          <button type="button" class="boss-cd-ctl" data-act="reset" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
+          <button type="button" class="boss-cd-ctl" data-act="play" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="재생" aria-label="재생">▶</button>
+          <button type="button" class="boss-cd-ctl" data-act="pause" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
+          <button type="button" class="boss-cd-ctl" data-act="reset" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
         </div>
-        <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">시작</button>
+        <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">시작</button>
         <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
         <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" aria-label="클리어 시각">
-        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">적용</button>
+        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">적용</button>
         <span class="boss-cd-timer ${timerClass}">${escapeHtml(timerText)}</span>
         ${pianusInline}
-        <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">삭제</button>`
+        <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">삭제</button>`
       : `
         <span class="boss-cd-char-name">${escapeHtml(entry.charName)}</span>
         <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
@@ -606,17 +648,22 @@
     }
     const actBtn = e.target.closest('[data-act]');
     if (actBtn) {
-      const { act, boss, id } = actBtn.dataset;
-      if (act === 'start') startCooldown(boss, id);
+      const act = actBtn.dataset.act;
+      const bossId = actBtn.dataset.bossId;
+      const entryId = actBtn.dataset.entryId;
+      if (act === 'start') startCooldown(bossId, entryId);
       else if (act === 'play') {
-        const entry = findEntry(boss, id);
-        if (entry && entry.pausedRemainingMs != null) resumeCooldown(boss, id);
-        else startCooldown(boss, id);
-      } else if (act === 'pause') pauseCooldown(boss, id);
-      else if (act === 'reset') resetCooldown(boss, id);
-      else if (act === 'manual-apply') applyManualCompleteTime(boss, id);
+        const entry = findEntry(bossId, entryId);
+        if (entry && entry.pausedRemainingMs != null) resumeCooldown(bossId, entryId);
+        else startCooldown(bossId, entryId);
+      } else if (act === 'pause') pauseCooldown(bossId, entryId);
+      else if (act === 'reset') resetCooldown(bossId, entryId);
+      else if (act === 'manual-apply') applyManualCompleteTime(bossId, entryId);
       else if (act === 'delete') {
-        if (confirm('이 캐릭터 타이머를 목록에서 삭제할까요?')) deleteEntry(boss, id);
+        e.preventDefault();
+        e.stopPropagation();
+        if (!bossId || !entryId) return;
+        if (confirm('이 캐릭터 타이머를 목록에서 삭제할까요?')) deleteEntry(bossId, entryId);
       }
       return;
     }
@@ -692,6 +739,7 @@
     if (opts.getAuthSession) getAuthSession = opts.getAuthSession;
     if (opts.catalogAssetUrl) assetUrl = opts.catalogAssetUrl;
     if (opts.syncLocalSnapshot) syncLocalSnapshot = opts.syncLocalSnapshot;
+    if (opts.flushSave) flushSave = opts.flushSave;
   }
 
   global.BossCooldownApp = {
@@ -702,5 +750,6 @@
     normalizeBossCooldown,
     mergeBossCooldown,
     ensureBossCooldownState,
+    clearBossCooldownPendingSync,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

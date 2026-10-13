@@ -11729,6 +11729,7 @@
       getAuthSession: () => authSession,
       catalogAssetUrl,
       syncLocalSnapshot: touchBossCooldownLocalSnapshot,
+      flushSave: flushSaveState,
     });
     $('bossCooldownBtn').addEventListener('click', () => BossCooldownApp.openModal());
     $('bossCooldownCloseBtn').addEventListener('click', () => BossCooldownApp.closeModal());

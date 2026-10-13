@@ -93,7 +93,7 @@ hotIssues: { id, …, authorMemberIdx?, **targetMemberIdxs[]**, text, images[] }
 challengeMonsterCatalog[]  // { id, canonical, aliases[], icon? } · 처치 도전
 monsterKillCounts  // { "0"|"1"|"2" → { [monsterId]: count } } · **처치 기록** 공동 모달 · §3.3 unlock 연동
 partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
-bossCooldown?  // entries{ bossId → [{ id, memberIdx, charName, endsAt?, pausedRemainingMs?, tailQuestDone? }] } · **`boss-cooldown-app.js`**
+bossCooldown?  // entries{ bossId → [...] } · tombstones{ bossId → [entryId] } (삭제 영구) · **`boss-cooldown-app.js`**
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -391,6 +391,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-14** — fix: **보스 쿨타임** 삭제 — `tombstones` 영속 · `data-entry-id` 클릭 · Realtime 재등장 차단
 - **2026-10-14** — fix: **보스 쿨타임** 캐릭 **삭제** — merge가 prev-only로 되살림 · pending delete + 즉시 저장
 - **2026-10-13** — **보스 쿨타임** 캐릭 **1줄** UI (상태·클리어·타이머 분리 · `쿨 없음`만)
 - **2026-10-13** — fix: **보스 쿨타임** 캐릭 추가 폼 5중 표시(`flex`가 `[hidden]` 덮음) → 활성 탭 1개만
