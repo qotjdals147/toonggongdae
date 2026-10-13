@@ -275,8 +275,7 @@
     render();
   }
 
-  function cardHtml(bossDef, entry) {
-    const label = `${memberDisplayName(entry.memberIdx)}-${entry.charName}`;
+  function statusMetaForEntry(entry) {
     const phase = timerPhase(entry);
     const rem = remainingMs(entry);
     let statusClass = 'boss-cd-status--idle';
@@ -291,6 +290,40 @@
       statusClass = 'boss-cd-status--ready';
       statusText = '입장 가능';
     }
+    return { phase, statusClass, statusText };
+  }
+
+  function isAddFieldFocused() {
+    const root = $('bossCooldownApp');
+    if (!root) return false;
+    const active = document.activeElement;
+    if (!active || !root.contains(active)) return false;
+    const tag = active.tagName;
+    return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+  }
+
+  function updateTimers() {
+    const root = $('bossCooldownApp');
+    if (!root || !root.querySelector('.boss-cd-tabs')) return;
+    BOSS_DEFS.forEach((bossDef) => {
+      const badge = root.querySelector(`[data-boss-tab="${bossDef.id}"] .boss-cd-tab-badge`);
+      if (badge) badge.textContent = String(entriesForBoss(bossDef.id).length);
+      entriesForBoss(bossDef.id).forEach((entry) => {
+        const card = root.querySelector(`.boss-cd-card[data-entry-id="${entry.id}"]`);
+        if (!card) return;
+        const { statusClass, statusText } = statusMetaForEntry(entry);
+        const statusEl = card.querySelector('.boss-cd-status');
+        if (statusEl) {
+          statusEl.textContent = statusText;
+          statusEl.className = `boss-cd-status ${statusClass}`;
+        }
+      });
+    });
+  }
+
+  function cardHtml(bossDef, entry) {
+    const label = `${memberDisplayName(entry.memberIdx)}-${entry.charName}`;
+    const { statusClass, statusText } = statusMetaForEntry(entry);
 
     const editable = canEditMember(entry.memberIdx);
     const readyLine = entry.endsAt ? `<div class="boss-cd-ready-at">목표: ${escapeHtml(formatReadyAt(entry))} 전후</div>` : '';
@@ -372,9 +405,13 @@
       </div>`;
   }
 
-  function render() {
+  function render(force) {
     const root = $('bossCooldownApp');
     if (!root || !mounted) return;
+    if (!force && isAddFieldFocused()) {
+      updateTimers();
+      return;
+    }
     const tabs = BOSS_DEFS.map((b) => {
       const count = entriesForBoss(b.id).length;
       const active = b.id === activeBossId ? ' is-active' : '';
@@ -390,7 +427,7 @@
     const tab = e.target.closest('[data-boss-tab]');
     if (tab) {
       activeBossId = tab.dataset.bossTab;
-      render();
+      render(true);
       return;
     }
     const addBtn = e.target.closest('[data-boss-add]');
@@ -422,7 +459,7 @@
   function startTick() {
     stopTick();
     tickId = setInterval(() => {
-      if ($('bossCooldownModal') && !$('bossCooldownModal').hidden) render();
+      if ($('bossCooldownModal') && !$('bossCooldownModal').hidden) updateTimers();
     }, TICK_MS);
   }
 
@@ -465,7 +502,7 @@
   }
 
   function renderIfOpen() {
-    if ($('bossCooldownModal') && !$('bossCooldownModal').hidden) render();
+    if ($('bossCooldownModal') && !$('bossCooldownModal').hidden) render(isAddFieldFocused() ? false : true);
   }
 
   function init(opts) {
