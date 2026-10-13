@@ -249,7 +249,7 @@ legacySummaryOnly (옛 회차 요약만)
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
 
-**타이머:** **쿨타임 시작** → `endsAt = now + duration` · **클리어(완료) 시각** 직접 입력 → `endsAt = 입력 + duration` · **⏸** / **▶** / **↻** · 1초 tick(모달 열림).
+**타이머:** `completedAt`(클리어 시각) + `endsAt` · **쿨타임 시작** = now · **직접 입력+적용** = `completedAt` 저장 · 입력칸은 **completedAt만** 표시(endsAt 역산·오늘 날짜 자동 채움 없음) · **⏸** / **▶** / **↻**.
 
 **Realtime·저장:** `mergeBossCooldown` — 원격/로컬·저장 직전 스냅샷 병합(돌아가던 `endsAt`이 idle JSON에 덮이지 않음) · **보스 모달은 `modalBlocksRemote` 제외**(열어둔 채 동기화).
 
@@ -389,6 +389,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-13** — fix: **보스 쿨타임** `completedAt` 저장 · 클리어 입력 endsAt 역산/now() 제거 · draft 유지
 - **2026-10-13** — **보스 쿨타임** **클리어 시각 직접 입력**(`datetime-local`+적용)
 - **2026-10-13** — fix: **보스 쿨타임** Realtime merge · DB **순퉁-밍글냥이 피아누스** 10/13 20:19→7일 (자쿰 오복구 제거)
 - **2026-10-13** — **보스 쿨타임** 자쿰·혼테일 GIF 에셋 배포 · `catalogAssetUrl` · 혼테일 `.gif`

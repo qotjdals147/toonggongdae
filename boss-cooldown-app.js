@@ -63,6 +63,8 @@
   let tickId = null;
   let activeBossId = BOSS_DEFS[0].id;
   let mounted = false;
+  /** 클리어 시각 입력 중 render로 value가 바뀌지 않게 */
+  const manualTimeDrafts = {};
 
   function escapeHtml(str) {
     return String(str)
@@ -98,6 +100,8 @@
       memberIdx,
       charName,
       endsAt: e.endsAt != null && Number.isFinite(Number(e.endsAt)) ? Number(e.endsAt) : null,
+      completedAt:
+        e.completedAt != null && Number.isFinite(Number(e.completedAt)) ? Number(e.completedAt) : null,
       pausedRemainingMs:
         e.pausedRemainingMs != null && Number.isFinite(Number(e.pausedRemainingMs))
           ? Math.max(0, Number(e.pausedRemainingMs))
@@ -134,8 +138,12 @@
     if (!b) return a;
     const sa = entryTimerScore(a);
     const sb = entryTimerScore(b);
-    if (sa === sb) return b;
-    return sb > sa ? b : a;
+    let picked = sb > sa ? b : sa > sb ? a : b;
+    const other = picked === a ? b : a;
+    if (picked.completedAt == null && other.completedAt != null) {
+      picked = { ...picked, completedAt: other.completedAt };
+    }
+    return picked;
   }
 
   function mergeBossCooldown(prevRaw, nextRaw) {
@@ -215,12 +223,27 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  function defaultManualCompleteValue(entry, bossDef) {
-    if (entry.endsAt != null && bossDef.durationMs) {
-      const started = entry.endsAt - bossDef.durationMs;
-      if (started > 0) return toDatetimeLocalValue(started);
+  function manualTimeDraftKey(bossId, entryId) {
+    return `${bossId}:${entryId}`;
+  }
+
+  function manualInputValue(bossId, entry) {
+    const key = manualTimeDraftKey(bossId, entry.id);
+    if (Object.prototype.hasOwnProperty.call(manualTimeDrafts, key)) {
+      return manualTimeDrafts[key];
     }
-    return toDatetimeLocalValue(Date.now());
+    if (entry.completedAt != null) return toDatetimeLocalValue(entry.completedAt);
+    return '';
+  }
+
+  function captureManualDraftsFromDom() {
+    const root = $('bossCooldownApp');
+    if (!root) return;
+    root.querySelectorAll('input[data-boss-manual-time]').forEach((inp) => {
+      const bossId = inp.dataset.bossManualTime;
+      const entryId = inp.dataset.entryId;
+      if (bossId && entryId) manualTimeDrafts[manualTimeDraftKey(bossId, entryId)] = inp.value;
+    });
   }
 
   function pianusNpcHint(entry) {
@@ -241,10 +264,13 @@
     const def = BOSS_DEFS.find((b) => b.id === bossId);
     const entry = findEntry(bossId, entryId);
     if (!def || !entry || !canEditMember(entry.memberIdx)) return;
-    entry.endsAt = Date.now() + def.durationMs;
+    const now = Date.now();
+    entry.completedAt = now;
+    entry.endsAt = now + def.durationMs;
     entry.pausedRemainingMs = null;
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     scheduleSave();
-    render();
+    render(true);
   }
 
   function pauseCooldown(bossId, entryId) {
@@ -272,9 +298,11 @@
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
     entry.endsAt = null;
+    entry.completedAt = null;
     entry.pausedRemainingMs = null;
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     scheduleSave();
-    render();
+    render(true);
   }
 
   function deleteEntry(bossId, entryId) {
@@ -283,8 +311,9 @@
     if (!entry || !canEditMember(entry.memberIdx)) return;
     const idx = list.findIndex((x) => x.id === entryId);
     if (idx >= 0) list.splice(idx, 1);
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     scheduleSave();
-    render();
+    render(true);
   }
 
   function addCharacter(bossId) {
@@ -333,8 +362,10 @@
       alert('완료 시각 형식을 확인해 주세요.');
       return;
     }
+    entry.completedAt = started;
     entry.endsAt = started + def.durationMs;
     entry.pausedRemainingMs = null;
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     scheduleSave();
     render(true);
   }
@@ -413,7 +444,7 @@
       <div class="boss-cd-manual-row">
         <label class="boss-cd-manual-label">
           <span class="boss-cd-manual-caption">클리어(완료) 시각</span>
-          <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(defaultManualCompleteValue(entry, bossDef))}">
+          <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" placeholder="">
         </label>
         <button type="button" class="btn-light btn-sm" data-act="manual-apply" data-boss="${bossDef.id}" data-id="${escapeHtml(entry.id)}">적용</button>
       </div>`
@@ -481,6 +512,7 @@
       updateTimers();
       return;
     }
+    captureManualDraftsFromDom();
     const tabs = BOSS_DEFS.map((b) => {
       const count = entriesForBoss(b.id).length;
       const active = b.id === activeBossId ? ' is-active' : '';
@@ -543,6 +575,15 @@
     if (!root || mounted) return;
     mounted = true;
     root.addEventListener('click', onRootClick);
+    root.addEventListener(
+      'input',
+      (e) => {
+        const inp = e.target.closest('input[data-boss-manual-time]');
+        if (!inp) return;
+        manualTimeDrafts[manualTimeDraftKey(inp.dataset.bossManualTime, inp.dataset.entryId)] = inp.value;
+      },
+      true
+    );
   }
 
   function openModal() {
