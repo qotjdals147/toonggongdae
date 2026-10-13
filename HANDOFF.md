@@ -28,6 +28,7 @@
 | **`maple-party-ledger.html`** | **배포/미러용 복사본.** 변경 시 `index.html`과 **항상 동일**하게 유지 (`Copy-Item -Force`). |
 | **`party-timer-app.js`** | **퉁공대 타이머** 로직 · `#partyTimerModal` + Document PiP · `state.partyTimer`는 `scheduleSave` |
 | **`worldcoin-calc-app.js`** | **월드코인 계산기** · `#worldcoinCalcModal` · 패키지 설정은 **localStorage** (`maple_worldcoin_calc_settings_v3`) · 장부 state **무관** |
+| **`boss-cooldown-app.js`** | **보스 쿨타임** · `#bossCooldownModal` · `state.bossCooldown` · **§5.5** |
 | **`party-timer.html`** | 구 URL → `index.html?openTimer=1` 리다이렉트만 |
 | `image/아이콘/` | meso·섹션 아이콘 |
 | `image/훈장아이콘/` | 레벨·도전 칭호 PNG |
@@ -92,6 +93,7 @@ hotIssues: { id, …, authorMemberIdx?, **targetMemberIdxs[]**, text, images[] }
 challengeMonsterCatalog[]  // { id, canonical, aliases[], icon? } · 처치 도전
 monsterKillCounts  // { "0"|"1"|"2" → { [monsterId]: count } } · **처치 기록** 공동 모달 · §3.3 unlock 연동
 partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
+bossCooldown?  // entries{ bossId → [{ id, memberIdx, charName, endsAt?, pausedRemainingMs?, tailQuestDone? }] } · **`boss-cooldown-app.js`**
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -180,6 +182,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
 | 월드코인 계산기 | `#worldcoinCalcBtn` · `#worldcoinCalcModal` · **§5.4** · `worldcoin-calc-app.js` |
+| 보스 쿨타임 | `#bossCooldownBtn` · `#bossCooldownModal` · **§5.5** · `boss-cooldown-app.js` |
 | 핫이슈 대상 | `#hotIssueTargetPicks` **복수 체크** · 대상마다 XP (`XP_HOT_ISSUE`) |
 
 ### 5.1 표 CSS 주의
@@ -229,6 +232,28 @@ legacySummaryOnly (옛 회차 요약만)
 **회귀·캐시:** GitHub Pages는 배포 후 **Ctrl+F5** · 구 UI(「결제 11회·2회」·캐시샵 혼용 문구)는 구 JS 캐시.
 
 **최근 main (월드코인):** `551f995` (문구) ← `f135193` (원화 횟수·보유 초기화) ← `5989723` (premium cap).
+
+### 5.5 보스 쿨타임 (`boss-cooldown-app.js`)
+
+**장부 연동:** `state.bossCooldown` → `stateForPersistence()` · `parseStoredState`는 **`hasOwnProperty('bossCooldown')`** 일 때만 덮음 · `applyStateFromRemote`에서 누락 시 **prev preserve** · **`modalBlocksRemote()`** · Realtime 시 `BossCooldownApp.renderIfOpen()`.
+
+**전제:** **클라우드 로그인** (타이머와 동일) · 공대 **3명이 같은 타이머 목록** Realtime 공유.
+
+**표시:** 캐릭 라벨 **`{members[memberIdx]}-{charName}`** (예: 순퉁-LeoSooN) · 보스별 **탭** 5종.
+
+| bossId | 쿨 | UI 메모 |
+|--------|-----|---------|
+| `pianus` | 7일 | **꼬리비늘 퀘 완료** 체크 → 수령 NPC 힌트(켄타 vs 탐사대장 팽) |
+| `papulatus` | 24h | **균열 조각 무료 NPC** 퀘 완료 기준만 (일 2입장 00시는 안내 문구) |
+| `zakumNormal` | 24h | **1트 입장** 시각만 · 일 2트(2트는 쿨 재시작 없음) |
+| `zakumChaos` | 7일 | 1트 입장 |
+| `horntailNormal` | 24h | 입장 시각 |
+
+**타이머:** **쿨타임 시작** → `endsAt = now + duration` (끄고 켜도 경과) · **⏸** → `pausedRemainingMs` · **▶** 재개 · **↻** 초기화 · 1초 tick(모달 열림).
+
+**권한:** **본인 슬롯** 캐릭만 편집 · **배퉁(memberIdx 2)** 은 전 슬롯 편집 · 추가 시 마스터는 공대원 select.
+
+**미구현(요청 시):** 메포 구매 횟수 줄이기급 **① 랜드 메포 충전 min-count** · 파풀 **00시 2회 카운터** · 자쿰 **2트 별도 슬롯**.
 
 ### 5.2 공대원 카드 (`#membersGrid` · `gamificationActive()`)
 
@@ -361,6 +386,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-13** — **보스 쿨타임** 도구 · `boss-cooldown-app.js` · `state.bossCooldown` · 보스 5종·캐릭별 endsAt · §5.5
 - **2026-10-01** — **HANDOFF §5.4** 월드코인 계산기 인수인계 (화폐 모델·DP·원화 횟수 줄이기·보유 입력·미구현 ① 횟수)
 - **2026-10-01** — 월드코인 계산기 UI — **플랫폼(월코·원화)** vs **메이플 랜드(메포)** 문구 정리
 - **2026-10-01** — 월드코인 **플랫폼 원화 결제 줄이기** — **원화(월코 충전) 횟수**만 집계 · 보유 칸 **팝업 열 때만** 초기화
@@ -562,12 +588,13 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 
 ---
 
-## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-10-01)
+## 14. 진행 중 · 다음 세션 스냅샷 (갱신: 2026-10-13)
 
-**최근 main:** `551f995` (월드코인 문구·§5.4) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
+**최근 main:** (보스 쿨타임 커밋) · **연동 규칙:** §3.3 · `toonggongdae-integration.mdc`
 
 | 영역 | 상태 |
 |------|------|
+| **보스 쿨타임** | §5.5 · 피아누스/파풀/자쿰 노·카/혼 노 · 본인+마스터 편집 |
 | **월드코인 계산기** | §5.4 · `worldcoin-calc-app.js` · localStorage · **장부 state 무관** |
 | **처치 기록** | 공동 `#monsterKillModal` · `monsterKillCounts` · +1→unlock sync · stale bucket fix |
 | **훈장** | 좌/우붕어싸만코 = **monster_kill 도전** + `CHALLENGE_TITLE_ASSETS` · 고유≠어싸만코 |
@@ -620,4 +647,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-01 (HANDOFF §5.4 월드코인 인수인계)*
+*Last updated: 2026-10-13 (보스 쿨타임 §5.5)*
