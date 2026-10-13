@@ -387,6 +387,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-13** — **보스 쿨타임** 자쿰·혼테일 GIF 에셋 배포 · `catalogAssetUrl` · 혼테일 `.gif`
 - **2026-10-13** — **GitHub Pages** main push 자동 배포 · `.github/workflows/deploy-pages.yml` · `.nojekyll`
 - **2026-10-13** — **보스 쿨타임** 모달 안내 문구 사용자용으로 단순화
 - **2026-10-13** — fix: **보스 쿨타임** 입력 포커스(1초 tick DOM 전체 갱신 제거) · 제목 아이콘 PNG

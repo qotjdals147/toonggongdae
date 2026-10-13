@@ -7,6 +7,7 @@
   let getState = () => ({ bossCooldown: null, members: [] });
   let scheduleSave = () => {};
   let getAuthSession = () => null;
+  let assetUrl = (relativePath) => String(relativePath || '');
 
   const MS_DAY = 86400000;
   const MS_WEEK = 7 * MS_DAY;
@@ -52,7 +53,7 @@
       label: '혼테일 노말',
       badge: '일 1트',
       durationMs: MS_DAY,
-      image: 'image/몬스터/혼테일.png',
+      image: 'image/몬스터/혼테일.gif',
       hint: '입장 시각 기준 24h.',
     },
   ];
@@ -352,7 +353,7 @@
     return `
       <article class="boss-cd-card" data-entry-id="${escapeHtml(entry.id)}">
         <div class="boss-cd-card-head">
-          <img class="boss-cd-card-icon" src="${escapeHtml(bossDef.image)}" alt="" width="40" height="40" decoding="async" draggable="false">
+          <img class="boss-cd-card-icon" src="${escapeHtml(assetUrl(bossDef.image))}" alt="" width="44" height="44" decoding="async" draggable="false">
           <div class="boss-cd-card-title">
             <div class="boss-cd-char-label">${escapeHtml(label)}</div>
             <div class="boss-cd-status ${statusClass}">${escapeHtml(statusText)}</div>
@@ -511,6 +512,7 @@
     if (opts.getState) getState = opts.getState;
     if (opts.scheduleSave) scheduleSave = opts.scheduleSave;
     if (opts.getAuthSession) getAuthSession = opts.getAuthSession;
+    if (opts.catalogAssetUrl) assetUrl = opts.catalogAssetUrl;
   }
 
   global.BossCooldownApp = {
