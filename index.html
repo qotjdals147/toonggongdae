@@ -6264,12 +6264,20 @@
     const prevViewId = hasInitialViewFocus ? null : state.viewCycleId;
     const prevMonsterKillCounts = state.monsterKillCounts;
     const prevBossCooldown = state.bossCooldown;
+    const prevPartyTimer = state.partyTimer;
     state = next;
     if (state.monsterKillCounts == null) {
       state.monsterKillCounts = normalizeMonsterKillCounts(prevMonsterKillCounts);
     }
+    if (state.partyTimer == null && prevPartyTimer != null) {
+      state.partyTimer = prevPartyTimer;
+    }
     if (window.BossCooldownApp) {
-      state.bossCooldown = BossCooldownApp.mergeBossCooldown(prevBossCooldown, state.bossCooldown);
+      if (state.bossCooldown == null && prevBossCooldown != null) {
+        state.bossCooldown = prevBossCooldown;
+      } else if (state.bossCooldown != null) {
+        state.bossCooldown = BossCooldownApp.mergeBossCooldown(prevBossCooldown, state.bossCooldown);
+      }
       BossCooldownApp.ensureBossCooldownState();
       try {
         bossCooldownRemoteSnapshot = JSON.parse(JSON.stringify(state.bossCooldown));

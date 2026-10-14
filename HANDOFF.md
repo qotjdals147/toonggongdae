@@ -59,7 +59,7 @@
 | 층 | 확인할 것 |
 |----|-----------|
 | **쓰기** | `state.*` 변경 후 `scheduleSave` / 즉시 `saveState` · 필드가 `stateForPersistence()`에 포함 |
-| **복원** | `parseStoredState`: 새 필드는 `hasOwnProperty` — 없으면 **빈 객체로 덮지 않음** · `applyStateFromRemote`에서 `prev*` preserve(예: `monsterKillCounts`) |
+| **복원** | `parseStoredState`: 새 필드는 `hasOwnProperty` — 없으면 **빈 객체로 덮지 않음** · `applyStateFromRemote`에서 `prev*` preserve — `monsterKillCounts` · **`bossCooldown` 키 없음** · **`partyTimer` null** |
 | **Realtime** | 새 `#…Modal` → **`modalBlocksRemote()`** · `saveStateToBackend`의 `suppressRemoteUntil` |
 | **정규화** | `ensureMonsterKillCounts()` 등이 **새 객체로 교체** → increment 시 **stale bucket**에 쓰면 집계 0 · `getMonsterKillCount` 안에서 재-normalize 후 옛 ref에 assign 금지 |
 | **게임화 3층** | ① `challengeProgressForMember` → 훈장 모달 “완료” · ② **`unlockedTitleIds`** + `grantXp`/`ach:` · ③ **마이페이지** `renderTitlePickList` · ①만 true면 **장착 불가** |
@@ -239,7 +239,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 **전제:** **클라우드 로그인** (타이머와 동일) · 공대 **3명이 같은 타이머 목록** Realtime 공유.
 
-**표시:** 보스 탭 · **공대원별 1박스** · **캐릭당 1줄** — 닉 · ▶⏸↻ · 시작 · 상태(`쿨 없음`/`입장 가능`) · 클리어 `datetime-local` · 적용 · **남은 시간**(mono) · (피아누스) 꼬리 체크 · 삭제.
+**표시:** 보스 탭 · **공대원별 1박스** · **캐릭당 1줄** — 닉 · ▶⏸↻ · 상태(`쿨 없음`/`입장 가능`) · 클리어 `datetime-local` · 적용 · **남은 시간**(mono) · (피아누스) 꼬리 · 삭제.
 
 | bossId | 쿨 | UI 메모 |
 |--------|-----|---------|
@@ -251,7 +251,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 **타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만).
 
-**Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · **`pickMergedEntry`는 `revision` 큰 쪽**(적용·↻·▶마다 bump) — 구 idle JSON이 새 `endsAt` 덮지 않음 · tombstones/pending delete · **`flushSave`**(적용·삭제) · `touchBossCooldownLocalSnapshot` · **보스 모달은 `modalBlocksRemote` 제외**.
+**Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · 원격 JSON에 **`bossCooldown` 키 없으면 prev 유지**(구 클라 save가 목록 비우지 않음) · **`revision`** 최신 우선 · prev-only 행(`revision>0`·pending add) 유지 · **`tombstones`** · **`flushSave`**(적용·삭제·↻·▶) · `touchBossCooldownLocalSnapshot` · **보스 모달은 `modalBlocksRemote` 제외** · load 시 **`migrateActiveEntryRevisionsInPlace`**(revision 0 + active).
 
 **레이아웃:** 탭 고정 · **목록만** `.boss-cd-scroll` · **캐릭 추가**는 `.boss-cd-add-dock`(스크롤 밖) · **닫기** `modal-foot`와 겹치지 않음 · 공대원 박스 **2px 테두리·좌 accent**.
 
@@ -391,6 +391,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-14** — **점검** — 보스 쿨 merge(prev-only·revision·tombstone) · 원격 `bossCooldown`/`partyTimer` 누락 preserve · ↻·▶ 즉시 저장
 - **2026-10-14** — fix: **보스 쿨타임** **적용** 후 Realtime merge가 idle로 덮던 버그 · `entry.revision` · 즉시 저장
 - **2026-10-14** — **보스 쿨타임** 「시작」버튼 제거(▶만) · 적용/타이머 tick 시 상태(입장 가능) 갱신 · 모달 안내
 - **2026-10-14** — fix: **보스 쿨타임** 삭제 — `tombstones` 영속 · `data-entry-id` 클릭 · Realtime 재등장 차단
@@ -667,4 +668,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-13 (보스 쿨타임 reset·UI·스크롤 레이아웃)*
+*Last updated: 2026-10-14 (보스 쿨·Realtime 연동 점검 · partyTimer preserve)*

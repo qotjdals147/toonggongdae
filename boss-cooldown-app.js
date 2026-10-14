@@ -184,15 +184,6 @@
     return !!entry && (entry.endsAt != null || entry.pausedRemainingMs != null);
   }
 
-  function isTimerFullyCleared(entry) {
-    return (
-      !!entry &&
-      entry.endsAt == null &&
-      entry.pausedRemainingMs == null &&
-      entry.completedAt == null
-    );
-  }
-
   /** Realtime·저장 — revision 최신 우선(적용·↻) · 없으면 endsAt score */
   function pickMergedEntry(a, b) {
     if (!a) return b;
@@ -206,10 +197,24 @@
     const sb = entryTimerScore(b);
     let picked = sb > sa ? b : sa > sb ? a : b;
     const other = picked === a ? b : a;
-    if (picked.completedAt == null && other.completedAt != null) {
+    if (
+      picked.endsAt != null &&
+      picked.completedAt == null &&
+      other.completedAt != null
+    ) {
       picked = { ...picked, completedAt: other.completedAt };
     }
     return picked;
+  }
+
+  /** 구 데이터(revision 0) + 돌아가는 타이머 → merge에서 밀리지 않게 */
+  function migrateActiveEntryRevisionsInPlace() {
+    const bc = ensureBossCooldownState();
+    BOSS_IDS.forEach((bossId) => {
+      bc.entries[bossId].forEach((e) => {
+        if (entryRevision(e) === 0 && isTimerActive(e)) touchEntryRevision(e);
+      });
+    });
   }
 
   function mergeBossCooldown(prevRaw, nextRaw) {
@@ -225,11 +230,10 @@
       merged.entries[bossId] = nextFiltered.map((e) => pickMergedEntry(prevById.get(e.id), e));
       const mergedIds = new Set(merged.entries[bossId].map((e) => e.id));
       prev.entries[bossId].forEach((e) => {
-        if (
-          !mergedIds.has(e.id) &&
-          pendingBossEntryAdds.has(e.id) &&
-          !blocked.has(e.id)
-        ) {
+        if (mergedIds.has(e.id) || blocked.has(e.id) || pendingBossEntryDeletes.has(e.id)) {
+          return;
+        }
+        if (pendingBossEntryAdds.has(e.id) || entryRevision(e) > 0) {
           merged.entries[bossId].push(e);
         }
       });
@@ -365,8 +369,8 @@
     touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     syncLocalSnapshot();
-    scheduleSave();
     render(true);
+    flushSave();
   }
 
   function pauseCooldown(bossId, entryId) {
@@ -403,8 +407,8 @@
     touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     syncLocalSnapshot();
-    scheduleSave();
     render(true);
+    flushSave();
   }
 
   function deleteEntry(bossId, entryId) {
@@ -440,7 +444,7 @@
       if (nameInput) nameInput.focus();
       return;
     }
-    const entry = normalizeEntry({ id: genId(), memberIdx, charName }, bossId);
+    const entry = normalizeEntry({ id: genId(), memberIdx, charName, revision: Date.now() }, bossId);
     if (!entry) return;
     entriesForBoss(bossId).push(entry);
     pendingBossEntryAdds.add(entry.id);
@@ -454,6 +458,7 @@
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
     entry.tailQuestDone = !!checked;
+    touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
     render();
@@ -759,6 +764,7 @@
       return;
     }
     ensureBossCooldownState();
+    migrateActiveEntryRevisionsInPlace();
     mountShell();
     render();
     const modal = $('bossCooldownModal');
