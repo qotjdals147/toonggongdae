@@ -115,7 +115,20 @@
     };
     if (def && def.pianus) out.tailQuestDone = !!e.tailQuestDone;
     if (out.endsAt != null && out.pausedRemainingMs != null) out.pausedRemainingMs = null;
+    if (e.revision != null && Number.isFinite(Number(e.revision))) {
+      out.revision = Number(e.revision);
+    }
     return out;
+  }
+
+  function entryRevision(entry) {
+    if (!entry || entry.revision == null) return 0;
+    const n = Number(entry.revision);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function touchEntryRevision(entry) {
+    if (entry) entry.revision = Date.now();
   }
 
   function tombstoneIdSet(raw, bossId) {
@@ -180,12 +193,15 @@
     );
   }
 
-  /** Realtime·저장 경합 — active 유지 vs 의도적 ↻(전 필드 null) 동기화 */
+  /** Realtime·저장 — revision 최신 우선(적용·↻) · 없으면 endsAt score */
   function pickMergedEntry(a, b) {
     if (!a) return b;
     if (!b) return a;
-    if (isTimerFullyCleared(b) && isTimerActive(a)) return b;
-    if (isTimerFullyCleared(a) && isTimerActive(b)) return a;
+    const ra = entryRevision(a);
+    const rb = entryRevision(b);
+    if (ra > 0 || rb > 0) {
+      if (ra !== rb) return rb > ra ? b : a;
+    }
     const sa = entryTimerScore(a);
     const sb = entryTimerScore(b);
     let picked = sb > sa ? b : sa > sb ? a : b;
@@ -346,6 +362,7 @@
     entry.completedAt = now;
     entry.endsAt = now + def.durationMs;
     entry.pausedRemainingMs = null;
+    touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     syncLocalSnapshot();
     scheduleSave();
@@ -359,6 +376,7 @@
     const rem = Math.max(0, entry.endsAt - Date.now());
     entry.pausedRemainingMs = rem;
     entry.endsAt = null;
+    touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
     render();
@@ -370,6 +388,7 @@
     if (entry.pausedRemainingMs == null) return;
     entry.endsAt = Date.now() + entry.pausedRemainingMs;
     entry.pausedRemainingMs = null;
+    touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
     render();
@@ -381,6 +400,7 @@
     entry.endsAt = null;
     entry.completedAt = null;
     entry.pausedRemainingMs = null;
+    touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     syncLocalSnapshot();
     scheduleSave();
@@ -439,19 +459,45 @@
     render();
   }
 
+  function parseDatetimeLocalMs(value) {
+    const s = String(value || '').trim();
+    if (!s) return NaN;
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(s);
+    if (m) {
+      const ms = new Date(
+        Number(m[1]),
+        Number(m[2]) - 1,
+        Number(m[3]),
+        Number(m[4]),
+        Number(m[5]),
+        m[6] != null ? Number(m[6]) : 0,
+        0
+      ).getTime();
+      if (Number.isFinite(ms)) return ms;
+    }
+    return new Date(s).getTime();
+  }
+
   function applyManualCompleteTime(bossId, entryId) {
     const def = BOSS_DEFS.find((b) => b.id === bossId);
     const entry = findEntry(bossId, entryId);
-    if (!def || !entry || !canEditMember(entry.memberIdx)) return;
-    const input = document.querySelector(
-      `input[data-boss-manual-time="${bossId}"][data-entry-id="${entryId}"]`
-    );
+    if (!entry) return;
+    if (!def || !canEditMember(entry.memberIdx)) {
+      alert('이 캐릭터는 수정할 권한이 없어요.');
+      return;
+    }
+    const root = $('bossCooldownApp');
+    const input = root
+      ? root.querySelector(
+          `input[data-boss-manual-time="${bossId}"][data-entry-id="${entryId}"]`
+        )
+      : null;
     if (!input || !input.value) {
       alert('클리어 시각을 입력한 뒤 적용해 주세요.');
       if (input) input.focus();
       return;
     }
-    const started = new Date(input.value).getTime();
+    const started = parseDatetimeLocalMs(input.value);
     if (!Number.isFinite(started)) {
       alert('완료 시각 형식을 확인해 주세요.');
       return;
@@ -459,10 +505,11 @@
     entry.completedAt = started;
     entry.endsAt = started + def.durationMs;
     entry.pausedRemainingMs = null;
+    touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
     syncLocalSnapshot();
-    scheduleSave();
     render(true);
+    flushSave();
   }
 
   function statusMetaForEntry(entry) {

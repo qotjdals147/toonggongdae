@@ -251,7 +251,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 **타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만).
 
-**Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · 목록은 **원격(next) 기준** + `pendingBossEntryAdds`만 prev에서 유지 · **`pendingBossEntryDeletes`** 로 삭제 직후 Realtime 되살림 방지 · 저장 성공 시 `clearBossCooldownPendingSync` · 삭제는 **`flushSave`** · **↻ 초기화**는 active보다 우선 · `touchBossCooldownLocalSnapshot`(+ `suppressRemoteUntil`) · **`stateForPersistence` merge 없음** · **보스 모달은 `modalBlocksRemote` 제외**.
+**Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · **`pickMergedEntry`는 `revision` 큰 쪽**(적용·↻·▶마다 bump) — 구 idle JSON이 새 `endsAt` 덮지 않음 · tombstones/pending delete · **`flushSave`**(적용·삭제) · `touchBossCooldownLocalSnapshot` · **보스 모달은 `modalBlocksRemote` 제외**.
 
 **레이아웃:** 탭 고정 · **목록만** `.boss-cd-scroll` · **캐릭 추가**는 `.boss-cd-add-dock`(스크롤 밖) · **닫기** `modal-foot`와 겹치지 않음 · 공대원 박스 **2px 테두리·좌 accent**.
 
@@ -391,6 +391,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-14** — fix: **보스 쿨타임** **적용** 후 Realtime merge가 idle로 덮던 버그 · `entry.revision` · 즉시 저장
 - **2026-10-14** — **보스 쿨타임** 「시작」버튼 제거(▶만) · 적용/타이머 tick 시 상태(입장 가능) 갱신 · 모달 안내
 - **2026-10-14** — fix: **보스 쿨타임** 삭제 — `tombstones` 영속 · `data-entry-id` 클릭 · Realtime 재등장 차단
 - **2026-10-14** — fix: **보스 쿨타임** 캐릭 **삭제** — merge가 prev-only로 되살림 · pending delete + 즉시 저장
