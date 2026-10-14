@@ -447,6 +447,7 @@
       `input[data-boss-manual-time="${bossId}"][data-entry-id="${entryId}"]`
     );
     if (!input || !input.value) {
+      alert('클리어 시각을 입력한 뒤 적용해 주세요.');
       if (input) input.focus();
       return;
     }
@@ -506,7 +507,12 @@
       entriesForBoss(bossDef.id).forEach((entry) => {
         const card = root.querySelector(`.boss-cd-char-row[data-entry-id="${entry.id}"]`);
         if (!card) return;
-        const { timerClass, timerText } = statusMetaForEntry(entry);
+        const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry);
+        const phaseEl = card.querySelector('.boss-cd-phase');
+        if (phaseEl) {
+          phaseEl.textContent = phaseText;
+          phaseEl.className = `boss-cd-phase ${phaseClass}`;
+        }
         const timerEl = card.querySelector('.boss-cd-timer');
         if (timerEl) {
           timerEl.textContent = timerText;
@@ -533,14 +539,13 @@
       ? `
         <span class="boss-cd-char-name" title="캐릭">${escapeHtml(entry.charName)}</span>
         <div class="boss-cd-controls" role="group" aria-label="타이머">
-          <button type="button" class="boss-cd-ctl" data-act="play" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="재생" aria-label="재생">▶</button>
+          <button type="button" class="boss-cd-ctl" data-act="play" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="지금 클리어한 것으로 쿨 시작" aria-label="지금 클리어 기준 쿨 시작">▶</button>
           <button type="button" class="boss-cd-ctl" data-act="pause" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
           <button type="button" class="boss-cd-ctl" data-act="reset" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
         </div>
-        <button type="button" class="btn-settle btn-sm boss-cd-start-btn" data-act="start" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">시작</button>
         <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
         <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" aria-label="클리어 시각">
-        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">적용</button>
+        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="입력한 클리어 시각 + 보스 쿨 길이로 남은 시간 계산">적용</button>
         <span class="boss-cd-timer ${timerClass}">${escapeHtml(timerText)}</span>
         ${pianusInline}
         <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">삭제</button>`
@@ -651,8 +656,7 @@
       const act = actBtn.dataset.act;
       const bossId = actBtn.dataset.bossId;
       const entryId = actBtn.dataset.entryId;
-      if (act === 'start') startCooldown(bossId, entryId);
-      else if (act === 'play') {
+      if (act === 'play') {
         const entry = findEntry(bossId, entryId);
         if (entry && entry.pausedRemainingMs != null) resumeCooldown(bossId, entryId);
         else startCooldown(bossId, entryId);

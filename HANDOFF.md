@@ -249,7 +249,7 @@ legacySummaryOnly (옛 회차 요약만)
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
 
-**타이머:** `completedAt`(클리어 시각) + `endsAt` · **쿨타임 시작** = now · **직접 입력+적용** = `completedAt` 저장 · 입력칸은 **completedAt만** 표시(endsAt 역산·오늘 날짜 자동 채움 없음) · **⏸** / **▶** / **↻**.
+**타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만).
 
 **Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · 목록은 **원격(next) 기준** + `pendingBossEntryAdds`만 prev에서 유지 · **`pendingBossEntryDeletes`** 로 삭제 직후 Realtime 되살림 방지 · 저장 성공 시 `clearBossCooldownPendingSync` · 삭제는 **`flushSave`** · **↻ 초기화**는 active보다 우선 · `touchBossCooldownLocalSnapshot`(+ `suppressRemoteUntil`) · **`stateForPersistence` merge 없음** · **보스 모달은 `modalBlocksRemote` 제외**.
 
@@ -391,6 +391,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-14** — **보스 쿨타임** 「시작」버튼 제거(▶만) · 적용/타이머 tick 시 상태(입장 가능) 갱신 · 모달 안내
 - **2026-10-14** — fix: **보스 쿨타임** 삭제 — `tombstones` 영속 · `data-entry-id` 클릭 · Realtime 재등장 차단
 - **2026-10-14** — fix: **보스 쿨타임** 캐릭 **삭제** — merge가 prev-only로 되살림 · pending delete + 즉시 저장
 - **2026-10-13** — **보스 쿨타임** 캐릭 **1줄** UI (상태·클리어·타이머 분리 · `쿨 없음`만)
