@@ -1124,6 +1124,7 @@
     clearAllSlotSoundTimers();
     scheduleSave();
     renderPipView();
+    warmAllAlarmAudios();
     resyncAllSlotAlarms();
   }
 
