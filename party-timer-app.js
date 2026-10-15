@@ -287,31 +287,30 @@
     return entry.audio;
   }
 
-  /** PIP가 닫혀 있어도 Realtime 동기화된 공대원 PC에서 알람 재생 */
-  function alarmPlaybackDocument() {
-    return pipWindow && !pipWindow.closed ? pipWindow.document : document;
-  }
-
-  function warmAllAlarmAudios() {
-    const doc = alarmPlaybackDocument();
-    if (!doc || !doc.defaultView) return;
+  function warmAllAlarmAudiosInPip() {
+    if (!pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
     TIMER_SOUND_SLOT_IDS.forEach((id) => {
       ensureWarmAlarmAudio(doc, id, getSoundProfile(id));
     });
   }
 
-  let alarmAudioUnlocked = false;
-  function unlockAlarmAudioFromUserGesture() {
-    if (alarmAudioUnlocked) return;
-    alarmAudioUnlocked = true;
+  let pipAlarmAudioUnlocked = false;
+  function unlockAlarmAudioInPip() {
+    if (pipAlarmAudioUnlocked) return;
+    if (!pipWindow || pipWindow.closed) return;
+    const view = pipWindow.document.defaultView;
+    if (!view) return;
+    pipAlarmAudioUnlocked = true;
     try {
-      const Ctx = global.AudioContext || global.webkitAudioContext;
+      const Ctx = view.AudioContext || view.webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
       void ctx.resume().finally(() => {
         try { ctx.close(); } catch (e) { /* ignore */ }
       });
     } catch (e) { /* ignore */ }
+    if (pipUi.notice && pipUi.notice.indexOf('알림음') >= 0) setPipSetupNotice('');
   }
 
   function slotDurationUnit(slot) {
@@ -582,7 +581,8 @@
     if (!hunt) setPipSetupNotice(pipUi.notice);
     if (hunt) {
       updatePipDisplay();
-      warmAllAlarmAudios();
+      warmAllAlarmAudiosInPip();
+      resyncAllSlotAlarms(true);
     }
     schedulePipResizeAfterImages(app);
     applyPipWindowSize();
@@ -594,6 +594,7 @@
       pipClickBound = true;
     }
     app.onclick = (e) => {
+      unlockAlarmAudioInPip();
       const btn = e.target.closest('[data-pip-act]');
       if (btn && btn.dataset.pipAct !== 'noop') {
         const setupSlot = btn.closest('.pip-setup-slot');
@@ -793,16 +794,22 @@
       audio.addEventListener('ended', untrack, { once: true });
       audio.addEventListener('error', untrack, { once: true });
       const p = audio.play();
-      if (p && typeof p.catch === 'function') p.catch(wrapFinish);
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+          if (pipWindow && !pipWindow.closed && doc === pipWindow.document) {
+            setPipSetupNotice('알림음: PIP 안을 한 번 클릭해 주세요.');
+          }
+          wrapFinish();
+        });
+      }
     } catch (e) {
       finish();
     }
   }
 
   function playPipAlarmSoundOnly(slotId) {
-    if (pipUi.muted) return;
-    const doc = alarmPlaybackDocument();
-    if (!doc || !doc.defaultView) return;
+    if (pipUi.muted || !pipWindow || pipWindow.closed) return;
+    const doc = pipWindow.document;
     stopSlotAudios(slotId);
     slotAlarmGen[slotId] = (slotAlarmGen[slotId] || 0) + 1;
     const profile = getSoundProfile(slotId);
@@ -942,9 +949,10 @@
     }
   }
 
-  function resyncAllSlotAlarms() {
+  function resyncAllSlotAlarms(clearSoundFiredKeys) {
     clearAllSlotEndTimers();
     clearAllSlotSoundTimers();
+    if (clearSoundFiredKeys) Object.keys(slotSoundFired).forEach((k) => delete slotSoundFired[k]);
     if (!partyTimer().runtime.huntActive) return;
     enabledSlots().forEach((s) => scheduleSlotAlarms(s.id));
   }
@@ -1017,9 +1025,11 @@
       pipWindow.document.body.innerHTML = '<div id="pipApp" class="pip-app"></div>';
       pipWindow.addEventListener('pagehide', () => {
         pipWindow = null;
+        pipAlarmAudioUnlocked = false;
         clearSlotAudioWarm();
       });
       renderPipView();
+      unlockAlarmAudioInPip();
       return true;
     } catch (e) {
       alert('PIP를 열지 못했어요. 주소창 옆 권한에서 Picture-in-Picture를 허용해 주세요.');
@@ -1124,8 +1134,8 @@
     clearAllSlotSoundTimers();
     scheduleSave();
     renderPipView();
-    warmAllAlarmAudios();
-    resyncAllSlotAlarms();
+    warmAllAlarmAudiosInPip();
+    resyncAllSlotAlarms(true);
   }
 
   function huntEnd() {
@@ -1157,11 +1167,13 @@
   function onRemoteStateApplied() {
     ensurePartyTimerState();
     syncHuntRuntimeTick();
-    if (partyTimer().runtime.huntActive) {
-      warmAllAlarmAudios();
-      resyncAllSlotAlarms();
+    if (pipWindow && !pipWindow.closed) {
+      if (partyTimer().runtime.huntActive) {
+        warmAllAlarmAudiosInPip();
+        resyncAllSlotAlarms(true);
+      }
+      renderPipView();
     }
-    if (pipWindow && !pipWindow.closed) renderPipView();
   }
 
   function init(options) {
@@ -1173,11 +1185,6 @@
     getStorageMode = options.getStorageMode || getStorageMode;
     getRoomId = options.getRoomId || getRoomId;
     pipStyleEl = $('partyTimerPipStyles');
-    if (typeof document !== 'undefined' && !global.__partyTimerAudioUnlockBound) {
-      global.__partyTimerAudioUnlockBound = true;
-      document.addEventListener('click', unlockAlarmAudioFromUserGesture, { once: true, capture: true });
-      document.addEventListener('keydown', unlockAlarmAudioFromUserGesture, { once: true, capture: true });
-    }
   }
 
   function getTimerSoundSlotDefs() {

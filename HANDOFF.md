@@ -152,7 +152,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
-- **알람:** **0초** `is-alarm` 플래시(PIP 타일) · **소리는 2초 남음(00:02)** · **각 공대원 PC에서** `runtime.slotEndsAt` Realtime 동기화 후 **로컬 재생**(PIP **안 열어도** 메인 탭 `document`에서 재생) · **음소거(`pipUi.muted`)** 는 PIP 연 **그 브라우저만** · 탭 한 번 클릭으로 **브라우저 오디오 unlock** · 백그라운드 탭은 브라우저 정책상 소리 약/무음 가능.
+- **알람:** **0초** `is-alarm` 플래시(PIP 타일) · **소리는 2초 남음(00:02)** · **PIP가 열린 브라우저만** 재생(메인 장부 탭만 켜두면 **소리 없음** — §11.1.1) · Realtime `slotEndsAt` 수신 시 **PIP 열려 있으면** `resyncAllSlotAlarms(true)` · **PIP 안 1회 클릭**으로 PiP 오디오 unlock(사냥 시작한 사람만 들리던 autoplay 이슈) · **음소거(`pipUi.muted`)** 는 그 PIP만.
 - **소리:** `soundProfiles` · **volume** · **사이클당 1회** · preload + 매번 새 `Audio` · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
 - **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
@@ -391,7 +391,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-10-15** — fix: **퉁공대 타이머** 알람 — PIP 필수였던 소리 → **공대원 각자** 장부 탭에서 Realtime `endsAt` 기준 재생
+- **2026-10-15** — fix: **퉁공대 타이머** PIP 켠 공대원도 무음 — PiP **클릭 unlock** · Realtime 후 **알람 재등록** · (PIP 없으면 소리 없음 유지)
+- **2026-10-15** — ~~fix: 타이머 PIP 없이 재생~~ **롤백** (의도: §11.1.1 PIP 전용)
 - **2026-10-14** — **점검** — 보스 쿨 merge(prev-only·revision·tombstone) · 원격 `bossCooldown`/`partyTimer` 누락 preserve · ↻·▶ 즉시 저장
 - **2026-10-14** — fix: **보스 쿨타임** **적용** 후 Realtime merge가 idle로 덮던 버그 · `entry.revision` · 즉시 저장
 - **2026-10-14** — **보스 쿨타임** 「시작」버튼 제거(▶만) · 적용/타이머 tick 시 상태(입장 가능) 갱신 · 모달 안내
@@ -577,7 +578,9 @@ pipWindow.AudioContext → oscillator 880Hz, gain 0.15, ~280ms, ctx.close()
 4. **PIP 닫힘** — `playPipAlarm` 가드 유지 · 백그라운드 tick은 그대로 두어도 됨 (소리만 차단).
 5. **슬롯별 🔊** — UI는 `noop` · 슬롯별 mute는 §11.1 선택 항목.
 
-**검증:** Chrome/Edge · 로그인 → **퉁공대 타이머** → PIP · 짧은 초(예: 5초) 슬롯 · 사냥 시작 → 0초 **번쩍+소리** · PiP 닫은 채 0초 지나도 **메인 탭에서 소리 없음** · 🔇 시 무음.
+**검증:** Chrome/Edge · 로그인 → **퉁공대 타이머** → PIP · 짧은 초(예: 5초) 슬롯 · 사냥 시작 → 0초 **번쩍+소리** · PiP 닫은 채 0초 지나도 **메인 탭에서 소리 없음** · 🔇 시 무음 · **공대원 전원:** PIP 연 뒤 **PIP 안 한 번 클릭**(또는 사냥 시작) 후 Realtime 동기화 시 **각자 PIP에서** 2초 전 알람.
+
+**2026-10-15 회귀:** 사냥 시작한 사람만 소리 → PiP 창은 **별도 document** · 브라우저 autoplay는 **PIP 안 user gesture** 필요 · `unlockAlarmAudioInPip` + `onRemoteStateApplied` → `resyncAllSlotAlarms(true)`.
 
 **하지 말 것:** 장부 `index.html` IIFE에 타이머 로직 복붙 · PiP CSS `cloneNode`+`media="not all"`.
 
@@ -669,4 +672,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-15 (타이머 알람 공대원 로컬 재생)*
+*Last updated: 2026-10-15 (타이머 PIP 전용 알람 · 공대원 PiP unlock)*
