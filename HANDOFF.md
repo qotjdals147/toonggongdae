@@ -152,7 +152,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **슬롯:** 사냥 중 **개별 일시정지/재개** · **↺ = 설정 초( durationSec )로 리셋** · `runtime.slotPaused`.
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
-- **알람:** **0초** `is-alarm` 플래시만 · **소리는 2초 남음(00:02)** `ALARM_SOUND_BEFORE_END_MS` · `scheduleSlotAlarms` + tick 백업 · PIP 열림·음소거 아닐 때만.
+- **알람:** **0초** `is-alarm` 플래시(PIP 타일) · **소리는 2초 남음(00:02)** · **각 공대원 PC에서** `runtime.slotEndsAt` Realtime 동기화 후 **로컬 재생**(PIP **안 열어도** 메인 탭 `document`에서 재생) · **음소거(`pipUi.muted`)** 는 PIP 연 **그 브라우저만** · 탭 한 번 클릭으로 **브라우저 오디오 unlock** · 백그라운드 탭은 브라우저 정책상 소리 약/무음 가능.
 - **소리:** `soundProfiles` · **volume** · **사이클당 1회** · preload + 매번 새 `Audio` · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
 - **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
@@ -391,6 +391,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-15** — fix: **퉁공대 타이머** 알람 — PIP 필수였던 소리 → **공대원 각자** 장부 탭에서 Realtime `endsAt` 기준 재생
 - **2026-10-14** — **점검** — 보스 쿨 merge(prev-only·revision·tombstone) · 원격 `bossCooldown`/`partyTimer` 누락 preserve · ↻·▶ 즉시 저장
 - **2026-10-14** — fix: **보스 쿨타임** **적용** 후 Realtime merge가 idle로 덮던 버그 · `entry.revision` · 즉시 저장
 - **2026-10-14** — **보스 쿨타임** 「시작」버튼 제거(▶만) · 적용/타이머 tick 시 상태(입장 가능) 갱신 · 모달 안내
@@ -668,4 +669,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-14 (보스 쿨·Realtime 연동 점검 · partyTimer preserve)*
+*Last updated: 2026-10-15 (타이머 알람 공대원 로컬 재생)*
