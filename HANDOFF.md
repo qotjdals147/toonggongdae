@@ -59,7 +59,7 @@
 | 층 | 확인할 것 |
 |----|-----------|
 | **쓰기** | `state.*` 변경 후 `scheduleSave` / 즉시 `saveState` · 필드가 `stateForPersistence()`에 포함 |
-| **복원** | `parseStoredState`: 새 필드는 `hasOwnProperty` — 없으면 **빈 객체로 덮지 않음** · `applyStateFromRemote`에서 `prev*` preserve — `monsterKillCounts` · **`bossCooldown` 키 없음** · **`partyTimer` null** |
+| **복원** | `parseStoredState`: 새 필드는 `hasOwnProperty` — 없으면 **빈 객체로 덮지 않음** · `applyStateFromRemote`에서 `prev*` preserve — `monsterKillCounts` · **`bossCooldown` 키 없음** · **`partyTimer` null** · **`mergePartyTimer`(rev·진행 중 사냥)** |
 | **Realtime** | 새 `#…Modal` → **`modalBlocksRemote()`** · `saveStateToBackend`의 `suppressRemoteUntil` |
 | **정규화** | `ensureMonsterKillCounts()` 등이 **새 객체로 교체** → increment 시 **stale bucket**에 쓰면 집계 0 · `getMonsterKillCount` 안에서 재-normalize 후 옛 ref에 assign 금지 |
 | **게임화 3층** | ① `challengeProgressForMember` → 훈장 모달 “완료” · ② **`unlockedTitleIds`** + `grantXp`/`ach:` · ③ **마이페이지** `renderTitlePickList` · ①만 true면 **장착 불가** |
@@ -153,6 +153,7 @@ legacySummaryOnly (옛 회차 요약만)
 - **프리셋:** `presets[{ name, slots[{ label, durationSec, durationUnit?, icon?, enabled }] }]` · PiP 설정 **2열** · **초/분** 토글 · **삭제=즉시**.
 - **기본 4슬롯(id 고정):** `slot-holy` **홀리 심볼** `image/스킬아이콘/홀리심볼.png` · `slot-session` **한타임** `image/스킬아이콘/한타임.png` · `slot-buff1` **경쿠** `image/아이템아이콘/경쿠.png` · `slot-consume` **기타**(이름 **자유 입력**) · `normalizePartyTimer`→`applyBuiltinSlotDefaults` · PiP 설정 행 **이름 왼쪽 12px 아이콘**.
 - **알람:** **0초** `is-alarm` 플래시(PIP 타일) · **소리는 2초 남음(00:02)** · **PIP가 열린 브라우저만** 재생(메인 장부 탭만 켜두면 **소리 없음** — §11.1.1) · Realtime `slotEndsAt` 수신 시 **PIP 열려 있으면** `resyncAllSlotAlarms(true)` · **PIP 안 1회 클릭**으로 PiP 오디오 unlock(사냥 시작한 사람만 들리던 autoplay 이슈) · **음소거(`pipUi.muted`)** 는 그 PIP만.
+- **Realtime·저장:** `mergePartyTimer` / `mergePartyTimerForSave` — **`runtime.rev`** · **진행 중 `huntActive`는 stale payload로 끊기지 않음** · `partyTimerRemoteSnapshot` · `touchPartyTimerLocalSnapshot` · PIP 열기/`huntStart` 전 **`syncPartyTimerFromRemoteSnapshot`** · **`partyStateHydrated` 전 PIP 차단** · 원격 사냥 중 **「사냥 시작」= 재시작 아님**(join·알람 resync).
 - **소리:** `soundProfiles` · **volume** · **사이클당 1회** · preload + 매번 새 `Audio` · 파일 없으면 **880Hz 비프**.
 - **설정 UI:** **배퉁(memberIdx 2)** · 마스터 옵션 **「타이머 사운드」** 탭 · `renderTimerSoundAdmin()` · 최대 ~900KB/파일.
 - **음소거:** 툴바 🔊 → `pipUi.muted` (**세션만**) · 타일 🔊·⟲ **`noop`** · **슬롯끼리 알람 동시 재생 가능** · 등록 mp3 실패 시 **비프 fallback 없음**(파일 없을 때만 비프).
@@ -391,6 +392,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-10-16** — fix: **퉁공대 타이머** 중간 참여·stale 저장 — `mergePartyTimer` · 진행 중 사냥 덮어쓰기 방지 · PIP 즉시 사냥 UI
 - **2026-10-15** — fix: **퉁공대 타이머** PIP 켠 공대원도 무음 — PiP **클릭 unlock** · Realtime 후 **알람 재등록** · (PIP 없으면 소리 없음 유지)
 - **2026-10-15** — ~~fix: 타이머 PIP 없이 재생~~ **롤백** (의도: §11.1.1 PIP 전용)
 - **2026-10-14** — **점검** — 보스 쿨 merge(prev-only·revision·tombstone) · 원격 `bossCooldown`/`partyTimer` 누락 preserve · ↻·▶ 즉시 저장
@@ -672,4 +674,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-15 (타이머 PIP 전용 알람 · 공대원 PiP unlock)*
+*Last updated: 2026-10-16 (타이머 Realtime merge · mid-join PIP)*

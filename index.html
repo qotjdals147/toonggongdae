@@ -4507,6 +4507,8 @@
   let saveTimeout = null;
   /** 보스 쿨 Realtime merge · 저장 시 타이머 유실 방지 */
   let bossCooldownRemoteSnapshot = null;
+  /** 퉁공대 타이머 Realtime merge · stale 클라이언트가 진행 중 사냥 덮어쓰기 방지 */
+  let partyTimerRemoteSnapshot = null;
   let editingField = false;
   let gamificationReplayInProgress = false;
   let memberXpUiBaseline = null;
@@ -5258,6 +5260,22 @@
     }
   }
 
+  function touchPartyTimerLocalSnapshot() {
+    if (!window.PartyTimerApp) return;
+    PartyTimerApp.ensurePartyTimerState();
+    suppressRemoteUntil = Math.max(suppressRemoteUntil, Date.now() + 2800);
+    let merged = state.partyTimer;
+    if (partyTimerRemoteSnapshot) {
+      merged = PartyTimerApp.mergePartyTimer(partyTimerRemoteSnapshot, state.partyTimer);
+      state.partyTimer = merged;
+    }
+    try {
+      partyTimerRemoteSnapshot = JSON.parse(JSON.stringify(merged));
+    } catch (e) {
+      partyTimerRemoteSnapshot = null;
+    }
+  }
+
   function flushSaveState() {
     if (saveTimeout) clearTimeout(saveTimeout);
     saveTimeout = null;
@@ -5266,8 +5284,12 @@
 
   function stateForPersistence() {
     if (window.BossCooldownApp) BossCooldownApp.ensureBossCooldownState();
+    if (window.PartyTimerApp) PartyTimerApp.ensurePartyTimerState();
     const payload = JSON.parse(JSON.stringify(state));
     delete payload.viewCycleId;
+    if (window.PartyTimerApp && partyTimerRemoteSnapshot) {
+      payload.partyTimer = PartyTimerApp.mergePartyTimerForSave(partyTimerRemoteSnapshot, payload.partyTimer);
+    }
     return payload;
   }
 
@@ -6269,7 +6291,19 @@
     if (state.monsterKillCounts == null) {
       state.monsterKillCounts = normalizeMonsterKillCounts(prevMonsterKillCounts);
     }
-    if (state.partyTimer == null && prevPartyTimer != null) {
+    if (window.PartyTimerApp) {
+      if (state.partyTimer == null && prevPartyTimer != null) {
+        state.partyTimer = prevPartyTimer;
+      } else if (state.partyTimer != null) {
+        state.partyTimer = PartyTimerApp.mergePartyTimer(prevPartyTimer, state.partyTimer);
+      }
+      PartyTimerApp.ensurePartyTimerState();
+      try {
+        partyTimerRemoteSnapshot = JSON.parse(JSON.stringify(state.partyTimer));
+      } catch (e) {
+        partyTimerRemoteSnapshot = null;
+      }
+    } else if (state.partyTimer == null && prevPartyTimer != null) {
       state.partyTimer = prevPartyTimer;
     }
     if (window.BossCooldownApp) {
@@ -6310,7 +6344,6 @@
     runGamificationAfterStateLoad();
     syncMemberXpUiBaseline();
     if (window.PartyTimerApp) {
-      PartyTimerApp.ensurePartyTimerState();
       PartyTimerApp.onRemoteStateApplied();
     }
     if (window.BossCooldownApp) BossCooldownApp.renderIfOpen();
@@ -11876,6 +11909,9 @@
       getRealtimeReady: () => realtimeReady,
       getStorageMode: () => storageMode,
       getRoomId: () => ROOM_ID,
+      getPartyTimerRemoteSnapshot: () => partyTimerRemoteSnapshot,
+      getPartyStateHydrated: () => partyStateHydrated,
+      syncLocalSnapshot: touchPartyTimerLocalSnapshot,
     });
   }
 

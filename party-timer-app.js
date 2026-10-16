@@ -9,6 +9,9 @@
   let getRealtimeReady = () => false;
   let getStorageMode = () => 'local';
   let getRoomId = () => 'tongtongi';
+  let getPartyTimerRemoteSnapshot = () => null;
+  let getPartyStateHydrated = () => true;
+  let syncLocalSnapshot = () => {};
 
   let pipWindow = null;
   let huntRuntimeTickId = null;
@@ -200,6 +203,57 @@
 
   function bumpRuntimeRev() {
     partyTimer().runtime.rev = (Number(partyTimer().runtime.rev) || 0) + 1;
+  }
+
+  /** Realtime·저장 — revision + 진행 중 사냥(huntActive) 우선 */
+  function mergePartyTimer(prevRaw, nextRaw) {
+    const prev = normalizePartyTimer(prevRaw);
+    const next = normalizePartyTimer(nextRaw);
+    const prevRev = Number(prev.runtime.rev) || 0;
+    const nextRev = Number(next.runtime.rev) || 0;
+    let picked = nextRev >= prevRev ? { ...next } : { ...prev };
+    if (prev.runtime.huntActive && !next.runtime.huntActive && nextRev <= prevRev) {
+      picked = { ...picked, runtime: { ...prev.runtime } };
+    }
+    if (next.runtime.huntActive && !prev.runtime.huntActive && prevRev < nextRev) {
+      picked = { ...picked, runtime: { ...next.runtime } };
+    }
+    const soundProfiles = defaultSoundProfiles();
+    TIMER_SOUND_SLOT_IDS.forEach((id) => {
+      soundProfiles[id] = normalizeSoundProfile({
+        ...prev.soundProfiles[id],
+        ...next.soundProfiles[id],
+      });
+    });
+    picked.soundProfiles = soundProfiles;
+    if (nextRev >= prevRev) {
+      picked.presets = next.presets;
+      picked.activePresetId = next.activePresetId;
+    } else {
+      picked.presets = prev.presets;
+      picked.activePresetId = prev.activePresetId;
+    }
+    return normalizePartyTimer(picked);
+  }
+
+  /** stale 클라이언트가 huntActive false를 올려 진행 중 사냥을 끊지 않게 */
+  function mergePartyTimerForSave(snapshotRaw, localRaw) {
+    const snap = normalizePartyTimer(snapshotRaw);
+    const local = normalizePartyTimer(localRaw);
+    const sRev = Number(snap.runtime.rev) || 0;
+    const lRev = Number(local.runtime.rev) || 0;
+    if (snap.runtime.huntActive && !local.runtime.huntActive && lRev <= sRev) {
+      return snap;
+    }
+    return mergePartyTimer(snap, local);
+  }
+
+  function syncPartyTimerFromRemoteSnapshot() {
+    const snap = getPartyTimerRemoteSnapshot();
+    if (!snap) return;
+    const st = getState();
+    st.partyTimer = mergePartyTimer(st.partyTimer, snap);
+    ensurePartyTimerState();
   }
 
   function slotRemainingMs(slot, now) {
@@ -1004,6 +1058,7 @@
       return false;
     }
     ensurePartyTimerState();
+    syncPartyTimerFromRemoteSnapshot();
     if (pipWindow && !pipWindow.closed) {
       pipWindow.focus();
       renderPipView();
@@ -1115,8 +1170,14 @@
   }
 
   function huntStart() {
+    syncPartyTimerFromRemoteSnapshot();
     const pt = partyTimer();
-    if (pt.runtime.huntActive) return;
+    if (pt.runtime.huntActive) {
+      warmAllAlarmAudiosInPip();
+      resyncAllSlotAlarms(true);
+      renderPipView();
+      return;
+    }
     const now = Date.now();
     const preset = getActivePreset();
     pt.runtime.huntActive = true;
@@ -1161,6 +1222,11 @@
   }
 
   function openFromUserGesture() {
+    if (!getPartyStateHydrated()) {
+      alert('장부를 불러오는 중이에요. 잠시 후 다시 열어 주세요.');
+      return;
+    }
+    syncPartyTimerFromRemoteSnapshot();
     void openPip();
   }
 
@@ -1184,6 +1250,14 @@
     getRealtimeReady = options.getRealtimeReady || getRealtimeReady;
     getStorageMode = options.getStorageMode || getStorageMode;
     getRoomId = options.getRoomId || getRoomId;
+    getPartyTimerRemoteSnapshot = options.getPartyTimerRemoteSnapshot || getPartyTimerRemoteSnapshot;
+    getPartyStateHydrated = options.getPartyStateHydrated || getPartyStateHydrated;
+    syncLocalSnapshot = options.syncLocalSnapshot || syncLocalSnapshot;
+    const baseScheduleSave = options.scheduleSave || scheduleSave;
+    scheduleSave = () => {
+      syncLocalSnapshot();
+      baseScheduleSave();
+    };
     pipStyleEl = $('partyTimerPipStyles');
   }
 
@@ -1198,6 +1272,8 @@
     init,
     ensurePartyTimerState,
     normalizePartyTimer,
+    mergePartyTimer,
+    mergePartyTimerForSave,
     openFromUserGesture,
     openPip,
     onRemoteStateApplied,
