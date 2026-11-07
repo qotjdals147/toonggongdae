@@ -21,12 +21,14 @@
     { shortcode: ':oncoming_bus:', img: 'image/discord-emojis/oncoming_bus.png' },
     { shortcode: ':troll:', img: 'image/discord-emojis/troll.png' },
     { shortcode: ':bird:', img: 'image/discord-emojis/bird.png' },
-    { shortcode: ':squid:', img: 'image/discord-emojis/squid.png' },
     { shortcode: ':mage:', img: 'image/discord-emojis/mage_alt.png' },
+    { shortcode: ':squid:', img: 'image/discord-emojis/squid.png' },
   ];
 
   const rs = {
     selectedEmoji: '',
+    /** 동일 shortcode(`:mage:` 등) 복수일 때 미리보기·선택 구분 */
+    selectedDiscordImg: '',
     slots: [],
     slotIdCounter: 0,
     partySize: 0,
@@ -71,7 +73,7 @@
           </div>
           <div class="dr-field recruit-inputs-disabled">
             <label for="recruit-emoji">사냥터 이모티콘</label>
-            <p class="dr-emoji-hint">유니코드는 그대로 · 디스코드 이모지는 <strong>:이름:</strong> 형태로 복사됩니다</p>
+            <p class="dr-emoji-hint">유니코드는 그대로 · 디스코드는 <strong>:이름:</strong>으로 복사 · <strong>:mage:</strong> 그림이 2개면 서버마다 다른 아이콘이에요(붙여넣기는 동일)</p>
             <div class="emoji-picker" id="emoji-picker">
               <button type="button" class="emoji-btn emoji-btn-none" data-emoji="" title="없음">✕</button>
               <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
@@ -211,15 +213,24 @@
     return null;
   }
 
-  function discordInlineImgHtml(shortcode) {
-    var entry = catalogEntryForShortcode(shortcode);
-    if (!entry) return escapeHtml(shortcode);
-    return '<img class="dr-discord-inline-img" src="' + entry.img + '" alt="" width="22" height="22" decoding="async" draggable="false" title="' + escapeHtml(shortcode) + '">';
+  function discordInlineImgHtml(shortcode, imgPath) {
+    var src = imgPath;
+    if (!src) {
+      var entry = catalogEntryForShortcode(shortcode);
+      src = entry ? entry.img : '';
+    }
+    if (!src) return escapeHtml(shortcode);
+    return '<img class="dr-discord-inline-img" src="' + src + '" alt="" width="22" height="22" decoding="async" draggable="false" title="' + escapeHtml(shortcode) + '">';
   }
 
   function previewHtmlFromPlainText(text) {
     var html = escapeHtml(text);
     var seen = {};
+    if (rs.selectedEmoji && rs.selectedDiscordImg && rs.selectedEmoji.indexOf(':') === 0) {
+      var selHtml = discordInlineImgHtml(rs.selectedEmoji, rs.selectedDiscordImg);
+      html = html.split(rs.selectedEmoji).join(selHtml);
+      seen[rs.selectedEmoji] = true;
+    }
     DISCORD_RECRUIT_EMOJI_CATALOG.forEach(function(entry) {
       if (seen[entry.shortcode]) return;
       seen[entry.shortcode] = true;
@@ -241,11 +252,12 @@
     if (!rs.selectedEmoji) {
       emojiPreviewEl.innerHTML = '<span class="dr-muted">선택 없음</span>';
       if (emojiInput) emojiInput.value = '';
+      rs.selectedDiscordImg = '';
       return;
     }
     if (emojiInput) emojiInput.value = rs.selectedEmoji;
     if (rs.selectedEmoji.charAt(0) === ':' && rs.selectedEmoji.charAt(rs.selectedEmoji.length - 1) === ':') {
-      emojiPreviewEl.innerHTML = discordInlineImgHtml(rs.selectedEmoji) + ' <span class="dr-shortcode">' + escapeHtml(rs.selectedEmoji) + '</span>';
+      emojiPreviewEl.innerHTML = discordInlineImgHtml(rs.selectedEmoji, rs.selectedDiscordImg) + ' <span class="dr-shortcode">' + escapeHtml(rs.selectedEmoji) + '</span>';
     } else {
       emojiPreviewEl.textContent = rs.selectedEmoji;
     }
@@ -260,6 +272,7 @@
       btn.type = 'button';
       btn.className = 'discord-emoji-btn emoji-btn';
       btn.setAttribute('data-shortcode', entry.shortcode);
+      btn.setAttribute('data-img', entry.img);
       btn.title = entry.shortcode;
       btn.setAttribute('aria-label', entry.shortcode);
       var img = document.createElement('img');
@@ -272,11 +285,13 @@
       btn.appendChild(img);
       btn.addEventListener('click', function() {
         qa('#emoji-picker .emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
-        if (!entry.shortcode || rs.selectedEmoji === entry.shortcode) {
+        if (rs.selectedDiscordImg === entry.img) {
           rs.selectedEmoji = '';
+          rs.selectedDiscordImg = '';
           clearEmojiButtonSelection();
         } else {
-          rs.selectedEmoji = entry.shortcode;
+          rs.selectedEmoji = entry.shortcode || '';
+          rs.selectedDiscordImg = entry.img;
           qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
           btn.classList.add('selected');
         }
@@ -334,6 +349,7 @@
         rs.slots = [];
         rs.slotIdCounter = 0;
         rs.selectedEmoji = '';
+        rs.selectedDiscordImg = '';
         rs.spot = '';
         rs.extra = '';
         if (spotInput) spotInput.value = '';
@@ -462,9 +478,11 @@
       qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
       if (emoji === '' || rs.selectedEmoji === emoji) {
         rs.selectedEmoji = '';
+        rs.selectedDiscordImg = '';
         clearEmojiButtonSelection();
       } else {
         rs.selectedEmoji = emoji;
+        rs.selectedDiscordImg = '';
         emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
         this.classList.add('selected');
       }
@@ -639,6 +657,7 @@
       rs.slots = [];
       rs.slotIdCounter = 0;
       rs.selectedEmoji = '';
+      rs.selectedDiscordImg = '';
       rs.partySize = 0;
       rs.layoutFormat = '';
       rs.spot = '';
@@ -835,7 +854,9 @@
       var isDiscord = rs.selectedEmoji.charAt(0) === ':' && rs.selectedEmoji.charAt(rs.selectedEmoji.length - 1) === ':';
       if (isDiscord) {
         qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) {
-          b.classList.toggle('selected', b.getAttribute('data-shortcode') === rs.selectedEmoji);
+          b.classList.toggle('selected', rs.selectedDiscordImg
+            ? b.getAttribute('data-img') === rs.selectedDiscordImg
+            : b.getAttribute('data-shortcode') === rs.selectedEmoji);
         });
       } else {
         qa('#emoji-picker .emoji-btn').forEach(function(b) {

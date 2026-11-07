@@ -28,8 +28,8 @@ const FILES = [
   'oncoming_bus.png',
   'troll.png',
   'bird.png',
-  'squid.png',
   'mage_alt.png',
+  'squid.png',
 ];
 
 const TARGET = 36;
