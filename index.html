@@ -2610,6 +2610,41 @@
     max-height: min(92vh, 820px);
     overflow-y: auto;
     overscroll-behavior: contain;
+    padding-top: 14px;
+  }
+  .modal-discord-recruit-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 4px;
+  }
+  .modal-discord-recruit-head .modal-title-with-icon {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .discord-recruit-close-btn {
+    flex-shrink: 0;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid #94a3b8;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  }
+  .discord-recruit-close-btn:hover {
+    background: #f1f5f9;
+    border-color: #64748b;
+  }
+  .modal-discord-recruit-sub {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.45;
   }
   .app-tool-card-emoji {
     display: block;
@@ -2632,8 +2667,22 @@
     gap: 14px;
     align-items: start;
   }
+  #discordRecruitApp #recruit-right-panel {
+    position: sticky;
+    top: 8px;
+    z-index: 2;
+    align-self: start;
+    max-height: min(calc(92vh - 100px), 720px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   @media (max-width: 760px) {
     #discordRecruitApp .dr-grid { grid-template-columns: 1fr; }
+    #discordRecruitApp #recruit-right-panel {
+      position: static;
+      max-height: none;
+      overflow: visible;
+    }
   }
   #discordRecruitApp .dr-panel {
     border: 1px solid var(--dr-line-soft);
@@ -12122,11 +12171,6 @@
     }
     if (discordRecruitCloseBtn) {
       discordRecruitCloseBtn.addEventListener('click', () => DiscordRecruitApp.closeModal());
-    }
-    if (discordRecruitModal) {
-      discordRecruitModal.addEventListener('click', (e) => {
-        if (e.target.id === 'discordRecruitModal') DiscordRecruitApp.closeModal();
-      });
     }
   }
 
