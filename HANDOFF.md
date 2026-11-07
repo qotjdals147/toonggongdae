@@ -246,7 +246,7 @@ legacySummaryOnly (옛 회차 요약만)
 1. **숏코드** (`:star:` — 디스코드 채팅에 넣는 문자열)
 2. **PNG 1장** (`image/discord-emojis/<이름>.png`, 투명 누끼 · 28px 내외)
 3. `discord-recruit-app.js` **`DISCORD_RECRUIT_EMOJI_CATALOG`** 에 `{ shortcode, img }` 한 줄 추가 (**15종** · `:mage:`는 1개만)
-4. (선택) 원본 `recruit-sprite-row.png` 교체 후 `node scripts/slice-discord-recruit-emojis.mjs` — **2줄(11+5)** · 회색 체커 배경 제거 · gutter별 tight crop · **36px centre**
+4. (선택) 원본 `recruit-sprite-row.png` 교체 후 `node scripts/slice-discord-recruit-emojis.mjs` — **2줄(11+5)** · 체커 제거 + **타일마다 하얀 얼룩 defringe** · **36px centre**
 
 **진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal`(backdrop 먼저 · `mountTemplate` try/catch) / `closeModal` · 내부 DOM 조회는 `q(id)` = `#id` 만 (`q('#셀렉터')` 금지 — `qa` 또는 `querySelector`) · 스타일 `index.html` `#discordRecruitApp` (`--dr-line` · 이모지 타일 44px · 자리표 테두리).
 
@@ -410,6 +410,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-08** — **구인글** 디스코드 이모지 PNG — 슬라이스 후 **defringe**(하얀 얼룩 제거) 재생성
 - **2026-11-08** — **구인글** 레이아웃 — 자리 설정을 미리보기 열 하단으로 · sticky 롤백
 - **2026-11-08** — **구인글** 모달 UI — 제목·닫기 한 줄 · 바깥 클릭 무시
 - **2026-11-07** — **구인글** 디스코드 이모지 중복 `:mage:`(2번째) 카탈로그 제거 · 슬라이스 16칸 유지

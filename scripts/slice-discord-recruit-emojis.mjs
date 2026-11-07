@@ -44,22 +44,78 @@ if (!fs.existsSync(src)) {
   process.exit(1);
 }
 
-function isBackground(r, g, b) {
+function pixelMetrics(r, g, b) {
   const mx = Math.max(r, g, b);
   const mn = Math.min(r, g, b);
-  const lum = (r + g + b) / 3;
-  return mx - mn < BG_CHROMA && lum > BG_LUM_MIN && lum < BG_LUM_MAX;
+  return { chroma: mx - mn, lum: (r + g + b) / 3 };
+}
+
+/** 체커보드 회색 배경 */
+function isCheckerBackground(r, g, b) {
+  const { chroma, lum } = pixelMetrics(r, g, b);
+  return chroma < BG_CHROMA && lum > BG_LUM_MIN && lum < BG_LUM_MAX;
+}
+
+/** 누끼 잔여(하얀·연회색 얼룩) — 순백 이모지 본체(a≈255·채도 있음)는 유지 */
+function isFringePixel(r, g, b, a) {
+  if (a < 8) return true;
+  const { chroma, lum } = pixelMetrics(r, g, b);
+  if (isCheckerBackground(r, g, b)) return true;
+  if (a < 252 && lum > 228 && chroma < 32) return true;
+  if (a < 200 && lum > 210 && chroma < 28) return true;
+  return false;
+}
+
+function applyAlphaCleanup(buf, w, h, channels) {
+  for (let i = 0; i < buf.length; i += channels) {
+    const r = buf[i];
+    const g = buf[i + 1];
+    const b = buf[i + 2];
+    const a = buf[i + 3];
+    if (isFringePixel(r, g, b, a)) buf[i + 3] = 0;
+  }
+  const w2 = w * h;
+  const alpha = new Uint8Array(w2);
+  for (let p = 0; p < w2; p++) alpha[p] = buf[p * channels + 3];
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const p = y * w + x;
+      const a0 = alpha[p];
+      if (a0 < 8) continue;
+      const i = p * channels;
+      const { chroma, lum } = pixelMetrics(buf[i], buf[i + 1], buf[i + 2]);
+      if (lum < 218 || chroma > 36) continue;
+      let transparentNeighbors = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) {
+            transparentNeighbors++;
+            continue;
+          }
+          if (alpha[ny * w + nx] < 20) transparentNeighbors++;
+        }
+      }
+      if (transparentNeighbors >= 6 || (transparentNeighbors >= 4 && a0 < 220)) {
+        buf[i + 3] = 0;
+      }
+    }
+  }
 }
 
 let { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 let { width, height, channels } = info;
 
-/** 체커보드 배경 → 진짜 투명(슬라이스·UI에서 옆 칸 비침 방지) */
+/** 스프라이트 전체: 체커만 제거 (칸 구분 유지) */
 if (channels >= 4) {
   for (let i = 0; i < data.length; i += channels) {
-    if (isBackground(data[i], data[i + 1], data[i + 2])) {
-      data[i + 3] = 0;
-    }
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    if (isCheckerBackground(r, g, b)) data[i + 3] = 0;
   }
 }
 const keyedPng = await sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
@@ -99,6 +155,8 @@ function findRowBands() {
 
   raw.sort((a, b) => b.mass - a.mass);
   const main = raw.slice(0, 2).sort((a, b) => a.top - b.top);
+  if (main[0] && main[0].top > 0 && main[0].top < 24) main[0].top = 0;
+  if (main[1]) main[1].bottom = Math.min(height, main[1].bottom + 2);
   return main;
 }
 
@@ -169,13 +227,20 @@ if (boxes.length !== FILES.length) {
 
 for (let i = 0; i < FILES.length; i++) {
   const box = boxes[i];
-  const buf = await sharp(keyedPng)
+  let tile = await sharp(keyedPng)
     .extract(box)
     .resize(TARGET, TARGET, {
       fit: 'contain',
       position: 'centre',
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  applyAlphaCleanup(tile.data, tile.info.width, tile.info.height, tile.info.channels);
+  const buf = await sharp(tile.data, {
+    raw: { width: tile.info.width, height: tile.info.height, channels: tile.info.channels },
+  })
     .png()
     .toBuffer();
   fs.writeFileSync(path.join(outDir, FILES[i]), buf);
