@@ -28,7 +28,7 @@ const FILES = [
   'oncoming_bus.png',
   'troll.png',
   'bird.png',
-  'mage_alt.png',
+  'mage_alt.png', // 스프라이트 16칸용 · UI 카탈로그에는 미사용(중복 :mage:)
   'squid.png',
 ];
 

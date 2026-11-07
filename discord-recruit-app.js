@@ -21,7 +21,6 @@
     { shortcode: ':oncoming_bus:', img: 'image/discord-emojis/oncoming_bus.png' },
     { shortcode: ':troll:', img: 'image/discord-emojis/troll.png' },
     { shortcode: ':bird:', img: 'image/discord-emojis/bird.png' },
-    { shortcode: ':mage:', img: 'image/discord-emojis/mage_alt.png' },
     { shortcode: ':squid:', img: 'image/discord-emojis/squid.png' },
   ];
 
@@ -73,7 +72,7 @@
           </div>
           <div class="dr-field recruit-inputs-disabled">
             <label for="recruit-emoji">사냥터 이모티콘</label>
-            <p class="dr-emoji-hint">유니코드는 그대로 · 디스코드는 <strong>:이름:</strong>으로 복사 · <strong>:mage:</strong> 그림이 2개면 서버마다 다른 아이콘이에요(붙여넣기는 동일)</p>
+            <p class="dr-emoji-hint">유니코드는 그대로 · 디스코드 이모지는 <strong>:이름:</strong> 형태로 복사됩니다</p>
             <div class="emoji-picker" id="emoji-picker">
               <button type="button" class="emoji-btn emoji-btn-none" data-emoji="" title="없음">✕</button>
               <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
