@@ -243,10 +243,10 @@ legacySummaryOnly (옛 회차 요약만)
 **기능:** 파티 **3~6인** · 양식 **2+1, 2+2, 3+2, 3+3** (`1+2+2`·`2+2+2`는 코드 주석으로 **임시 비활성**) · 유니코드 + **디스코드 `:shortcode:`** 사냥터 이모지(미리보기는 스프라이트 · 복사는 문자열) · 자리 **optgroup**(경심·좌우·층·꾼·띱·깐부·기사·기타) · **직접입력** · 🟢/🔴·비용·지참/지원 · 미리보기·복사.
 
 **디스코드 이모지 추가 절차 (소유자 → 에이전트):**
-1. **숏코드** 목록 (`:star:` 형식, 채팅에 쓰는 문자열 그대로)
-2. **미리보기용 이미지** — 단일 행 스프라이트 PNG **또는** 새 칸을 `image/discord-emojis/recruit-sprite-row.png`에 맞춰 갱신
-3. `discord-recruit-app.js` 상단 **`DISCORD_RECRUIT_EMOJI_CATALOG`** 에 `{ shortcode, spriteIndex }` 추가 · `DISCORD_EMOJI_SPRITE_COUNT` 맞추기
-4. 스프라이트 교체 시 **기존 index 순서** 유지하거나 catalog `spriteIndex` 전부 재정렬
+1. **숏코드** (`:star:` — 디스코드 채팅에 넣는 문자열)
+2. **PNG 1장** (`image/discord-emojis/<이름>.png`, 투명 누끼 · 28px 내외)
+3. `discord-recruit-app.js` **`DISCORD_RECRUIT_EMOJI_CATALOG`** 에 `{ shortcode, img }` 한 줄 추가
+4. (선택) 원본 줄 이미지는 `recruit-sprite-row.png` — 스크립트로 슬라이스 후 개별 PNG로 추가 가능
 
 **진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal` / `closeModal` · 마크업·CSS는 `index.html` (`#discordRecruitApp`, `.dr-*`).
 
@@ -410,6 +410,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-07** — fix: **구인글** 모달 이벤트 재연결 · 디스코드 이모지 개별 PNG(유니코드와 동일 칸)
 - **2026-11-07** — **구인글** 자리 optgroup·직접입력 · 디스코드 `:shortcode:` 이모지 스프라이트 · 붙여넣기 수정 제거 · 1+2+2/2+2+2 비활성
 - **2026-11-07** — **디스코드 파티 구인글** — `discord-recruit-app.js` · 참고 탭 모달 · 3~6인 메랜툴 동일 출력
 - **2026-10-16** — fix: **퉁공대 타이머** 중간 참여·stale 저장 — `mergePartyTimer` · 진행 중 사냥 덮어쓰기 방지 · PIP 즉시 사냥 UI

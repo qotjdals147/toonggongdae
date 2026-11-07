@@ -4,30 +4,36 @@
 (function (global) {
   let $ = (id) => document.getElementById(id);
   let root = null;
-  let mounted = false;
-  let logicBound = false;
 
-  /** §HANDOFF 5.4.1 — 디스코드 이모지 추가: `shortcode` + `spriteIndex`(0~) · 스프라이트 `image/discord-emojis/recruit-sprite-row.png` */
-  const DISCORD_EMOJI_SPRITE_URL = 'image/discord-emojis/recruit-sprite-row.png';
-  const DISCORD_EMOJI_SPRITE_COUNT = 16;
+  /** §HANDOFF 5.4.1 — 디스코드 이모지: `shortcode` + `img`(PNG) 동일 파일명 권장 */
   const DISCORD_RECRUIT_EMOJI_CATALOG = [
-    { shortcode: ':star:', spriteIndex: 0 },
-    { shortcode: ':skull:', spriteIndex: 1 },
-    { shortcode: ':classical_building:', spriteIndex: 2 },
-    { shortcode: ':wing:', spriteIndex: 3 },
-    { shortcode: ':hatching_chick:', spriteIndex: 4 },
-    { shortcode: ':man_climbing:', spriteIndex: 5 },
-    { shortcode: ':mage:', spriteIndex: 6 },
-    { shortcode: ':blue_heart:', spriteIndex: 7 },
-    { shortcode: ':bear:', spriteIndex: 8 },
-    { shortcode: ':teddy_bear:', spriteIndex: 9 },
-    { shortcode: ':fish:', spriteIndex: 10 },
-    { shortcode: ':oncoming_bus:', spriteIndex: 11 },
-    { shortcode: ':troll:', spriteIndex: 12 },
-    { shortcode: ':bird:', spriteIndex: 13 },
-    { shortcode: ':mage:', spriteIndex: 14 },
-    { shortcode: ':squid:', spriteIndex: 15 },
+    { shortcode: ':star:', img: 'image/discord-emojis/star.png' },
+    { shortcode: ':skull:', img: 'image/discord-emojis/skull.png' },
+    { shortcode: ':classical_building:', img: 'image/discord-emojis/classical_building.png' },
+    { shortcode: ':wing:', img: 'image/discord-emojis/wing.png' },
+    { shortcode: ':hatching_chick:', img: 'image/discord-emojis/hatching_chick.png' },
+    { shortcode: ':man_climbing:', img: 'image/discord-emojis/man_climbing.png' },
+    { shortcode: ':mage:', img: 'image/discord-emojis/mage.png' },
+    { shortcode: ':blue_heart:', img: 'image/discord-emojis/blue_heart.png' },
+    { shortcode: ':bear:', img: 'image/discord-emojis/bear.png' },
+    { shortcode: ':teddy_bear:', img: 'image/discord-emojis/teddy_bear.png' },
+    { shortcode: ':fish:', img: 'image/discord-emojis/fish.png' },
+    { shortcode: ':oncoming_bus:', img: 'image/discord-emojis/oncoming_bus.png' },
+    { shortcode: ':troll:', img: 'image/discord-emojis/troll.png' },
+    { shortcode: ':bird:', img: 'image/discord-emojis/bird.png' },
+    { shortcode: ':squid:', img: 'image/discord-emojis/squid.png' },
+    { shortcode: ':mage:', img: 'image/discord-emojis/mage_alt.png' },
   ];
+
+  const rs = {
+    selectedEmoji: '',
+    slots: [],
+    slotIdCounter: 0,
+    partySize: 0,
+    layoutFormat: '',
+    spot: '',
+    extra: '',
+  };
 
   const POSITION_CUSTOM_VALUE = '직접입력';
   const POSITION_GROUPS = [
@@ -131,24 +137,13 @@
 
   function mountTemplate() {
     const el = $('discordRecruitApp');
-    if (!el || mounted) return;
-    mounted = true;
+    if (!el) return;
     el.innerHTML = MOUNT_HTML;
     root = el;
-    if (!logicBound) {
-      bindRecruitUi();
-      logicBound = true;
-    }
+    bindRecruitUi();
   }
 
   function bindRecruitUi() {
-  /* --- State --- */
-  var selectedEmoji = '';
-  var slots = []; // { position, positionCustom?, name, condition, feeType, status }
-  var slotIdCounter = 0;
-  var partySize = 0; // 0 = not selected, 3~6
-  var layoutFormat = ''; // e.g. '3+3', '2+2+2', '3+2', '1+2+2', '2+1', '2+2'
-
   // Layout options per party size
   var layoutOptions = {
     3: [{ key: '2+1', label: '2+1 양식' }],
@@ -207,25 +202,19 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function spriteBgPosition(spriteIndex) {
-    if (DISCORD_EMOJI_SPRITE_COUNT <= 1) return '0% 50%';
-    var pct = (spriteIndex / (DISCORD_EMOJI_SPRITE_COUNT - 1)) * 100;
-    return pct + '% 50%';
-  }
-
-  function shortcodeToSpriteIndex(shortcode) {
-    for (var i = 0; i < DISCORD_RECRUIT_EMOJI_CATALOG.length; i++) {
-      if (DISCORD_RECRUIT_EMOJI_CATALOG[i].shortcode === shortcode) {
-        return DISCORD_RECRUIT_EMOJI_CATALOG[i].spriteIndex;
+  function catalogEntryForShortcode(shortcode) {
+    for (var ci = 0; ci < DISCORD_RECRUIT_EMOJI_CATALOG.length; ci++) {
+      if (DISCORD_RECRUIT_EMOJI_CATALOG[ci].shortcode === shortcode) {
+        return DISCORD_RECRUIT_EMOJI_CATALOG[ci];
       }
     }
-    return -1;
+    return null;
   }
 
   function discordInlineImgHtml(shortcode) {
-    var idx = shortcodeToSpriteIndex(shortcode);
-    if (idx < 0) return escapeHtml(shortcode);
-    return '<span class="dr-discord-inline" style="background-image:url(' + DISCORD_EMOJI_SPRITE_URL + ');background-position:' + spriteBgPosition(idx) + '" title="' + escapeHtml(shortcode) + '" role="img" aria-label="' + escapeHtml(shortcode) + '"></span>';
+    var entry = catalogEntryForShortcode(shortcode);
+    if (!entry) return escapeHtml(shortcode);
+    return '<img class="dr-discord-inline-img" src="' + entry.img + '" alt="" width="22" height="22" decoding="async" draggable="false" title="' + escapeHtml(shortcode) + '">';
   }
 
   function previewHtmlFromPlainText(text) {
@@ -249,34 +238,51 @@
 
   function updateEmojiPreviewUi() {
     if (!emojiPreviewEl) return;
-    if (!selectedEmoji) {
+    if (!rs.selectedEmoji) {
       emojiPreviewEl.innerHTML = '<span class="dr-muted">선택 없음</span>';
       if (emojiInput) emojiInput.value = '';
       return;
     }
-    if (emojiInput) emojiInput.value = selectedEmoji;
-    if (selectedEmoji.charAt(0) === ':' && selectedEmoji.charAt(selectedEmoji.length - 1) === ':') {
-      emojiPreviewEl.innerHTML = discordInlineImgHtml(selectedEmoji) + ' <span class="dr-shortcode">' + escapeHtml(selectedEmoji) + '</span>';
+    if (emojiInput) emojiInput.value = rs.selectedEmoji;
+    if (rs.selectedEmoji.charAt(0) === ':' && rs.selectedEmoji.charAt(rs.selectedEmoji.length - 1) === ':') {
+      emojiPreviewEl.innerHTML = discordInlineImgHtml(rs.selectedEmoji) + ' <span class="dr-shortcode">' + escapeHtml(rs.selectedEmoji) + '</span>';
     } else {
-      emojiPreviewEl.textContent = selectedEmoji;
+      emojiPreviewEl.textContent = rs.selectedEmoji;
     }
   }
 
   function mountDiscordEmojiPicker() {
     var host = q('discord-emoji-picker');
-    if (!host || host.dataset.mounted === '1') return;
-    host.dataset.mounted = '1';
+    if (!host) return;
     host.innerHTML = '';
-    DISCORD_RECRUIT_EMOJI_CATALOG.forEach(function(entry, i) {
+    DISCORD_RECRUIT_EMOJI_CATALOG.forEach(function(entry) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'discord-emoji-btn';
+      btn.className = 'discord-emoji-btn emoji-btn';
       btn.setAttribute('data-shortcode', entry.shortcode);
-      btn.setAttribute('data-sprite-index', String(entry.spriteIndex));
       btn.title = entry.shortcode;
       btn.setAttribute('aria-label', entry.shortcode);
-      btn.style.backgroundImage = 'url(' + DISCORD_EMOJI_SPRITE_URL + ')';
-      btn.style.backgroundPosition = spriteBgPosition(entry.spriteIndex);
+      var img = document.createElement('img');
+      img.src = entry.img;
+      img.alt = '';
+      img.width = 28;
+      img.height = 28;
+      img.decoding = 'async';
+      img.draggable = false;
+      btn.appendChild(img);
+      btn.addEventListener('click', function() {
+        qa('#emoji-picker .emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
+        if (!entry.shortcode || rs.selectedEmoji === entry.shortcode) {
+          rs.selectedEmoji = '';
+          clearEmojiButtonSelection();
+        } else {
+          rs.selectedEmoji = entry.shortcode;
+          qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
+          btn.classList.add('selected');
+        }
+        updateEmojiPreviewUi();
+        updatePreview();
+      });
       host.appendChild(btn);
     });
   }
@@ -319,21 +325,22 @@
         var newSize = parseInt(this.getAttribute('data-size'));
 
         // If same size clicked again, do nothing
-        if (newSize === partySize) return;
+        if (newSize === rs.partySize) return;
 
         // Size changed → reset everything
-        var oldSize = partySize;
-        partySize = newSize;
+        rs.partySize = newSize;
 
         // Clear all slots and inputs since party size changed
-        slots = [];
-        slotIdCounter = 0;
-        selectedEmoji = '';
+        rs.slots = [];
+        rs.slotIdCounter = 0;
+        rs.selectedEmoji = '';
+        rs.spot = '';
+        rs.extra = '';
         if (spotInput) spotInput.value = '';
         if (extraInput) extraInput.value = '';
         clearEmojiButtonSelection();
         updateEmojiPreviewUi();
-        layoutFormat = '';
+        rs.layoutFormat = '';
 
         // Update active button
         sizeBtns.forEach(function(b) { b.classList.remove('active'); });
@@ -352,14 +359,14 @@
 
   function updateLayoutButtons() {
     if (!layoutSelector) return;
-    var options = layoutOptions[partySize] || [];
+    var options = layoutOptions[rs.partySize] || [];
 
     if (options.length <= 1) {
       // Auto-select the only option (3인, 4인)
       layoutSelector.style.display = 'none';
       layoutSelector.innerHTML = '';
       if (options.length === 1) {
-        layoutFormat = options[0].key;
+        rs.layoutFormat = options[0].key;
         autoCreateSlots();
       }
     } else {
@@ -381,8 +388,8 @@
           this.classList.add('active');
 
           // If switching between layouts within same party size, preserve data
-          var oldLayout = layoutFormat;
-          layoutFormat = newLayout;
+          var oldLayout = rs.layoutFormat;
+          rs.layoutFormat = newLayout;
 
           if (!oldLayout) {
             // First time selecting layout - create slots
@@ -401,7 +408,7 @@
       var firstBtn = layoutSelector.querySelector('.layout-btn');
       if (firstBtn) {
         firstBtn.classList.add('active');
-        layoutFormat = options[0].key;
+        rs.layoutFormat = options[0].key;
         autoCreateSlots();
       }
     }
@@ -411,7 +418,7 @@
     // Hide extra info for layouts with slots on header line (1+2+2, 2+2+2)
     var extraField = extraInput ? extraInput.closest('.dr-field') : null;
     if (!extraField) return;
-    var dist = layoutDistribution[layoutFormat];
+    var dist = layoutDistribution[rs.layoutFormat];
     if (dist && dist[0] > 0) {
       extraField.style.display = 'none';
       if (extraInput) extraInput.value = '';
@@ -421,18 +428,18 @@
   }
 
   function autoCreateSlots() {
-    if (!partySize || !layoutFormat) return;
+    if (!rs.partySize || !rs.layoutFormat) return;
 
     updateExtraFieldVisibility();
 
     // Only create if no slots exist (preserve on layout switch within same size)
-    if (slots.length === 0) {
-      var dist = layoutDistribution[layoutFormat];
+    if (rs.slots.length === 0) {
+      var dist = layoutDistribution[rs.layoutFormat];
       if (!dist) return;
       var total = dist.reduce(function(a, b) { return a + b; }, 0);
       for (var i = 0; i < total; i++) {
         var id = createSlotId();
-        slots.push({
+        rs.slots.push({
           id: id,
           position: '\uc88c',
           positionCustom: '',
@@ -453,11 +460,11 @@
     btn.addEventListener('click', function() {
       var emoji = this.getAttribute('data-emoji') || '';
       qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
-      if (emoji === '' || selectedEmoji === emoji) {
-        selectedEmoji = '';
+      if (emoji === '' || rs.selectedEmoji === emoji) {
+        rs.selectedEmoji = '';
         clearEmojiButtonSelection();
       } else {
-        selectedEmoji = emoji;
+        rs.selectedEmoji = emoji;
         emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
         this.classList.add('selected');
       }
@@ -466,31 +473,24 @@
     });
   });
 
-  qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var shortcode = this.getAttribute('data-shortcode') || '';
-      emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
-      if (!shortcode || selectedEmoji === shortcode) {
-        selectedEmoji = '';
-        clearEmojiButtonSelection();
-      } else {
-        selectedEmoji = shortcode;
-        qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
-        this.classList.add('selected');
-      }
-      updateEmojiPreviewUi();
+  /* --- Input change listeners for real-time preview --- */
+  if (spotInput) {
+    spotInput.addEventListener('input', function() {
+      rs.spot = spotInput.value;
       updatePreview();
     });
-  });
-
-  /* --- Input change listeners for real-time preview --- */
-  if (spotInput) spotInput.addEventListener('input', updatePreview);
-  if (extraInput) extraInput.addEventListener('input', updatePreview);
+  }
+  if (extraInput) {
+    extraInput.addEventListener('input', function() {
+      rs.extra = extraInput.value;
+      updatePreview();
+    });
+  }
 
   /* --- Slot Management --- */
   function createSlotId() {
-    slotIdCounter++;
-    return 'slot-' + slotIdCounter;
+    rs.slotIdCounter++;
+    return 'slot-' + rs.slotIdCounter;
   }
 
   function resolvePositionOutput(slot) {
@@ -517,7 +517,7 @@
     if (!slotsContainer) return;
     slotsContainer.innerHTML = '';
 
-    if (slots.length === 0) {
+    if (rs.slots.length === 0) {
       
       return;
     }
@@ -539,7 +539,7 @@
 
     slotsContainer.appendChild(table);
 
-    slots.forEach(function(slot, idx) {
+    rs.slots.forEach(function(slot, idx) {
       var row = document.createElement('div');
       row.className = 'slot-table-row';
       row.setAttribute('data-slot-id', slot.id);
@@ -636,11 +636,13 @@
   var resetRecruitBtn = q('btn-reset-recruit');
   if (resetRecruitBtn) {
     resetRecruitBtn.addEventListener('click', function() {
-      slots = [];
-      slotIdCounter = 0;
-      selectedEmoji = '';
-      partySize = 0;
-      layoutFormat = '';
+      rs.slots = [];
+      rs.slotIdCounter = 0;
+      rs.selectedEmoji = '';
+      rs.partySize = 0;
+      rs.layoutFormat = '';
+      rs.spot = '';
+      rs.extra = '';
       if (spotInput) spotInput.value = '';
       if (extraInput) extraInput.value = '';
       clearEmojiButtonSelection();
@@ -695,13 +697,13 @@
   function generatePreviewText() {
     var spot = (spotInput ? spotInput.value.trim() : '');
     var extra = (extraInput ? extraInput.value.trim() : '');
-    var emoji = selectedEmoji;
+    var emoji = rs.selectedEmoji;
 
-    if (!spot && slots.length === 0) {
+    if (!spot && rs.slots.length === 0) {
       return '';
     }
 
-    var dist = layoutDistribution[layoutFormat];
+    var dist = layoutDistribution[rs.layoutFormat];
     if (!dist) {
       // Fallback to old behavior if no layout selected
       var lines = [];
@@ -714,14 +716,14 @@
       if (extra) header += ' ' + extra;
       if (header) lines.push(header);
 
-      var slotTexts = slots.map(buildSlotText);
+      var slotTexts = rs.slots.map(buildSlotText);
       if (slotTexts.length > 0) lines.push(slotTexts.slice(0, 3).join(' '));
       if (slotTexts.length > 3) lines.push(slotTexts.slice(3, 6).join(' '));
       return lines.join('\n');
     }
 
     var lines = [];
-    var slotTexts = slots.map(buildSlotText);
+    var slotTexts = rs.slots.map(buildSlotText);
     var slotIdx = 0;
 
     // Line 1: Header + possibly some slots (for 2+2+2 and 1+2+2)
@@ -811,6 +813,44 @@
     });
   }
 
+  function syncFormFromState() {
+    if (spotInput) spotInput.value = rs.spot;
+    if (extraInput) extraInput.value = rs.extra;
+    if (partySizeSelector) {
+      partySizeSelector.querySelectorAll('.party-size-btn').forEach(function(b) {
+        b.classList.toggle('active', parseInt(b.getAttribute('data-size'), 10) === rs.partySize);
+      });
+    }
+    if (rs.partySize > 0) {
+      setInputsDisabled(false);
+      if (rs.layoutFormat) {
+        renderSlots();
+      } else {
+        updateLayoutButtons();
+      }
+    } else {
+      setInputsDisabled(true);
+    }
+    if (rs.selectedEmoji) {
+      var isDiscord = rs.selectedEmoji.charAt(0) === ':' && rs.selectedEmoji.charAt(rs.selectedEmoji.length - 1) === ':';
+      if (isDiscord) {
+        qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) {
+          b.classList.toggle('selected', b.getAttribute('data-shortcode') === rs.selectedEmoji);
+        });
+      } else {
+        qa('#emoji-picker .emoji-btn').forEach(function(b) {
+          b.classList.toggle('selected', b.getAttribute('data-emoji') === rs.selectedEmoji);
+        });
+      }
+    } else {
+      clearEmojiButtonSelection();
+    }
+    updateEmojiPreviewUi();
+    updatePreview();
+  }
+
+  syncFormFromState();
+
   }
 
   function init(opts) {
@@ -818,15 +858,7 @@
   }
 
   function openModal() {
-    if (mounted && !q('recruit-spot')) {
-      mounted = false;
-      logicBound = false;
-      const el = $('discordRecruitApp');
-      if (el) el.innerHTML = '';
-      root = null;
-    }
     mountTemplate();
-    root = $('discordRecruitApp');
     const modal = $('discordRecruitModal');
     if (modal) modal.hidden = false;
   }
