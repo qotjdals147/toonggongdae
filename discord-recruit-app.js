@@ -107,6 +107,14 @@
             <label for="recruit-extra">추가 정보 <span class="dr-hint">(은갈/알목, 레벨 제한 등)</span></label>
             <input type="text" id="recruit-extra" class="dr-input" placeholder="예: 150보마/샾메M/은갈/알목">
           </div>
+        </div>
+        <div class="dr-panel" id="recruit-right-panel">
+          <div class="dr-panel-title">미리보기</div>
+          <div class="recruit-preview" id="recruit-preview">
+            <div class="recruit-preview-text empty-state" id="recruit-preview-text">왼쪽에서 정보를 입력하면 여기에 미리보기가 표시됩니다</div>
+          </div>
+          <button type="button" class="btn-settle" id="btn-copy-recruit">📋 복사하기</button>
+          <div class="recruit-copy-toast" id="recruit-copy-toast">복사되었습니다!</div>
           <div class="dr-panel-title dr-panel-title--sub">자리 설정</div>
           <div id="recruit-slots-notice" class="recruit-disabled-notice">
             <span class="dr-warn">⚠ 파티 총 인원수를 먼저 선택해주세요</span>
@@ -115,14 +123,6 @@
             <div id="recruit-slots"></div>
           </div>
           <button type="button" class="btn-light dr-reset" id="btn-reset-recruit">↺ 초기화</button>
-        </div>
-        <div class="dr-panel" id="recruit-right-panel">
-          <div class="dr-panel-title">미리보기</div>
-          <div class="recruit-preview" id="recruit-preview">
-            <div class="recruit-preview-text empty-state" id="recruit-preview-text">위에서 정보를 입력하면 여기에 미리보기가 표시됩니다</div>
-          </div>
-          <button type="button" class="btn-settle" id="btn-copy-recruit">📋 복사하기</button>
-          <div class="recruit-copy-toast" id="recruit-copy-toast">복사되었습니다!</div>
           <div class="recruit-tip-box">
             <div class="recruit-tip-title">자리설정 Tip</div>
             <ol class="recruit-tip-list">

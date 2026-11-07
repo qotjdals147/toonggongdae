@@ -2667,22 +2667,15 @@
     gap: 14px;
     align-items: start;
   }
-  #discordRecruitApp #recruit-right-panel {
-    position: sticky;
-    top: 8px;
-    z-index: 2;
-    align-self: start;
-    max-height: min(calc(92vh - 100px), 720px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
   @media (max-width: 760px) {
     #discordRecruitApp .dr-grid { grid-template-columns: 1fr; }
-    #discordRecruitApp #recruit-right-panel {
-      position: static;
-      max-height: none;
-      overflow: visible;
-    }
+  }
+  #discordRecruitApp #recruit-right-panel .dr-reset {
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  #discordRecruitApp #recruit-right-panel .recruit-tip-box {
+    margin-top: 12px;
   }
   #discordRecruitApp .dr-panel {
     border: 1px solid var(--dr-line-soft);
