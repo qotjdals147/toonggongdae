@@ -791,7 +791,7 @@
       previewText.innerHTML = previewHtmlFromPlainText(text);
       previewText.classList.remove('empty-state');
     } else {
-      previewText.textContent = '\uc704\uc5d0\uc11c \uc815\ubcf4\ub97c \uc785\ub825\ud558\uba74 \uc5ec\uae30\uc5d0 \ubbf8\ubcf4\uae30\uac00 \ud45c\uc2dc\ub529\ub2c8\ub2e4';
+      previewText.textContent = '\uc67c\ucabd\uc5d0\uc11c \uc815\ubcf4\ub97c \uc785\ub825\ud558\uba74 \uc5ec\uae30\uc5d0 \ubbf8\ubcf4\uae30\uac00 \ud45c\uc2dc\ub529\ub2c8\ub2e4';
       previewText.classList.add('empty-state');
     }
   }
