@@ -265,8 +265,8 @@
       var img = document.createElement('img');
       img.src = entry.img;
       img.alt = '';
-      img.width = 28;
-      img.height = 28;
+      img.width = 32;
+      img.height = 32;
       img.decoding = 'async';
       img.draggable = false;
       btn.appendChild(img);

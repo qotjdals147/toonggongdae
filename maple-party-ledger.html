@@ -2621,7 +2621,11 @@
     margin: 0 auto 4px;
     user-select: none;
   }
-  #discordRecruitApp { font-size: 13px; }
+  #discordRecruitApp {
+    font-size: 13px;
+    --dr-line: #94a3b8;
+    --dr-line-soft: #cbd5e1;
+  }
   #discordRecruitApp .dr-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2632,10 +2636,11 @@
     #discordRecruitApp .dr-grid { grid-template-columns: 1fr; }
   }
   #discordRecruitApp .dr-panel {
-    border: 1px solid var(--line);
+    border: 1px solid var(--dr-line-soft);
     border-radius: var(--radius);
     padding: 12px 14px;
-    background: var(--surface-muted);
+    background: #f1f5f9;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   }
   #discordRecruitApp .dr-panel-title {
     font-weight: 700;
@@ -2656,10 +2661,15 @@
     width: 100%;
     box-sizing: border-box;
     padding: 8px 10px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--dr-line);
     border-radius: var(--radius);
-    background: var(--surface);
+    background: #fff;
     font-size: 13px;
+  }
+  #discordRecruitApp .dr-input:focus {
+    outline: none;
+    border-color: var(--accent-net);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 28%, transparent);
   }
   #discordRecruitApp .dr-emoji-show {
     margin-top: 8px;
@@ -2720,10 +2730,11 @@
   #discordRecruitApp .party-size-btn,
   #discordRecruitApp .layout-btn {
     padding: 6px 14px;
-    border: 1px solid var(--line);
+    border: 1px solid var(--dr-line);
     border-radius: var(--radius);
-    background: var(--surface);
+    background: #fff;
     font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
   }
   #discordRecruitApp .party-size-btn.active,
@@ -2735,47 +2746,57 @@
   #discordRecruitApp .emoji-picker {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   }
   #discordRecruitApp .emoji-btn {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--surface);
+    font-size: 1.5rem;
+    border: 1px solid var(--dr-line);
+    border-radius: 10px;
+    background: linear-gradient(165deg, #e8edf3 0%, #cfd8e3 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
     cursor: pointer;
+  }
+  #discordRecruitApp .emoji-btn:hover {
+    border-color: #64748b;
+    background: linear-gradient(165deg, #dfe6ee 0%, #c5d0dc 100%);
   }
   #discordRecruitApp .emoji-btn.selected {
     border-color: var(--accent-net);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 35%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 40%, transparent);
   }
   #discordRecruitApp .emoji-btn-none { font-size: 12px; color: var(--ink-soft); }
   #discordRecruitApp .slot-table {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--line);
+    border: 1px solid var(--dr-line);
     border-radius: var(--radius);
     overflow: hidden;
     font-size: 12px;
+    background: #fff;
   }
   #discordRecruitApp .slot-table-header {
     display: flex;
-    padding: 6px 8px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
+    padding: 8px 8px;
+    background: #e2e8f0;
+    border-bottom: 1px solid var(--dr-line);
     font-size: 11px;
-    color: var(--ink-soft);
-    font-weight: 600;
+    color: var(--ink);
+    font-weight: 700;
   }
   #discordRecruitApp .slot-table-row {
     display: flex;
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--line);
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--dr-line-soft);
     align-items: center;
+    background: #fff;
+  }
+  #discordRecruitApp .slot-table-row:nth-child(even) {
+    background: #f8fafc;
   }
   #discordRecruitApp .slot-table-row:last-child { border-bottom: none; }
   #discordRecruitApp .st-col { padding: 0 3px; min-width: 0; display: flex; align-items: center; }
@@ -2793,24 +2814,29 @@
   #discordRecruitApp .discord-emoji-picker {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     margin-bottom: 8px;
   }
   #discordRecruitApp .discord-emoji-btn {
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--surface);
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--dr-line);
+    border-radius: 10px;
+    background: linear-gradient(165deg, #e8edf3 0%, #cfd8e3 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
     cursor: pointer;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
+  #discordRecruitApp .discord-emoji-btn:hover {
+    border-color: #64748b;
+    background: linear-gradient(165deg, #dfe6ee 0%, #c5d0dc 100%);
+  }
   #discordRecruitApp .discord-emoji-btn img {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     object-fit: contain;
     display: block;
     pointer-events: none;
@@ -2820,7 +2846,11 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 35%, transparent);
   }
   #discordRecruitApp .recruit-emoji-preview {
-    min-height: 28px;
+    min-height: 36px;
+    padding: 6px 8px;
+    border: 1px dashed var(--dr-line-soft);
+    border-radius: var(--radius);
+    background: #f8fafc;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2841,17 +2871,23 @@
   #discordRecruitApp .slot-table-row input {
     width: 100%;
     font-size: 11px;
-    padding: 4px 6px;
-    border: 1px solid var(--line);
+    padding: 5px 6px;
+    border: 1px solid var(--dr-line);
     border-radius: 4px;
-    background: var(--surface);
+    background: #fff;
     min-width: 0;
   }
+  #discordRecruitApp .slot-table-row select:focus,
+  #discordRecruitApp .slot-table-row input:focus {
+    outline: none;
+    border-color: var(--accent-net);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 22%, transparent);
+  }
   #discordRecruitApp .slot-status-toggle {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    border: 1px solid var(--line);
+    border: 1px solid var(--dr-line);
     background: transparent;
     cursor: pointer;
     font-size: 15px;
@@ -2890,9 +2926,10 @@
   #discordRecruitApp .recruit-tip-box {
     margin-top: 14px;
     padding: 10px 12px;
-    background: var(--surface);
+    background: #fff;
     border-radius: var(--radius);
-    border-left: 3px solid var(--accent-net);
+    border: 1px solid var(--dr-line-soft);
+    border-left: 4px solid var(--accent-net);
   }
   #discordRecruitApp .recruit-tip-title {
     font-weight: 700;

@@ -248,7 +248,7 @@ legacySummaryOnly (옛 회차 요약만)
 3. `discord-recruit-app.js` **`DISCORD_RECRUIT_EMOJI_CATALOG`** 에 `{ shortcode, img }` 한 줄 추가
 4. (선택) 원본 `recruit-sprite-row.png` 교체 후 `node scripts/slice-discord-recruit-emojis.mjs` — **2줄(11+5)** · 회색 체커 배경 제거 · gutter별 tight crop · **36px centre**
 
-**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal`(backdrop 먼저 · `mountTemplate` try/catch) / `closeModal` · 내부 DOM 조회는 `q(id)` = `#id` 만 (`q('#셀렉터')` 금지 — `qa` 또는 `querySelector`) · 마크업·CSS는 `index.html` (`#discordRecruitApp`, `.dr-*`).
+**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal`(backdrop 먼저 · `mountTemplate` try/catch) / `closeModal` · 내부 DOM 조회는 `q(id)` = `#id` 만 (`q('#셀렉터')` 금지 — `qa` 또는 `querySelector`) · 스타일 `index.html` `#discordRecruitApp` (`--dr-line` · 이모지 타일 44px · 자리표 테두리).
 
 **출처:** 소유자 운영 **메랜툴(MERANTOOL)** `app.js` RECRUIT POST GENERATOR 로직 이관.
 
@@ -410,6 +410,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-07** — **구인글** UI 가시성 — 테두리·자리표 대비 · 이모지 칸 44px·회색 타일(밝은 이모지 구분)
 - **2026-11-07** — fix: **구인글** 디스코드 이모지 슬라이스 — 2줄·간격 인식(옆 아이콘 비침 제거) · 체커배경 투명화
 - **2026-11-07** — **구인글** 디스코드 이모지 누끼 스프라이트 반영 (`recruit-sprite-row` → 개별 PNG 재슬라이스)
 - **2026-11-07** — fix: **구인글** 모달 안 열림 — `clearEmojiButtonSelection`의 잘못된 `q('#…')` 선택자 · `openModal`은 먼저 backdrop 표시
@@ -698,4 +699,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-07 (구인글 디스코드 이모지 누끼)*
+*Last updated: 2026-11-07 (구인글 UI 가시성))*
