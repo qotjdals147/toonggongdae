@@ -248,7 +248,7 @@ legacySummaryOnly (옛 회차 요약만)
 3. `discord-recruit-app.js` **`DISCORD_RECRUIT_EMOJI_CATALOG`** 에 `{ shortcode, img }` 한 줄 추가
 4. (선택) 원본 줄 이미지는 `recruit-sprite-row.png` — 스크립트로 슬라이스 후 개별 PNG로 추가 가능
 
-**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal` / `closeModal` · 마크업·CSS는 `index.html` (`#discordRecruitApp`, `.dr-*`).
+**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal`(backdrop 먼저 · `mountTemplate` try/catch) / `closeModal` · 내부 DOM 조회는 `q(id)` = `#id` 만 (`q('#셀렉터')` 금지 — `qa` 또는 `querySelector`) · 마크업·CSS는 `index.html` (`#discordRecruitApp`, `.dr-*`).
 
 **출처:** 소유자 운영 **메랜툴(MERANTOOL)** `app.js` RECRUIT POST GENERATOR 로직 이관.
 
@@ -410,6 +410,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-07** — fix: **구인글** 모달 안 열림 — `clearEmojiButtonSelection`의 잘못된 `q('#…')` 선택자 · `openModal`은 먼저 backdrop 표시
 - **2026-11-07** — fix: **구인글** 모달 이벤트 재연결 · 디스코드 이모지 개별 PNG(유니코드와 동일 칸)
 - **2026-11-07** — **구인글** 자리 optgroup·직접입력 · 디스코드 `:shortcode:` 이모지 스프라이트 · 붙여넣기 수정 제거 · 1+2+2/2+2+2 비활성
 - **2026-11-07** — **디스코드 파티 구인글** — `discord-recruit-app.js` · 참고 탭 모달 · 3~6인 메랜툴 동일 출력
@@ -695,4 +696,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-07 (구인글 optgroup·디스코드 이모지))*
+*Last updated: 2026-11-07 (구인글 모달 openModal 수정)*

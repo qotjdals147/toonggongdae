@@ -12077,11 +12077,20 @@
   }
   if (window.DiscordRecruitApp) {
     DiscordRecruitApp.init({ $ });
-    $('discordRecruitBtn').addEventListener('click', () => DiscordRecruitApp.openModal());
-    $('discordRecruitCloseBtn').addEventListener('click', () => DiscordRecruitApp.closeModal());
-    $('discordRecruitModal').addEventListener('click', (e) => {
-      if (e.target.id === 'discordRecruitModal') DiscordRecruitApp.closeModal();
-    });
+    const discordRecruitBtn = $('discordRecruitBtn');
+    const discordRecruitModal = $('discordRecruitModal');
+    const discordRecruitCloseBtn = $('discordRecruitCloseBtn');
+    if (discordRecruitBtn) {
+      discordRecruitBtn.addEventListener('click', () => DiscordRecruitApp.openModal());
+    }
+    if (discordRecruitCloseBtn) {
+      discordRecruitCloseBtn.addEventListener('click', () => DiscordRecruitApp.closeModal());
+    }
+    if (discordRecruitModal) {
+      discordRecruitModal.addEventListener('click', (e) => {
+        if (e.target.id === 'discordRecruitModal') DiscordRecruitApp.closeModal();
+      });
+    }
   }
 
   $('warehouseBtn').addEventListener('click', () => openWarehouseModal());

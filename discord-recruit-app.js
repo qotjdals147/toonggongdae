@@ -232,7 +232,7 @@
   function clearEmojiButtonSelection() {
     qa('#emoji-picker .emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
     qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
-    var noneBtn = q('#emoji-picker .emoji-btn-none');
+    var noneBtn = emojiPickerEl ? emojiPickerEl.querySelector('.emoji-btn-none') : null;
     if (noneBtn) noneBtn.classList.add('selected');
   }
 
@@ -858,9 +858,20 @@
   }
 
   function openModal() {
-    mountTemplate();
     const modal = $('discordRecruitModal');
-    if (modal) modal.hidden = false;
+    if (modal) {
+      modal.hidden = false;
+      modal.removeAttribute('hidden');
+    }
+    try {
+      mountTemplate();
+    } catch (err) {
+      console.error('[DiscordRecruitApp] mount failed', err);
+      const el = $('discordRecruitApp');
+      if (el) {
+        el.innerHTML = '<p class="dr-warn">구인글 화면을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.</p>';
+      }
+    }
   }
 
   function closeModal() {
