@@ -2781,7 +2781,55 @@
   #discordRecruitApp .st-col { padding: 0 3px; min-width: 0; display: flex; align-items: center; }
   #discordRecruitApp .st-col-num { width: 24px; flex-shrink: 0; justify-content: center; }
   #discordRecruitApp .st-col-status { width: 40px; flex-shrink: 0; justify-content: center; }
-  #discordRecruitApp .st-col-pos { width: 82px; flex-shrink: 0; }
+  #discordRecruitApp .st-col-pos { width: 112px; flex-shrink: 0; }
+  #discordRecruitApp .st-col-pos-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  #discordRecruitApp .slot-position-custom { font-size: 11px; padding: 4px 6px; width: 100%; box-sizing: border-box; }
+  #discordRecruitApp .dr-emoji-hint { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft); }
+  #discordRecruitApp .dr-emoji-label { margin: 10px 0 6px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  #discordRecruitApp .discord-emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  #discordRecruitApp .discord-emoji-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    background-repeat: no-repeat;
+    background-size: 1600% 100%;
+    cursor: pointer;
+    padding: 0;
+  }
+  #discordRecruitApp .discord-emoji-btn.selected {
+    border-color: var(--accent-net);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 35%, transparent);
+  }
+  #discordRecruitApp .recruit-emoji-preview {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  #discordRecruitApp .dr-shortcode { font-size: 12px; color: var(--ink-soft); font-family: ui-monospace, monospace; }
+  #discordRecruitApp .dr-muted { color: var(--ink-soft); font-size: 12px; }
+  #discordRecruitApp .dr-discord-inline {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+    background-repeat: no-repeat;
+    background-size: 1600% 100%;
+    margin: 0 1px;
+  }
   #discordRecruitApp .st-col-name { flex: 1; min-width: 64px; }
   #discordRecruitApp .st-col-fee { width: 64px; flex-shrink: 0; }
   #discordRecruitApp .st-col-type { width: 64px; flex-shrink: 0; }
@@ -4284,7 +4332,7 @@
       <span aria-hidden="true" style="font-size:22px;line-height:1;">💬</span>
       디스코드 파티 구인글
     </h3>
-    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">3~6인 · 메랜툴과 동일 형식 · 복사 후 디스코드에 붙여넣기 · 장부와 무관(이 기기만)</p>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">3~6인 · 자리 그룹·디스코드 <code>:이모지:</code> 지원 · 복사본은 디스코드에 붙여넣기 · 장부 무관</p>
     <div id="discordRecruitApp"></div>
     <div class="modal-foot">
       <button type="button" class="btn-light" id="discordRecruitCloseBtn">닫기</button>

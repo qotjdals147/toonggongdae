@@ -7,6 +7,40 @@
   let mounted = false;
   let logicBound = false;
 
+  /** §HANDOFF 5.4.1 — 디스코드 이모지 추가: `shortcode` + `spriteIndex`(0~) · 스프라이트 `image/discord-emojis/recruit-sprite-row.png` */
+  const DISCORD_EMOJI_SPRITE_URL = 'image/discord-emojis/recruit-sprite-row.png';
+  const DISCORD_EMOJI_SPRITE_COUNT = 16;
+  const DISCORD_RECRUIT_EMOJI_CATALOG = [
+    { shortcode: ':star:', spriteIndex: 0 },
+    { shortcode: ':skull:', spriteIndex: 1 },
+    { shortcode: ':classical_building:', spriteIndex: 2 },
+    { shortcode: ':wing:', spriteIndex: 3 },
+    { shortcode: ':hatching_chick:', spriteIndex: 4 },
+    { shortcode: ':man_climbing:', spriteIndex: 5 },
+    { shortcode: ':mage:', spriteIndex: 6 },
+    { shortcode: ':blue_heart:', spriteIndex: 7 },
+    { shortcode: ':bear:', spriteIndex: 8 },
+    { shortcode: ':teddy_bear:', spriteIndex: 9 },
+    { shortcode: ':fish:', spriteIndex: 10 },
+    { shortcode: ':oncoming_bus:', spriteIndex: 11 },
+    { shortcode: ':troll:', spriteIndex: 12 },
+    { shortcode: ':bird:', spriteIndex: 13 },
+    { shortcode: ':mage:', spriteIndex: 14 },
+    { shortcode: ':squid:', spriteIndex: 15 },
+  ];
+
+  const POSITION_CUSTOM_VALUE = '직접입력';
+  const POSITION_GROUPS = [
+    { label: '경심', options: ['프리', '힐케어', '경심', '매미심', '비숍', '띱숍', '배달심'] },
+    { label: '좌우자리', options: ['좌', '좌1', '좌2', '좌3', '좌4', '우', '우1', '우2', '우3', '우4'] },
+    { label: '층자리', options: ['1층', '2층', '3층', '4층', '5층', '바닥', '중앙', '중옥', '옥상'] },
+    { label: '꾼', options: ['버블꾼', '나무꾼', '노팟꾼', '파티꾼'] },
+    { label: '띱자리', options: ['띱', '2.5띱', '띱숍'] },
+    { label: '깐부', options: ['저깐', '중깐', '고깐'] },
+    { label: '기사', options: ['좌기사', '우기사'] },
+    { label: '기타', options: ['설정X', POSITION_CUSTOM_VALUE] },
+  ];
+
   function q(id) {
     return root ? root.querySelector('#' + id) : null;
   }
@@ -15,11 +49,7 @@
   }
 
   const MOUNT_HTML = `
-    <div class="dr-mode-toggle">
-      <button type="button" class="dr-mode-btn active" data-rmode="create">새로 만들기</button>
-      <button type="button" class="dr-mode-btn" data-rmode="edit">붙여넣어 수정</button>
-    </div>
-    <div id="recruit-create" class="dr-mode-panel active">
+    <div id="recruit-create">
       <div class="dr-grid">
         <div class="dr-panel">
           <div class="dr-panel-title">구인 정보</div>
@@ -35,6 +65,7 @@
           </div>
           <div class="dr-field recruit-inputs-disabled">
             <label for="recruit-emoji">사냥터 이모티콘</label>
+            <p class="dr-emoji-hint">유니코드는 그대로 · 디스코드 이모지는 <strong>:이름:</strong> 형태로 복사됩니다</p>
             <div class="emoji-picker" id="emoji-picker">
               <button type="button" class="emoji-btn emoji-btn-none" data-emoji="" title="없음">✕</button>
               <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
@@ -56,7 +87,10 @@
               <button type="button" class="emoji-btn" data-emoji="🐎">🐎</button>
               <button type="button" class="emoji-btn" data-emoji="🧊">🧊</button>
             </div>
-            <input type="text" id="recruit-emoji" class="dr-input dr-emoji-show" placeholder="선택된 이모티콘" readonly>
+            <div class="dr-emoji-label">디스코드 서버 이모지</div>
+            <div class="discord-emoji-picker" id="discord-emoji-picker"></div>
+            <div id="recruit-emoji-preview" class="recruit-emoji-preview" aria-live="polite"></div>
+            <input type="hidden" id="recruit-emoji" value="">
           </div>
           <div class="dr-field recruit-inputs-disabled">
             <label for="recruit-spot">사냥터 이름</label>
@@ -93,11 +127,6 @@
         </div>
       </div>
     </div>
-    <div id="recruit-edit" class="dr-mode-panel">
-      <p class="dr-edit-desc">기존 디스코드 구인글을 붙여넣으면 편집 화면으로 가져옵니다.</p>
-      <textarea id="recruit-paste" class="dr-textarea" rows="10" placeholder="구인글 전체 붙여넣기"></textarea>
-      <button type="button" class="btn-settle" id="btn-parse-recruit">가져오기</button>
-    </div>
   `;
 
   function mountTemplate() {
@@ -114,9 +143,8 @@
 
   function bindRecruitUi() {
   /* --- State --- */
-  var currentMode = 'create';
   var selectedEmoji = '';
-  var slots = []; // { position, name, condition, feeType, status: 'open'|'filled' }
+  var slots = []; // { position, positionCustom?, name, condition, feeType, status }
   var slotIdCounter = 0;
   var partySize = 0; // 0 = not selected, 3~6
   var layoutFormat = ''; // e.g. '3+3', '2+2+2', '3+2', '1+2+2', '2+1', '2+2'
@@ -125,8 +153,16 @@
   var layoutOptions = {
     3: [{ key: '2+1', label: '2+1 양식' }],
     4: [{ key: '2+2', label: '2+2 양식' }],
-    5: [{ key: '3+2', label: '3+2 양식' }, { key: '1+2+2', label: '1+2+2 양식' }],
-    6: [{ key: '3+3', label: '3+3 양식' }, { key: '2+2+2', label: '2+2+2 양식' }]
+    5: [
+      { key: '3+2', label: '3+2 양식' },
+      // 임시 비활성 — 복구 시 아래 주석 해제 (layoutDistribution '1+2+2' 도 유지됨)
+      // { key: '1+2+2', label: '1+2+2 양식' },
+    ],
+    6: [
+      { key: '3+3', label: '3+3 양식' },
+      // 임시 비활성 — 복구 시 아래 주석 해제 (layoutDistribution '2+2+2' 도 유지됨)
+      // { key: '2+2+2', label: '2+2+2 양식' },
+    ],
   };
 
   // How slots distribute across lines per layout
@@ -142,18 +178,15 @@
   };
 
   /* --- DOM refs --- */
-  var modeBtns = qa('.dr-mode-btn');
   var modeCreatePanel = q('recruit-create');
-  var modeEditPanel = q('recruit-edit');
   var emojiInput = q('recruit-emoji');
+  var emojiPreviewEl = q('recruit-emoji-preview');
   var spotInput = q('recruit-spot');
   var extraInput = q('recruit-extra');
   var slotsContainer = q('recruit-slots');
   var previewText = q('recruit-preview-text');
   var copyBtn = q('btn-copy-recruit');
   var copyToast = q('recruit-copy-toast');
-  var pasteArea = q('recruit-paste');
-  var parseBtn = q('btn-parse-recruit');
   var partySizeSelector = q('party-size-selector');
   var layoutSelector = q('layout-selector');
   var slotsWrapper = q('recruit-slots-wrapper');
@@ -168,6 +201,88 @@
   var emojiPickerEl = q('emoji-picker');
 
   if (!modeCreatePanel) return; // guard if tab not present
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function spriteBgPosition(spriteIndex) {
+    if (DISCORD_EMOJI_SPRITE_COUNT <= 1) return '0% 50%';
+    var pct = (spriteIndex / (DISCORD_EMOJI_SPRITE_COUNT - 1)) * 100;
+    return pct + '% 50%';
+  }
+
+  function shortcodeToSpriteIndex(shortcode) {
+    for (var i = 0; i < DISCORD_RECRUIT_EMOJI_CATALOG.length; i++) {
+      if (DISCORD_RECRUIT_EMOJI_CATALOG[i].shortcode === shortcode) {
+        return DISCORD_RECRUIT_EMOJI_CATALOG[i].spriteIndex;
+      }
+    }
+    return -1;
+  }
+
+  function discordInlineImgHtml(shortcode) {
+    var idx = shortcodeToSpriteIndex(shortcode);
+    if (idx < 0) return escapeHtml(shortcode);
+    return '<span class="dr-discord-inline" style="background-image:url(' + DISCORD_EMOJI_SPRITE_URL + ');background-position:' + spriteBgPosition(idx) + '" title="' + escapeHtml(shortcode) + '" role="img" aria-label="' + escapeHtml(shortcode) + '"></span>';
+  }
+
+  function previewHtmlFromPlainText(text) {
+    var html = escapeHtml(text);
+    var seen = {};
+    DISCORD_RECRUIT_EMOJI_CATALOG.forEach(function(entry) {
+      if (seen[entry.shortcode]) return;
+      seen[entry.shortcode] = true;
+      var img = discordInlineImgHtml(entry.shortcode);
+      html = html.split(entry.shortcode).join(img);
+    });
+    return html.replace(/\n/g, '<br>');
+  }
+
+  function clearEmojiButtonSelection() {
+    qa('#emoji-picker .emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
+    qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
+    var noneBtn = q('#emoji-picker .emoji-btn-none');
+    if (noneBtn) noneBtn.classList.add('selected');
+  }
+
+  function updateEmojiPreviewUi() {
+    if (!emojiPreviewEl) return;
+    if (!selectedEmoji) {
+      emojiPreviewEl.innerHTML = '<span class="dr-muted">선택 없음</span>';
+      if (emojiInput) emojiInput.value = '';
+      return;
+    }
+    if (emojiInput) emojiInput.value = selectedEmoji;
+    if (selectedEmoji.charAt(0) === ':' && selectedEmoji.charAt(selectedEmoji.length - 1) === ':') {
+      emojiPreviewEl.innerHTML = discordInlineImgHtml(selectedEmoji) + ' <span class="dr-shortcode">' + escapeHtml(selectedEmoji) + '</span>';
+    } else {
+      emojiPreviewEl.textContent = selectedEmoji;
+    }
+  }
+
+  function mountDiscordEmojiPicker() {
+    var host = q('discord-emoji-picker');
+    if (!host || host.dataset.mounted === '1') return;
+    host.dataset.mounted = '1';
+    host.innerHTML = '';
+    DISCORD_RECRUIT_EMOJI_CATALOG.forEach(function(entry, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'discord-emoji-btn';
+      btn.setAttribute('data-shortcode', entry.shortcode);
+      btn.setAttribute('data-sprite-index', String(entry.spriteIndex));
+      btn.title = entry.shortcode;
+      btn.setAttribute('aria-label', entry.shortcode);
+      btn.style.backgroundImage = 'url(' + DISCORD_EMOJI_SPRITE_URL + ')';
+      btn.style.backgroundPosition = spriteBgPosition(entry.spriteIndex);
+      host.appendChild(btn);
+    });
+  }
+
+  mountDiscordEmojiPicker();
+  updateEmojiPreviewUi();
 
   // Initially disable all input fields
   setInputsDisabled(true);
@@ -196,23 +311,6 @@
     }
   }
 
-  /* --- Mode Toggle --- */
-  modeBtns.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var mode = this.getAttribute('data-rmode');
-      currentMode = mode;
-      modeBtns.forEach(function(b) { b.classList.remove('active'); });
-      this.classList.add('active');
-      if (mode === 'create') {
-        modeCreatePanel.classList.add('active');
-        if (modeEditPanel) modeEditPanel.classList.remove('active');
-      } else {
-        modeCreatePanel.classList.remove('active');
-        if (modeEditPanel) modeEditPanel.classList.add('active');
-      }
-    });
-  });
-
   /* --- Party Size Selection --- */
   if (partySizeSelector) {
     var sizeBtns = partySizeSelector.querySelectorAll('.party-size-btn');
@@ -231,11 +329,10 @@
         slots = [];
         slotIdCounter = 0;
         selectedEmoji = '';
-        if (emojiInput) emojiInput.value = '';
         if (spotInput) spotInput.value = '';
         if (extraInput) extraInput.value = '';
-        var allEmojiBtns = qa('#emoji-picker .emoji-btn');
-        allEmojiBtns.forEach(function(b) { b.classList.remove('selected'); });
+        clearEmojiButtonSelection();
+        updateEmojiPreviewUi();
         layoutFormat = '';
 
         // Update active button
@@ -338,6 +435,7 @@
         slots.push({
           id: id,
           position: '\uc88c',
+          positionCustom: '',
           name: '',
           condition: '',
           feeType: 'bring',
@@ -354,16 +452,33 @@
   emojiBtns.forEach(function(btn) {
     btn.addEventListener('click', function() {
       var emoji = this.getAttribute('data-emoji') || '';
-      emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
+      qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
       if (emoji === '' || selectedEmoji === emoji) {
         selectedEmoji = '';
-        var noneBtn = q('#emoji-picker .emoji-btn-none');
-        if (noneBtn) noneBtn.classList.add('selected');
+        clearEmojiButtonSelection();
       } else {
         selectedEmoji = emoji;
+        emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
         this.classList.add('selected');
       }
-      if (emojiInput) emojiInput.value = selectedEmoji || '';
+      updateEmojiPreviewUi();
+      updatePreview();
+    });
+  });
+
+  qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var shortcode = this.getAttribute('data-shortcode') || '';
+      emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
+      if (!shortcode || selectedEmoji === shortcode) {
+        selectedEmoji = '';
+        clearEmojiButtonSelection();
+      } else {
+        selectedEmoji = shortcode;
+        qa('#discord-emoji-picker .discord-emoji-btn').forEach(function(b) { b.classList.remove('selected'); });
+        this.classList.add('selected');
+      }
+      updateEmojiPreviewUi();
       updatePreview();
     });
   });
@@ -378,24 +493,22 @@
     return 'slot-' + slotIdCounter;
   }
 
-  // Position options for slot dropdown
-  var positionOptions = [
-    '\ud504\ub9ac','\ud790\ucf00\uc5b4','\uacbd\uc2ec','\ub85c\uc5b4',
-    '\uc88c','\uc88c1','\uc88c2','\uc88c3',
-    '\uc6b0','\uc6b01','\uc6b02','\uc6b03',
-    '1\ucE35','2\ucE35','3\ucE35','4\ucE35','5\ucE35',
-    '\ubc84\ube14\uafbc','\ub098\ubb34\uafbc','\ub178\ud31f\uafbc','\ud30c\ud2f0\uafbc',
-    '\uc625\uc0c1','\ub771','2.5\ub771','\ub771\uc20d',
-    '\ubc14\ub2e5','\uc911\uc559','\uc911\uc625',
-    '\uc800\uae50','\uc911\uae50','\uace0\uae50',
-    '\uc88c\uae30\uc0ac','\uc6b0\uae30\uc0ac',
-    '\uc124\uc815X'
-  ];
+  function resolvePositionOutput(slot) {
+    if (slot.position === POSITION_CUSTOM_VALUE) {
+      return (slot.positionCustom || '').trim();
+    }
+    return slot.position || '';
+  }
 
-  function buildPositionSelect(selectedVal) {
+  function buildPositionSelect(slot) {
+    var selectedVal = slot.position || '좌';
     var html = '';
-    positionOptions.forEach(function(opt) {
-      html += '<option value="' + opt + '"' + (selectedVal === opt ? ' selected' : '') + '>' + opt + '</option>';
+    POSITION_GROUPS.forEach(function(group) {
+      html += '<optgroup label="' + escapeHtml(group.label) + '">';
+      group.options.forEach(function(opt) {
+        html += '<option value="' + escapeHtml(opt) + '"' + (selectedVal === opt ? ' selected' : '') + '>' + escapeHtml(opt) + '</option>';
+      });
+      html += '</optgroup>';
     });
     return html;
   }
@@ -441,8 +554,10 @@
         '<span class="st-col st-col-status">' +
           '<button type="button" class="slot-status-toggle" data-status="' + slot.status + '" title="\ud074\ub9ad\ud558\uba74 \uad6c\uc778\uc911/\uad6c\uc778\uc644 \uc804\ud658">' + statusEmoji + '</button>' +
         '</span>' +
-        '<span class="st-col st-col-pos">' +
-          '<select class="slot-position" tabindex="' + (10 + idx * 4) + '">' + buildPositionSelect(slot.position) + '</select>' +
+        '<span class="st-col st-col-pos st-col-pos-wrap">' +
+          '<select class="slot-position" tabindex="' + (10 + idx * 4) + '">' + buildPositionSelect(slot) + '</select>' +
+          '<input type="text" class="slot-position-custom" placeholder="자리 이름" value="' + escapeHtml(slot.positionCustom || '') + '" tabindex="' + (10 + idx * 4 + 1) + '"' +
+            (slot.position === POSITION_CUSTOM_VALUE ? '' : ' hidden') + '>' +
         '</span>' +
         '<span class="st-col st-col-name' + nameDisabledClass + '">' +
           '<input type="text" class="slot-name" placeholder="\uad6c\uc778\uc911" value="' + escapeHtml(slot.name || '') + '" tabindex="' + (11 + idx * 4) + '">' +
@@ -462,10 +577,26 @@
       table.appendChild(row);
 
       // Bind events
-      row.querySelector('.slot-position').addEventListener('change', function() {
+      var posSelect = row.querySelector('.slot-position');
+      var posCustom = row.querySelector('.slot-position-custom');
+      posSelect.addEventListener('change', function() {
         slot.position = this.value;
+        if (posCustom) {
+          if (slot.position === POSITION_CUSTOM_VALUE) {
+            posCustom.hidden = false;
+          } else {
+            posCustom.hidden = true;
+            slot.positionCustom = '';
+          }
+        }
         updatePreview();
       });
+      if (posCustom) {
+        posCustom.addEventListener('input', function() {
+          slot.positionCustom = this.value;
+          updatePreview();
+        });
+      }
       row.querySelector('.slot-name').addEventListener('input', function() {
         slot.name = this.value;
         updatePreview();
@@ -510,10 +641,10 @@
       selectedEmoji = '';
       partySize = 0;
       layoutFormat = '';
-      if (emojiInput) emojiInput.value = '';
       if (spotInput) spotInput.value = '';
       if (extraInput) extraInput.value = '';
-      emojiBtns.forEach(function(b) { b.classList.remove('selected'); });
+      clearEmojiButtonSelection();
+      updateEmojiPreviewUi();
 
       // Reset party size buttons
       if (partySizeSelector) {
@@ -549,7 +680,8 @@
       }
     }
 
-    var posPrefix = (s.position === '\uc124\uc815X') ? '' : s.position + ':';
+    var posLabel = resolvePositionOutput(s);
+    var posPrefix = (!posLabel || posLabel === '\uc124\uc815X') ? '' : posLabel + ':';
 
     if (s.status === 'open') {
       return statusEmoji + posPrefix + '\uad6c\uc778\uc911' + condStr;
@@ -636,10 +768,10 @@
     if (!previewText) return;
     var text = generatePreviewText();
     if (text) {
-      previewText.textContent = text;
+      previewText.innerHTML = previewHtmlFromPlainText(text);
       previewText.classList.remove('empty-state');
     } else {
-      previewText.textContent = '\uc704\uc5d0\uc11c \uc815\ubcf4\ub97c \uc785\ub825\ud558\uba74 \uc5ec\uae30\uc5d0 \ubbf8\ub9ac\ubcf4\uae30\uac00 \ud45c\uc2dc\ub429\ub2c8\ub2e4';
+      previewText.textContent = '\uc704\uc5d0\uc11c \uc815\ubcf4\ub97c \uc785\ub825\ud558\uba74 \uc5ec\uae30\uc5d0 \ubbf8\ubcf4\uae30\uac00 \ud45c\uc2dc\ub529\ub2c8\ub2e4';
       previewText.classList.add('empty-state');
     }
   }
@@ -679,213 +811,6 @@
     });
   }
 
-  /* ============================
-     EDIT MODE: Paste → Parse → Inject into Create Mode
-     ============================ */
-  if (parseBtn) {
-    parseBtn.addEventListener('click', function() {
-      var raw = pasteArea ? pasteArea.value.trim() : '';
-      if (!raw) return;
-      parseAndInject(raw);
-    });
-  }
-
-  function parseAndInject(raw) {
-    var lines = raw.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
-    if (lines.length === 0) return;
-
-    var parsedSlots = [];
-    var headerLine = '';
-    var RED = '\uD83D\uDD34';
-    var GREEN = '\uD83D\uDFE2';
-    var emojiSplitRe = /(\uD83D\uDD34|\uD83D\uDFE2)/;
-    var emojiTestRe = /\uD83D\uDD34|\uD83D\uDFE2/;
-
-    var slotLineStart = -1;
-    for (var li = 0; li < lines.length; li++) {
-      if (emojiTestRe.test(lines[li])) {
-        slotLineStart = li;
-        break;
-      }
-    }
-
-    if (slotLineStart === -1) {
-      headerLine = lines[0];
-      for (var j = 1; j < lines.length; j++) {
-        var patPlain = /([\uAC00-\uD7AF\u3131-\u3163\u3165-\u318E0-9a-zA-Z][\uAC00-\uD7AF\u3131-\u3163\u3165-\u318E0-9a-zA-Z\s]*?)\s*[(\uff08]([^)\uff09]+?)[)\uff09]/g;
-        var mp;
-        while ((mp = patPlain.exec(lines[j])) !== null) {
-          var pName = mp[1].trim();
-          parsedSlots.push({
-            position: '\ud504\ub9ac',
-            name: pName === '\uad6c\uc778\uc911' ? '' : pName,
-            condition: mp[2].trim(),
-            status: (pName === '\uad6c\uc778\uc911' || !pName) ? 'open' : 'filled'
-          });
-        }
-      }
-    } else {
-      if (slotLineStart > 0) {
-        headerLine = lines.slice(0, slotLineStart).join(' ');
-      }
-
-      // Count slots per line to detect layout
-      var slotsPerLine = [];
-
-      for (var i = slotLineStart; i < lines.length; i++) {
-        var line = lines[i];
-        var segments = line.split(emojiSplitRe);
-        var lineSlotCount = 0;
-
-        var ci = 0;
-        while (ci < segments.length) {
-          var seg = segments[ci];
-
-          if (seg === RED || seg === GREEN) {
-            var statusVal = seg === GREEN ? 'filled' : 'open';
-            var content = (ci + 1 < segments.length) ? segments[ci + 1].trim() : '';
-            ci += 2;
-            if (!content) continue;
-
-            lineSlotCount++;
-
-            var posMatch = content.match(/^([\uAC00-\uD7AF\u3131-\u3163\u3165-\u318E0-9]+)\s*[:\uff1a]\s*(.*)$/);
-            var position = '\ud504\ub9ac';
-            var rest = content;
-            if (posMatch) {
-              position = posMatch[1];
-              rest = posMatch[2] || '';
-            }
-
-            var ncMatch = rest.match(/^(.+?)\s*[(\uff08]([^)\uff09]*)[)\uff09]\s*$/);
-            var slotName = '';
-            var slotCond = '';
-            if (ncMatch) {
-              slotName = ncMatch[1].trim();
-              slotCond = ncMatch[2].trim();
-            } else {
-              slotName = rest.trim();
-            }
-
-            if (slotName === '\uad6c\uc778\uc911') {
-              slotName = '';
-              statusVal = 'open';
-            }
-
-            parsedSlots.push({
-              position: position,
-              name: slotName,
-              condition: slotCond,
-              status: statusVal
-            });
-          } else {
-            ci++;
-          }
-        }
-        slotsPerLine.push(lineSlotCount);
-      }
-
-      // Try to detect if header line had slots mixed in
-      if (slotLineStart === 0 && headerLine === '') {
-        // First line contains both header text and slots
-        // Extract non-slot text as header
-        var firstLine = lines[0];
-        var firstSlotPos = firstLine.search(emojiTestRe);
-        if (firstSlotPos > 0) {
-          headerLine = firstLine.substring(0, firstSlotPos).trim();
-        }
-      }
-    }
-
-    if (parsedSlots.length === 0) return;
-
-    // Post-process: detect fee type
-    parsedSlots.forEach(function(s) {
-      if (s.condition && s.condition.indexOf('\uc9c0\uc6d0') !== -1) {
-        s.feeType = 'support';
-        s.condition = s.condition.replace('\uc9c0\uc6d0', '');
-      } else {
-        s.feeType = 'bring';
-      }
-    });
-
-    // --- Parse header to extract emoji, spot name, extra info ---
-    if (headerLine) {
-      var emojiMatch = headerLine.match(/^([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]+)/u);
-      var detectedEmoji = '';
-      var remainder = headerLine;
-      if (emojiMatch) {
-        detectedEmoji = emojiMatch[1];
-        remainder = headerLine.replace(new RegExp('^' + escapeRegex(detectedEmoji) + '\\s*'), '');
-        remainder = remainder.replace(new RegExp('\\s*' + escapeRegex(detectedEmoji) + '$'), '');
-      }
-
-      var parts = remainder.split(/\s+/);
-      var spotName = parts[0] || '';
-      var extraInfo = parts.slice(1).join(' ');
-
-      if (detectedEmoji) {
-        selectedEmoji = detectedEmoji;
-        if (emojiInput) emojiInput.value = detectedEmoji;
-        emojiBtns.forEach(function(b) {
-          b.classList.toggle('selected', b.getAttribute('data-emoji') === detectedEmoji);
-        });
-      }
-      if (spotInput) spotInput.value = spotName;
-      if (extraInput) extraInput.value = extraInfo;
-    }
-
-    // --- Auto-detect party size and layout from parsed slots ---
-    var totalSlots = parsedSlots.length;
-    if (totalSlots >= 3 && totalSlots <= 6) {
-      partySize = totalSlots;
-
-      // Select party size button
-      if (partySizeSelector) {
-        partySizeSelector.querySelectorAll('.party-size-btn').forEach(function(b) {
-          b.classList.toggle('active', parseInt(b.getAttribute('data-size')) === partySize);
-        });
-      }
-
-      // Set default layout
-      var opts = layoutOptions[partySize] || [];
-      layoutFormat = opts.length > 0 ? opts[0].key : '';
-      updateLayoutButtons();
-      setInputsDisabled(false);
-    }
-
-    // --- Clear existing slots and inject parsed ones ---
-    slots = [];
-    slotIdCounter = 0;
-    parsedSlots.forEach(function(ps) {
-      var id = createSlotId();
-      ps.id = id;
-      if (!ps.feeType) ps.feeType = 'bring';
-      slots.push(ps);
-    });
-
-    renderSlots();
-
-    // --- Switch to create mode ---
-    currentMode = 'create';
-    modeBtns.forEach(function(b) {
-      b.classList.toggle('active', b.getAttribute('data-rmode') === 'create');
-    });
-    modeCreatePanel.classList.add('active');
-    if (modeEditPanel) modeEditPanel.classList.remove('active');
-
-    updatePreview();
-  }
-
-  function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  /* --- Utility --- */
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
   }
 
   function init(opts) {
