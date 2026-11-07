@@ -28,6 +28,7 @@
 | **`maple-party-ledger.html`** | **배포/미러용 복사본.** 변경 시 `index.html`과 **항상 동일**하게 유지 (`Copy-Item -Force`). |
 | **`party-timer-app.js`** | **퉁공대 타이머** 로직 · `#partyTimerModal` + Document PiP · `state.partyTimer`는 `scheduleSave` |
 | **`worldcoin-calc-app.js`** | **월드코인 계산기** · `#worldcoinCalcModal` · 패키지 설정은 **localStorage** (`maple_worldcoin_calc_settings_v3`) · 장부 state **무관** |
+| **`discord-recruit-app.js`** | **디스코드 파티 구인글** · `#discordRecruitModal` · 3~6인·메랜툴 동일 출력 · 장부 state **무관** · **§5.4.1** |
 | **`boss-cooldown-app.js`** | **보스 쿨타임** · `#bossCooldownModal` · `state.bossCooldown` · **§5.5** |
 | **`party-timer.html`** | 구 URL → `index.html?openTimer=1` 리다이렉트만 |
 | `image/아이콘/` | meso·섹션 아이콘 |
@@ -172,7 +173,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 통계 | `renderStatsModal` — 등록가/수수료/메이커/인수/순수익 반영 |
 | 핫이슈 | `hotIssues`, `openHotIssueModal`, `postHotIssue` — 붙여넣기·첨부 |
 | 창고캐 | `warehouseChars` |
-| 상단 헤더 | `#appHeaderBanner` · **공대 도구** 상시 노출 · `app-tool-card` + `image/NPC/*` · **참고:** 수수료·**월드코인 계산기** · **연결 상태=마스터 옵션만** |
+| 상단 헤더 | `#appHeaderBanner` · **공대 도구** 상시 노출 · `app-tool-card` + `image/NPC/*` · **참고:** 수수료·**월드코인**·**구인글 생성** · **연결 상태=마스터 옵션만** |
 | 장부 점프 | `#ledgerJumpNav` sticky · `#ledgerCycleSummary` — `partyNet` = 실수령−지출−`makerCycleCostTotal()` |
 | 로그인 | `#authGate`, `signInWithPartyAccount`, `party_room_access` — **AUTH-SETUP.md** |
 | 공대원·레벨 | `renderMembers` — **§5.2** · `memberCharSpriteHtml` · `partyStateHydrated` · `replayLedgerGamificationXp` |
@@ -183,6 +184,7 @@ legacySummaryOnly (옛 회차 요약만)
 | 획득 아이템 AC | `#eEditItem` + `#eEditItemDropdown` + `#eEditItemIcon` · `bindItemNameAutocomplete` · `syncEntryEditFormForItem` |
 | 퉁공대 타이머 | `#partyTimerBtn` → **PIP만** · 사냥 전=PIP 설정 / 사냥 중=2×2 타일+**사냥 종료** · `party-timer-app.js` |
 | 월드코인 계산기 | `#worldcoinCalcBtn` · `#worldcoinCalcModal` · **§5.4** · `worldcoin-calc-app.js` |
+| 디스코드 구인글 | `#discordRecruitBtn` · `#discordRecruitModal` · **§5.4.1** · `discord-recruit-app.js` |
 | 보스 쿨타임 | `#bossCooldownBtn` · `#bossCooldownModal` · **§5.5** · `boss-cooldown-app.js` |
 | 핫이슈 대상 | `#hotIssueTargetPicks` **복수 체크** · 대상마다 XP (`XP_HOT_ISSUE`) |
 
@@ -233,6 +235,16 @@ legacySummaryOnly (옛 회차 요약만)
 **회귀·캐시:** GitHub Pages는 배포 후 **Ctrl+F5** · 구 UI(「결제 11회·2회」·캐시샵 혼용 문구)는 구 JS 캐시.
 
 **최근 main (월드코인):** `551f995` (문구) ← `f135193` (원화 횟수·보유 초기화) ← `5989723` (premium cap).
+
+### 5.4.1 디스코드 파티 구인글 (`discord-recruit-app.js`)
+
+**장부와 분리:** `state` / Supabase **무관** · Realtime만 **`modalBlocksRemote()`**에 `#discordRecruitModal` 등록.
+
+**기능 (메랜툴 `recruit` 탭과 동일 출력):** 파티 **3~6인** · 양식(2+1, 2+2, 3+2, 1+2+2, 3+3, 2+2+2) · 사냥터 이모지·이름·추가정보 · 자리별 🟢/🔴·위치·비용·지참/지원 · **디스코드 미리보기** · 복사 · **붙여넣어 수정**(파싱 후 편집).
+
+**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal` / `closeModal` · 마크업·CSS는 `index.html` (`#discordRecruitApp`, `.dr-*`).
+
+**출처:** 소유자 운영 **메랜툴(MERANTOOL)** `app.js` RECRUIT POST GENERATOR 로직 이관.
 
 ### 5.5 보스 쿨타임 (`boss-cooldown-app.js`)
 
@@ -392,6 +404,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-07** — **디스코드 파티 구인글** — `discord-recruit-app.js` · 참고 탭 모달 · 3~6인 메랜툴 동일 출력
 - **2026-10-16** — fix: **퉁공대 타이머** 중간 참여·stale 저장 — `mergePartyTimer` · 진행 중 사냥 덮어쓰기 방지 · PIP 즉시 사냥 UI
 - **2026-10-15** — fix: **퉁공대 타이머** PIP 켠 공대원도 무음 — PiP **클릭 unlock** · Realtime 후 **알람 재등록** · (PIP 없으면 소리 없음 유지)
 - **2026-10-15** — ~~fix: 타이머 PIP 없이 재생~~ **롤백** (의도: §11.1.1 PIP 전용)
@@ -674,4 +687,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-10-16 (타이머 Realtime merge · mid-join PIP)*
+*Last updated: 2026-11-07 (디스코드 구인글 생성기)*

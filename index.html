@@ -2605,6 +2605,257 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+  .modal-discord-recruit {
+    max-width: min(960px, 96vw);
+    max-height: min(92vh, 820px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .app-tool-card-emoji {
+    display: block;
+    width: 52px;
+    height: 52px;
+    line-height: 52px;
+    text-align: center;
+    font-size: 28px;
+    margin: 0 auto 4px;
+    user-select: none;
+  }
+  #discordRecruitApp { font-size: 13px; }
+  #discordRecruitApp .dr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    #discordRecruitApp .dr-grid { grid-template-columns: 1fr; }
+  }
+  #discordRecruitApp .dr-panel {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    background: var(--surface-muted);
+  }
+  #discordRecruitApp .dr-panel-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin: 0 0 10px;
+    color: var(--ink);
+  }
+  #discordRecruitApp .dr-panel-title--sub { margin-top: 14px; }
+  #discordRecruitApp .dr-field { margin-bottom: 12px; }
+  #discordRecruitApp .dr-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+  #discordRecruitApp .dr-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: 13px;
+  }
+  #discordRecruitApp .dr-emoji-show {
+    margin-top: 8px;
+    max-width: 160px;
+    text-align: center;
+    font-size: 18px;
+  }
+  #discordRecruitApp .dr-hint { font-weight: 400; opacity: 0.85; }
+  #discordRecruitApp .dr-warn { color: #c0392b; font-size: 12px; }
+  #discordRecruitApp .dr-reset { margin-top: 8px; font-size: 12px; }
+  #discordRecruitApp .dr-mode-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 4px;
+    background: var(--surface-muted);
+    border-radius: var(--radius);
+    width: fit-content;
+  }
+  #discordRecruitApp .dr-mode-btn {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 13px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  #discordRecruitApp .dr-mode-btn.active {
+    background: var(--accent-net);
+    color: #fff;
+  }
+  #discordRecruitApp .dr-mode-panel { display: none; }
+  #discordRecruitApp .dr-mode-panel.active { display: block; }
+  #discordRecruitApp .dr-edit-desc {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  #discordRecruitApp .dr-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 10px;
+  }
+  #discordRecruitApp .party-size-selector,
+  #discordRecruitApp .layout-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  #discordRecruitApp .layout-selector { margin-top: 8px; }
+  #discordRecruitApp .party-size-btn,
+  #discordRecruitApp .layout-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #discordRecruitApp .party-size-btn.active,
+  #discordRecruitApp .layout-btn.active {
+    border-color: var(--accent-net);
+    background: var(--accent-net);
+    color: #fff;
+  }
+  #discordRecruitApp .emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  #discordRecruitApp .emoji-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+  }
+  #discordRecruitApp .emoji-btn.selected {
+    border-color: var(--accent-net);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-net) 35%, transparent);
+  }
+  #discordRecruitApp .emoji-btn-none { font-size: 12px; color: var(--ink-soft); }
+  #discordRecruitApp .slot-table {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 12px;
+  }
+  #discordRecruitApp .slot-table-header {
+    display: flex;
+    padding: 6px 8px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  #discordRecruitApp .slot-table-row {
+    display: flex;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+  }
+  #discordRecruitApp .slot-table-row:last-child { border-bottom: none; }
+  #discordRecruitApp .st-col { padding: 0 3px; min-width: 0; display: flex; align-items: center; }
+  #discordRecruitApp .st-col-num { width: 24px; flex-shrink: 0; justify-content: center; }
+  #discordRecruitApp .st-col-status { width: 40px; flex-shrink: 0; justify-content: center; }
+  #discordRecruitApp .st-col-pos { width: 82px; flex-shrink: 0; }
+  #discordRecruitApp .st-col-name { flex: 1; min-width: 64px; }
+  #discordRecruitApp .st-col-fee { width: 64px; flex-shrink: 0; }
+  #discordRecruitApp .st-col-type { width: 64px; flex-shrink: 0; }
+  #discordRecruitApp .slot-table-row select,
+  #discordRecruitApp .slot-table-row input {
+    width: 100%;
+    font-size: 11px;
+    padding: 4px 6px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    min-width: 0;
+  }
+  #discordRecruitApp .slot-status-toggle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    cursor: pointer;
+    font-size: 15px;
+    padding: 0;
+    line-height: 1;
+  }
+  #discordRecruitApp .slot-name-disabled { opacity: 0.35; pointer-events: none; }
+  #discordRecruitApp .recruit-disabled { opacity: 0.45; pointer-events: none; }
+  #discordRecruitApp .recruit-disabled-notice { margin-bottom: 8px; }
+  #discordRecruitApp .recruit-disabled-notice.hidden { display: none; }
+  #discordRecruitApp .recruit-inputs-disabled { opacity: 0.45; pointer-events: none; }
+  #discordRecruitApp .recruit-preview {
+    background: #36393f;
+    color: #dcddde;
+    border-radius: var(--radius);
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 72px;
+  }
+  #discordRecruitApp .recruit-preview-text.empty-state { color: #72767d; font-style: italic; }
+  #discordRecruitApp #btn-copy-recruit { margin-top: 10px; width: 100%; }
+  #discordRecruitApp .recruit-copy-toast {
+    display: none;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: #27ae60;
+    color: #fff;
+    border-radius: var(--radius);
+    text-align: center;
+    font-size: 12px;
+  }
+  #discordRecruitApp .recruit-copy-toast.show { display: block; }
+  #discordRecruitApp .recruit-tip-box {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--accent-net);
+  }
+  #discordRecruitApp .recruit-tip-title {
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--accent-net);
+    margin-bottom: 6px;
+  }
+  #discordRecruitApp .recruit-tip-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  #discordRecruitApp .tip-highlight { font-weight: 600; color: var(--ink); }
   .modal-boss-cooldown {
     max-width: min(600px, 96vw);
     max-height: min(92vh, 780px);
@@ -3434,6 +3685,10 @@
                 <img src="image/아이콘/월드코인.png" alt="" width="52" height="52" decoding="async" draggable="false">
                 <span class="app-tool-card-label">월드코인 계산기</span>
               </button>
+              <button type="button" class="app-tool-card" id="discordRecruitBtn" title="디스코드 파티·쩔 구인글 (3~6인)">
+                <span class="app-tool-card-emoji" aria-hidden="true">💬</span>
+                <span class="app-tool-card-label">구인글 생성</span>
+              </button>
             </div>
           </div>
           <div class="app-toolbar-group">
@@ -4023,6 +4278,20 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="discordRecruitModal" hidden>
+  <div class="modal modal-discord-recruit" role="dialog" aria-labelledby="discordRecruitModalTitle">
+    <h3 id="discordRecruitModalTitle" class="modal-title-with-icon">
+      <span aria-hidden="true" style="font-size:22px;line-height:1;">💬</span>
+      디스코드 파티 구인글
+    </h3>
+    <p style="margin:-6px 0 12px;font-size:13px;color:var(--ink-soft);">3~6인 · 메랜툴과 동일 형식 · 복사 후 디스코드에 붙여넣기 · 장부와 무관(이 기기만)</p>
+    <div id="discordRecruitApp"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn-light" id="discordRecruitCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="bossCooldownModal" hidden aria-hidden="true">
   <div class="modal modal-boss-cooldown" role="dialog" aria-labelledby="bossCooldownModalTitle">
     <h3 id="bossCooldownModalTitle" class="modal-title-with-icon">
@@ -4284,6 +4553,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="party-timer-app.js"></script>
 <script src="worldcoin-calc-app.js"></script>
+<script src="discord-recruit-app.js"></script>
 <script src="boss-cooldown-app.js"></script>
 <script>
 (function () {
@@ -5780,7 +6050,8 @@
       || !$('makerEditModal').hidden
       || ($('monsterKillModal') && !$('monsterKillModal').hidden)
       || ($('partyTimerModal') && !$('partyTimerModal').hidden)
-      || ($('worldcoinCalcModal') && !$('worldcoinCalcModal').hidden);
+      || ($('worldcoinCalcModal') && !$('worldcoinCalcModal').hidden)
+      || ($('discordRecruitModal') && !$('discordRecruitModal').hidden);
   }
 
   function parcelFeeRateForAmount(amount) {
@@ -11750,6 +12021,14 @@
     $('worldcoinCalcCloseBtn').addEventListener('click', () => WorldcoinCalcApp.closeModal());
     $('worldcoinCalcModal').addEventListener('click', (e) => {
       if (e.target.id === 'worldcoinCalcModal') WorldcoinCalcApp.closeModal();
+    });
+  }
+  if (window.DiscordRecruitApp) {
+    DiscordRecruitApp.init({ $ });
+    $('discordRecruitBtn').addEventListener('click', () => DiscordRecruitApp.openModal());
+    $('discordRecruitCloseBtn').addEventListener('click', () => DiscordRecruitApp.closeModal());
+    $('discordRecruitModal').addEventListener('click', (e) => {
+      if (e.target.id === 'discordRecruitModal') DiscordRecruitApp.closeModal();
     });
   }
 
