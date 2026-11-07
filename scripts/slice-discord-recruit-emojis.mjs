@@ -1,6 +1,6 @@
 /**
  * §HANDOFF 5.4.1 — recruit-sprite-row.png → 16개 개별 PNG
- * 체커보드(회색) 배경 인식 · 2줄(11+5) gutter 분할 · 36px 가운데 정렬
+ * 검정·체커보드 배경 인식 · 2줄(11+5) gutter · 36px centre · 타일 defringe
  */
 import fs from 'fs';
 import path from 'path';
@@ -33,8 +33,8 @@ const FILES = [
 ];
 
 const TARGET = 36;
-const ROW_CONTENT_MIN = 50;
-const COL_MIN_WIDTH = 25;
+let ROW_CONTENT_MIN = 50;
+let COL_MIN_WIDTH = 25;
 const BG_CHROMA = 22;
 const BG_LUM_MIN = 175;
 const BG_LUM_MAX = 250;
@@ -50,17 +50,20 @@ function pixelMetrics(r, g, b) {
   return { chroma: mx - mn, lum: (r + g + b) / 3 };
 }
 
-/** 체커보드 회색 배경 */
-function isCheckerBackground(r, g, b) {
+/** 검정 누끼 또는 체커보드 회색 배경 */
+function isKeyBackground(r, g, b) {
   const { chroma, lum } = pixelMetrics(r, g, b);
+  if (lum <= 24) return true;
+  if (lum <= 40 && chroma < 14) return true;
   return chroma < BG_CHROMA && lum > BG_LUM_MIN && lum < BG_LUM_MAX;
 }
 
-/** 누끼 잔여(하얀·연회색 얼룩) — 순백 이모지 본체(a≈255·채도 있음)는 유지 */
+/** 누끼 잔여(하얀·연회색·검은 테두리) */
 function isFringePixel(r, g, b, a) {
   if (a < 8) return true;
   const { chroma, lum } = pixelMetrics(r, g, b);
-  if (isCheckerBackground(r, g, b)) return true;
+  if (isKeyBackground(r, g, b)) return true;
+  if (lum <= 38 && chroma < 18 && a < 248) return true;
   if (a < 252 && lum > 228 && chroma < 32) return true;
   if (a < 200 && lum > 210 && chroma < 28) return true;
   return false;
@@ -108,14 +111,13 @@ function applyAlphaCleanup(buf, w, h, channels) {
 
 let { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 let { width, height, channels } = info;
+ROW_CONTENT_MIN = Math.max(24, Math.round(width * 0.08));
+COL_MIN_WIDTH = Math.max(10, Math.round(width / 45));
 
-/** 스프라이트 전체: 체커만 제거 (칸 구분 유지) */
+/** 스프라이트 전체: 배경 키잉 */
 if (channels >= 4) {
   for (let i = 0; i < data.length; i += channels) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    if (isCheckerBackground(r, g, b)) data[i + 3] = 0;
+    if (isKeyBackground(data[i], data[i + 1], data[i + 2])) data[i + 3] = 0;
   }
 }
 const keyedPng = await sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
@@ -217,7 +219,11 @@ for (const band of rowBands) {
   }
 }
 
-boxes.sort((a, b) => a.top - b.top || a.left - b.left);
+boxes.sort((a, b) => {
+  const rowA = a.top + a.height / 2 < height / 2 ? 0 : 1;
+  const rowB = b.top + b.height / 2 < height / 2 ? 0 : 1;
+  return rowA - rowB || a.left - b.left;
+});
 
 if (boxes.length !== FILES.length) {
   console.error(`expected ${FILES.length} icons, found ${boxes.length}`);
