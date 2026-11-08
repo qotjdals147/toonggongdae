@@ -151,13 +151,11 @@
     4: [{ key: '2+2', label: '2+2 양식' }],
     5: [
       { key: '3+2', label: '3+2 양식' },
-      // 임시 비활성 — 복구 시 아래 주석 해제 (layoutDistribution '1+2+2' 도 유지됨)
-      // { key: '1+2+2', label: '1+2+2 양식' },
+      { key: '1+2+2', label: '1+2+2 양식' },
     ],
     6: [
       { key: '3+3', label: '3+3 양식' },
-      // 임시 비활성 — 복구 시 아래 주석 해제 (layoutDistribution '2+2+2' 도 유지됨)
-      // { key: '2+2+2', label: '2+2+2 양식' },
+      { key: '1+3+2', label: '1+3+2 양식' },
     ],
   };
 
@@ -170,7 +168,8 @@
     '3+2': [0, 3, 2],
     '1+2+2': [1, 2, 2],
     '3+3': [0, 3, 3],
-    '2+2+2': [2, 2, 2]
+    '1+3+2': [1, 3, 2],
+    '2+2+2': [2, 2, 2],
   };
 
   /* --- DOM refs --- */
@@ -430,7 +429,7 @@
   }
 
   function updateExtraFieldVisibility() {
-    // Hide extra info for layouts with slots on header line (1+2+2, 2+2+2)
+    // Hide extra info for layouts with slots on header line (1+2+2, 1+3+2, 2+2+2)
     var extraField = extraInput ? extraInput.closest('.dr-field') : null;
     if (!extraField) return;
     var dist = layoutDistribution[rs.layoutFormat];
@@ -744,7 +743,7 @@
     var slotTexts = rs.slots.map(buildSlotText);
     var slotIdx = 0;
 
-    // Line 1: Header + possibly some slots (for 2+2+2 and 1+2+2)
+    // Line 1: Header + possibly some slots (1+2+2, 1+3+2, 2+2+2 …)
     var headerSlotsCount = dist[0]; // slots on header line
     var header = '';
     if (emoji) {
