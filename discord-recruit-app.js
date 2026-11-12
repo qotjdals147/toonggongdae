@@ -37,6 +37,9 @@
   };
 
   const POSITION_CUSTOM_VALUE = '직접입력';
+  const POSITION_DEFAULT = '설정X';
+  const PRESET_STORAGE_KEY = 'discord_recruit_presets_v1';
+  const PRESET_MAX = 40;
   const POSITION_GROUPS = [
     { label: '경심', options: ['프리', '힐케어', '경심', '매미심', '비숍', '띱숍', '배달심', '메용20숍'] },
     { label: '좌우자리', options: ['좌', '좌1', '좌2', '좌3', '좌4', '우', '우1', '우2', '우3', '우4'] },
@@ -60,6 +63,21 @@
       <div class="dr-grid">
         <div class="dr-panel">
           <div class="dr-panel-title">구인 정보</div>
+          <div class="dr-preset-bar">
+            <div class="dr-preset-label">사냥터 프리셋 <span class="dr-hint">(이 기기 브라우저에만 저장)</span></div>
+            <div class="dr-preset-row">
+              <select id="recruit-preset-pick" class="dr-input dr-preset-pick" aria-label="저장된 프리셋">
+                <option value="">— 불러올 프리셋 —</option>
+              </select>
+              <button type="button" class="btn-light btn-sm" id="recruit-preset-load">불러오기</button>
+              <button type="button" class="btn-light btn-sm" id="recruit-preset-delete">삭제</button>
+            </div>
+            <div class="dr-preset-row">
+              <input type="text" id="recruit-preset-name" class="dr-input" placeholder="저장 이름 (예: 블와둥 고정자리)" maxlength="48" autocomplete="off">
+              <button type="button" class="btn-settle btn-sm" id="recruit-preset-save">현재 설정 저장</button>
+            </div>
+            <p class="dr-preset-msg" id="recruit-preset-msg" hidden></p>
+          </div>
           <div class="dr-field">
             <label>파티 인원수</label>
             <div class="party-size-selector" id="party-size-selector">
@@ -371,60 +389,74 @@
     });
   }
 
+  function mountLayoutButtonHandlers() {
+    if (!layoutSelector) return;
+    layoutSelector.querySelectorAll('.layout-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var newLayout = this.getAttribute('data-layout');
+        layoutSelector.querySelectorAll('.layout-btn').forEach(function(b) {
+          b.classList.remove('active');
+        });
+        this.classList.add('active');
+        var oldLayout = rs.layoutFormat;
+        rs.layoutFormat = newLayout;
+        if (!oldLayout) {
+          autoCreateSlots();
+        } else {
+          updateExtraFieldVisibility();
+          renderSlots();
+          updatePreview();
+        }
+      });
+    });
+  }
+
+  function paintLayoutButtons() {
+    if (!layoutSelector) return;
+    var options = layoutOptions[rs.partySize] || [];
+    if (options.length <= 1) {
+      layoutSelector.style.display = 'none';
+      layoutSelector.innerHTML = '';
+      return;
+    }
+    layoutSelector.style.display = 'flex';
+    layoutSelector.innerHTML = '';
+    options.forEach(function(opt) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'layout-btn';
+      btn.setAttribute('data-layout', opt.key);
+      btn.textContent = opt.label;
+      if (rs.layoutFormat === opt.key) btn.classList.add('active');
+      layoutSelector.appendChild(btn);
+    });
+    mountLayoutButtonHandlers();
+  }
+
   function updateLayoutButtons() {
     if (!layoutSelector) return;
     var options = layoutOptions[rs.partySize] || [];
 
     if (options.length <= 1) {
-      // Auto-select the only option (3인, 4인)
       layoutSelector.style.display = 'none';
       layoutSelector.innerHTML = '';
       if (options.length === 1) {
-        rs.layoutFormat = options[0].key;
-        autoCreateSlots();
+        if (!rs.layoutFormat) rs.layoutFormat = options[0].key;
+        if (rs.slots.length === 0) autoCreateSlots();
       }
+      return;
+    }
+
+    if (!rs.layoutFormat) {
+      rs.layoutFormat = options[0].key;
+    }
+    paintLayoutButtons();
+    if (rs.slots.length === 0) {
+      autoCreateSlots();
     } else {
-      // Show layout buttons (5인, 6인)
-      layoutSelector.style.display = 'flex';
-      layoutSelector.innerHTML = '';
-      options.forEach(function(opt) {
-        var btn = document.createElement('button');
-        btn.className = 'layout-btn';
-        btn.setAttribute('data-layout', opt.key);
-        btn.textContent = opt.label;
-        btn.addEventListener('click', function() {
-          var newLayout = this.getAttribute('data-layout');
-
-          // Remove active from all layout btns
-          layoutSelector.querySelectorAll('.layout-btn').forEach(function(b) {
-            b.classList.remove('active');
-          });
-          this.classList.add('active');
-
-          // If switching between layouts within same party size, preserve data
-          var oldLayout = rs.layoutFormat;
-          rs.layoutFormat = newLayout;
-
-          if (!oldLayout) {
-            // First time selecting layout - create slots
-            autoCreateSlots();
-          } else {
-            updateExtraFieldVisibility();
-          }
-          // If switching layouts within same size, just re-render (data preserved)
-          renderSlots();
-          updatePreview();
-        });
-        layoutSelector.appendChild(btn);
-      });
-
-      // Auto-select first layout
-      var firstBtn = layoutSelector.querySelector('.layout-btn');
-      if (firstBtn) {
-        firstBtn.classList.add('active');
-        rs.layoutFormat = options[0].key;
-        autoCreateSlots();
-      }
+      updateExtraFieldVisibility();
+      renderSlots();
+      updatePreview();
     }
   }
 
@@ -455,7 +487,7 @@
         var id = createSlotId();
         rs.slots.push({
           id: id,
-          position: '\uc88c',
+          position: POSITION_DEFAULT,
           positionCustom: '',
           name: '',
           condition: '',
@@ -517,7 +549,7 @@
   }
 
   function buildPositionSelect(slot) {
-    var selectedVal = slot.position || '좌';
+    var selectedVal = slot.position || POSITION_DEFAULT;
     var html = '';
     POSITION_GROUPS.forEach(function(group) {
       html += '<optgroup label="' + escapeHtml(group.label) + '">';
@@ -830,6 +862,202 @@
     });
   }
 
+  var presetPick = q('recruit-preset-pick');
+  var presetNameInput = q('recruit-preset-name');
+  var presetMsg = q('recruit-preset-msg');
+
+  function readPresetList() {
+    try {
+      var raw = localStorage.getItem(PRESET_STORAGE_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writePresetList(list) {
+    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(list));
+  }
+
+  function showPresetMsg(text, isError) {
+    if (!presetMsg) return;
+    if (!text) {
+      presetMsg.hidden = true;
+      presetMsg.textContent = '';
+      presetMsg.classList.remove('dr-preset-msg--err');
+      return;
+    }
+    presetMsg.hidden = false;
+    presetMsg.textContent = text;
+    presetMsg.classList.toggle('dr-preset-msg--err', !!isError);
+  }
+
+  function renderPresetPickList() {
+    if (!presetPick) return;
+    var list = readPresetList();
+    list.sort(function(a, b) {
+      return (b.savedAt || 0) - (a.savedAt || 0);
+    });
+    var selected = presetPick.value;
+    presetPick.innerHTML = '<option value="">— 불러올 프리셋 —</option>';
+    list.forEach(function(item) {
+      var opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.name;
+      presetPick.appendChild(opt);
+    });
+    if (selected && list.some(function(p) { return p.id === selected; })) {
+      presetPick.value = selected;
+    }
+  }
+
+  function snapshotRecruitState() {
+    return {
+      partySize: rs.partySize,
+      layoutFormat: rs.layoutFormat,
+      selectedEmoji: rs.selectedEmoji,
+      selectedDiscordImg: rs.selectedDiscordImg,
+      spot: rs.spot,
+      extra: rs.extra,
+      slots: rs.slots.map(function(s) {
+        return {
+          position: s.position,
+          positionCustom: s.positionCustom,
+          name: s.name,
+          condition: s.condition,
+          feeType: s.feeType,
+          status: s.status,
+        };
+      }),
+    };
+  }
+
+  function applyRecruitSnapshot(data) {
+    if (!data) return false;
+    rs.partySize = parseInt(data.partySize, 10) || 0;
+    rs.layoutFormat = data.layoutFormat || '';
+    rs.selectedEmoji = data.selectedEmoji || '';
+    rs.selectedDiscordImg = data.selectedDiscordImg || '';
+    rs.spot = data.spot || '';
+    rs.extra = data.extra || '';
+    rs.slots = [];
+    rs.slotIdCounter = 0;
+    (data.slots || []).forEach(function(s) {
+      rs.slots.push({
+        id: createSlotId(),
+        position: s.position || POSITION_DEFAULT,
+        positionCustom: s.positionCustom || '',
+        name: s.name || '',
+        condition: s.condition || '',
+        feeType: s.feeType || 'bring',
+        status: s.status || 'open',
+      });
+    });
+    syncFormFromState();
+    return true;
+  }
+
+  function saveCurrentPreset() {
+    var name = (presetNameInput && presetNameInput.value || '').trim();
+    if (!name) {
+      showPresetMsg('저장할 이름을 입력해 주세요.', true);
+      return;
+    }
+    if (!rs.partySize || !rs.layoutFormat) {
+      showPresetMsg('파티 인원·양식을 선택한 뒤 저장할 수 있어요.', true);
+      return;
+    }
+    var list = readPresetList();
+    var data = snapshotRecruitState();
+    var existing = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].name === name) {
+        existing = i;
+        break;
+      }
+    }
+    var entry = {
+      id: existing >= 0 ? list[existing].id : ('pr_' + Date.now()),
+      name: name,
+      savedAt: Date.now(),
+      data: data,
+    };
+    if (existing >= 0) {
+      list[existing] = entry;
+    } else {
+      if (list.length >= PRESET_MAX) {
+        list.sort(function(a, b) { return (a.savedAt || 0) - (b.savedAt || 0); });
+        list.shift();
+      }
+      list.push(entry);
+    }
+    writePresetList(list);
+    renderPresetPickList();
+    if (presetPick) presetPick.value = entry.id;
+    showPresetMsg('「' + name + '」 저장됨');
+    setTimeout(function() { showPresetMsg(''); }, 2200);
+  }
+
+  var presetSaveBtn = q('recruit-preset-save');
+  var presetLoadBtn = q('recruit-preset-load');
+  var presetDeleteBtn = q('recruit-preset-delete');
+  if (presetSaveBtn) presetSaveBtn.addEventListener('click', saveCurrentPreset);
+  if (presetLoadBtn) {
+    presetLoadBtn.addEventListener('click', function() {
+      var id = presetPick ? presetPick.value : '';
+      if (!id) {
+        showPresetMsg('불러올 프리셋을 선택해 주세요.', true);
+        return;
+      }
+      var list = readPresetList();
+      var found = null;
+      for (var j = 0; j < list.length; j++) {
+        if (list[j].id === id) {
+          found = list[j];
+          break;
+        }
+      }
+      if (!found) {
+        showPresetMsg('프리셋을 찾지 못했어요. 목록을 새로고침합니다.', true);
+        renderPresetPickList();
+        return;
+      }
+      applyRecruitSnapshot(found.data);
+      if (presetNameInput) presetNameInput.value = found.name;
+      showPresetMsg('「' + found.name + '」 불러옴');
+      setTimeout(function() { showPresetMsg(''); }, 2200);
+    });
+  }
+  if (presetDeleteBtn) {
+    presetDeleteBtn.addEventListener('click', function() {
+      var id = presetPick ? presetPick.value : '';
+      if (!id) {
+        showPresetMsg('삭제할 프리셋을 선택해 주세요.', true);
+        return;
+      }
+      var list = readPresetList();
+      var target = null;
+      for (var k = 0; k < list.length; k++) {
+        if (list[k].id === id) {
+          target = list[k];
+          break;
+        }
+      }
+      if (!target) {
+        renderPresetPickList();
+        return;
+      }
+      if (!window.confirm('「' + target.name + '」 프리셋을 삭제할까요?')) return;
+      list = list.filter(function(p) { return p.id !== id; });
+      writePresetList(list);
+      renderPresetPickList();
+      showPresetMsg('삭제됨');
+      setTimeout(function() { showPresetMsg(''); }, 1600);
+    });
+  }
+
   function syncFormFromState() {
     if (spotInput) spotInput.value = rs.spot;
     if (extraInput) extraInput.value = rs.extra;
@@ -841,6 +1069,8 @@
     if (rs.partySize > 0) {
       setInputsDisabled(false);
       if (rs.layoutFormat) {
+        paintLayoutButtons();
+        updateExtraFieldVisibility();
         renderSlots();
       } else {
         updateLayoutButtons();
@@ -869,6 +1099,7 @@
   }
 
   syncFormFromState();
+  renderPresetPickList();
 
   }
 
