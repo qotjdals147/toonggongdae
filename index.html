@@ -4932,6 +4932,7 @@
     entryPriceBasis: 'listing',
     hotIssues: [],
     monsterKillCounts: { '0': {}, '1': {}, '2': {} },
+    discordRecruitPresets: [],
   };
   let hotIssueDraftImages = [];
   let editingHotIssueId = null;
@@ -6709,6 +6710,12 @@
     if (Object.prototype.hasOwnProperty.call(parsed, 'bossCooldown') && window.BossCooldownApp) {
       next.bossCooldown = BossCooldownApp.normalizeBossCooldown(parsed.bossCooldown);
     }
+    if (Object.prototype.hasOwnProperty.call(parsed, 'discordRecruitPresets')) {
+      const normalizePresets = window.DiscordRecruitApp && DiscordRecruitApp.normalizePresetList;
+      next.discordRecruitPresets = normalizePresets
+        ? DiscordRecruitApp.normalizePresetList(parsed.discordRecruitPresets)
+        : (Array.isArray(parsed.discordRecruitPresets) ? parsed.discordRecruitPresets : []);
+    }
     const priceMigrated = migrateEntryPriceBasisToListing(next, parsed);
     const needsRosterResave = ROOM_ID === 'tongtongi' && !parsed.partyRoster;
     const needsResave = (!!(parsed.entries || parsed.history?.length) && !parsed.cycles?.length) || priceMigrated || needsRosterResave;
@@ -6721,6 +6728,7 @@
     const prevMonsterKillCounts = state.monsterKillCounts;
     const prevBossCooldown = state.bossCooldown;
     const prevPartyTimer = state.partyTimer;
+    const prevDiscordRecruitPresets = state.discordRecruitPresets;
     state = next;
     if (state.monsterKillCounts == null) {
       state.monsterKillCounts = normalizeMonsterKillCounts(prevMonsterKillCounts);
@@ -6755,6 +6763,9 @@
     } else if (state.bossCooldown == null && prevBossCooldown != null) {
       state.bossCooldown = prevBossCooldown;
     }
+    if (!Array.isArray(state.discordRecruitPresets)) {
+      state.discordRecruitPresets = Array.isArray(prevDiscordRecruitPresets) ? prevDiscordRecruitPresets : [];
+    }
     const gemNamesMigrated = migrateLegacyGemNamesInState();
     const makerRowsConsolidated = migrateConsolidateMakerRefinesInState();
     if (!state.warehouseChars) state.warehouseChars = [];
@@ -6781,6 +6792,7 @@
       PartyTimerApp.onRemoteStateApplied();
     }
     if (window.BossCooldownApp) BossCooldownApp.renderIfOpen();
+    if (window.DiscordRecruitApp) DiscordRecruitApp.refreshPresetList();
     render();
     if (!$('warehouseModal').hidden) renderWarehouseList();
     if (!$('hotIssueModal').hidden) renderHotIssueFeed();
@@ -6907,6 +6919,16 @@
     return false;
   }
 
+  function mergeDiscordRecruitPresetsFromRemoteData(data) {
+    if (!data || typeof data !== 'object') return;
+    if (!Object.prototype.hasOwnProperty.call(data, 'discordRecruitPresets')) return;
+    const normalizePresets = window.DiscordRecruitApp && DiscordRecruitApp.normalizePresetList;
+    state.discordRecruitPresets = normalizePresets
+      ? DiscordRecruitApp.normalizePresetList(data.discordRecruitPresets)
+      : (Array.isArray(data.discordRecruitPresets) ? data.discordRecruitPresets : []);
+    if (window.DiscordRecruitApp) DiscordRecruitApp.refreshPresetList();
+  }
+
   async function saveStateToBackend() {
     suppressRemoteUntil = Date.now() + 1500;
     if (storageMode === 'cloud' && supabaseClient) {
@@ -6936,8 +6958,15 @@
         filter: 'room_id=eq.' + ROOM_ID
       }, (payload) => {
         if (Date.now() < suppressRemoteUntil) return;
-        if (modalBlocksRemote()) return;
         const row = payload.new;
+        if (modalBlocksRemote()) {
+          if ($('discordRecruitModal') && !$('discordRecruitModal').hidden && row && row.data) {
+            try {
+              mergeDiscordRecruitPresetsFromRemoteData(row.data);
+            } catch (e) { /* ignore */ }
+          }
+          return;
+        }
         if (!row || !row.data) return;
         try {
           const { next, needsResave } = parseStoredState(row.data);
@@ -12187,7 +12216,15 @@
     });
   }
   if (window.DiscordRecruitApp) {
-    DiscordRecruitApp.init({ $ });
+    DiscordRecruitApp.init({
+      $,
+      getPresets: () => (Array.isArray(state.discordRecruitPresets) ? state.discordRecruitPresets : []),
+      setPresets: (list) => {
+        state.discordRecruitPresets = DiscordRecruitApp.normalizePresetList(list);
+        scheduleSave();
+      },
+      flushSave: flushSaveState,
+    });
     const discordRecruitBtn = $('discordRecruitBtn');
     const discordRecruitModal = $('discordRecruitModal');
     const discordRecruitCloseBtn = $('discordRecruitCloseBtn');

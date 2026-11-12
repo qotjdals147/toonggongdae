@@ -38,8 +38,14 @@
 
   const POSITION_CUSTOM_VALUE = '직접입력';
   const POSITION_DEFAULT = '설정X';
-  const PRESET_STORAGE_KEY = 'discord_recruit_presets_v1';
+  /** 예전 로컬 전용 키 — 1회 클라우드로 옮긴 뒤 제거 */
+  const PRESET_LEGACY_LOCAL_KEY = 'discord_recruit_presets_v1';
   const PRESET_MAX = 40;
+
+  let presetGetList = null;
+  let presetSetList = null;
+  let presetFlushSave = null;
+  let presetListDirty = false;
   const POSITION_GROUPS = [
     { label: '경심', options: ['프리', '힐케어', '경심', '매미심', '비숍', '띱숍', '배달심', '메용20숍'] },
     { label: '좌우자리', options: ['좌', '좌1', '좌2', '좌3', '좌4', '우', '우1', '우2', '우3', '우4'] },
@@ -64,7 +70,7 @@
         <div class="dr-panel">
           <div class="dr-panel-title">구인 정보</div>
           <div class="dr-preset-bar">
-            <div class="dr-preset-label">사냥터 프리셋 <span class="dr-hint">(이 기기 브라우저에만 저장)</span></div>
+            <div class="dr-preset-label">사냥터 프리셋 <span class="dr-hint">(공대 방 클라우드 · 같은 room 링크면 공유)</span></div>
             <div class="dr-preset-row">
               <select id="recruit-preset-pick" class="dr-input dr-preset-pick" aria-label="저장된 프리셋">
                 <option value="">— 불러올 프리셋 —</option>
@@ -866,19 +872,51 @@
   var presetNameInput = q('recruit-preset-name');
   var presetMsg = q('recruit-preset-msg');
 
-  function readPresetList() {
-    try {
-      var raw = localStorage.getItem(PRESET_STORAGE_KEY);
-      if (!raw) return [];
-      var parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      return [];
+  function normalizePresetList(list) {
+    if (!Array.isArray(list)) return [];
+    var out = [];
+    for (var i = 0; i < list.length && out.length < PRESET_MAX; i++) {
+      var item = list[i];
+      if (!item || typeof item !== 'object') continue;
+      var name = String(item.name || '').trim();
+      if (!name) continue;
+      var data = item.data;
+      if (!data || typeof data !== 'object') continue;
+      out.push({
+        id: String(item.id || ('pr_' + Date.now() + '_' + i)),
+        name: name,
+        savedAt: typeof item.savedAt === 'number' ? item.savedAt : Date.now(),
+        data: data,
+      });
     }
+    return out;
+  }
+
+  function readPresetList() {
+    if (presetGetList) {
+      return normalizePresetList(presetGetList());
+    }
+    return [];
   }
 
   function writePresetList(list) {
-    localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(list));
+    var normalized = normalizePresetList(list);
+    if (presetSetList) presetSetList(normalized);
+    if (presetFlushSave) presetFlushSave();
+  }
+
+  function tryMigrateLegacyLocalPresets() {
+    if (!presetGetList || !presetSetList) return;
+    if (readPresetList().length > 0) return;
+    try {
+      var raw = localStorage.getItem(PRESET_LEGACY_LOCAL_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) return;
+      presetSetList(normalizePresetList(parsed));
+      localStorage.removeItem(PRESET_LEGACY_LOCAL_KEY);
+      if (presetFlushSave) presetFlushSave();
+    } catch (e) { /* ignore */ }
   }
 
   function showPresetMsg(text, isError) {
@@ -895,6 +933,7 @@
   }
 
   function renderPresetPickList() {
+    presetListDirty = false;
     if (!presetPick) return;
     var list = readPresetList();
     list.sort(function(a, b) {
@@ -1105,6 +1144,15 @@
 
   function init(opts) {
     if (opts && opts.$) $ = opts.$;
+    if (opts && opts.getPresets) presetGetList = opts.getPresets;
+    if (opts && opts.setPresets) presetSetList = opts.setPresets;
+    if (opts && opts.flushSave) presetFlushSave = opts.flushSave;
+    tryMigrateLegacyLocalPresets();
+  }
+
+  function refreshPresetList() {
+    presetListDirty = true;
+    if (root && presetPick) renderPresetPickList();
   }
 
   function openModal() {
@@ -1115,6 +1163,7 @@
     }
     try {
       mountTemplate();
+      if (presetListDirty) renderPresetPickList();
     } catch (err) {
       console.error('[DiscordRecruitApp] mount failed', err);
       const el = $('discordRecruitApp');
@@ -1129,5 +1178,11 @@
     if (modal) modal.hidden = true;
   }
 
-  global.DiscordRecruitApp = { init, openModal, closeModal };
+  global.DiscordRecruitApp = {
+    init,
+    openModal,
+    closeModal,
+    refreshPresetList,
+    normalizePresetList,
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

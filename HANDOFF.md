@@ -95,6 +95,7 @@ challengeMonsterCatalog[]  // { id, canonical, aliases[], icon? } · 처치 도�
 monsterKillCounts  // { "0"|"1"|"2" → { [monsterId]: count } } · **처치 기록** 공동 모달 · §3.3 unlock 연동
 partyTimer?  // presets[] · runtime · **soundProfiles[slotId]** { src(dataURL), volume 0–1, fileName } · **`party-timer-app.js`**
 bossCooldown?  // entries{ bossId → [...] } · tombstones{ bossId → [entryId] } (삭제 영구) · **`boss-cooldown-app.js`**
+discordRecruitPresets[]  // 구인글 사냥터 프리셋 · **`discord-recruit-app.js`**
 ```
 
 ### 3.2 회차(`cycle`) 안
@@ -238,9 +239,9 @@ legacySummaryOnly (옛 회차 요약만)
 
 ### 5.4.1 디스코드 파티 구인글 (`discord-recruit-app.js`)
 
-**장부와 분리:** `state` / Supabase **무관** · Realtime만 **`modalBlocksRemote()`**에 `#discordRecruitModal` 등록.
+**장부 연동(프리셋만):** 구인 폼 `rs`는 메모리 전용 · **사냥터 프리셋**은 `state.discordRecruitPresets[]` → `stateForPersistence()` / `parseStoredState` / Realtime · 구인 모달 열림 중에도 프리셋 목록만 원격 merge (`mergeDiscordRecruitPresetsFromRemoteData`).
 
-**기능:** 파티 **3~6인** · 양식 **2+1, 2+2, 3+2, 3+3, 5인 `1+2+2`, 6인 `1+3+2`** (헤더 줄 우측 자리) · `2+2+2`는 코드만 보관 · 유니코드 + 디스코드 `:shortcode:` · 자리 optgroup · 새 자리 기본 위치 **`설정X`** · **사냥터 프리셋** `localStorage` 키 `discord_recruit_presets_v1` (이름 자유·동명 덮어쓰기·최대 40) — 인원·양식·이모지·사냥터·추가정보·자리별 위치/닉/조건/지참·지원·상태 · 미리보기·복사.
+**기능:** 파티 **3~6인** · 양식 **2+1, 2+2, 3+2, 3+3, 5인 `1+2+2`, 6인 `1+3+2`** (헤더 줄 우측 자리) · `2+2+2`는 코드만 보관 · 유니코드 + 디스코드 `:shortcode:` · 자리 optgroup · 새 자리 기본 위치 **`설정X`** · **사냥터 프리셋** 방(room) 클라우드 공유 (이름 자유·동명 덮어쓰기·최대 40) — 인원·양식·이모지·사냥터·추가정보·자리별 위치/닉/조건/지참·지원·상태 · 미리보기·복사.
 
 **디스코드 이모지 추가 절차 (소유자 → 에이전트):**
 1. **숏코드** (`:star:` — 디스코드 채팅에 넣는 문자열)
@@ -248,7 +249,7 @@ legacySummaryOnly (옛 회차 요약만)
 3. `discord-recruit-app.js` **`DISCORD_RECRUIT_EMOJI_CATALOG`** 에 `{ shortcode, img }` 한 줄 추가 (**15종** · `:mage:`는 1개만)
 4. (선택) 원본 `recruit-sprite-row.png` 교체 후 `node scripts/slice-discord-recruit-emojis.mjs` — **2줄(11+5)** · **검정/체커** 키잉 · 줄별 좌→우 정렬 · **36px centre**
 
-**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $ })` · `openModal`(backdrop 먼저 · `mountTemplate` try/catch) / `closeModal` · 내부 DOM 조회는 `q(id)` = `#id` 만 (`q('#셀렉터')` 금지 — `qa` 또는 `querySelector`) · 스타일 `index.html` `#discordRecruitApp` (`--dr-line` · 이모지 타일 44px · 자리표 테두리).
+**진입:** 헤더 **참고** `#discordRecruitBtn` · `DiscordRecruitApp.init({ $, getPresets, setPresets, flushSave })` · `openModal`(backdrop 먼저 · `mountTemplate` try/catch) / `closeModal` · 내부 DOM 조회는 `q(id)` = `#id` 만 (`q('#셀렉터')` 금지 — `qa` 또는 `querySelector`) · 스타일 `index.html` `#discordRecruitApp` (`--dr-line` · 이모지 타일 44px · 자리표 테두리).
 
 **출처:** 소유자 운영 **메랜툴(MERANTOOL)** `app.js` RECRUIT POST GENERATOR 로직 이관.
 
@@ -410,7 +411,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-11-13** — **구인글** 자리 기본 **설정X** · 사냥터 프리셋 저장/불러오기/삭제 (`discord_recruit_presets_v1`)
+- **2026-11-13** — **구인글** 사냥터 프리셋 **클라우드(room) 공유** (`state.discordRecruitPresets`) · Realtime 프리셋만 부분 merge
+- **2026-11-13** — **구인글** 자리 기본 **설정X** · 사냥터 프리셋 저장/불러오기/삭제 (초기: localStorage → 1회 클라우드 이전)
 - **2026-11-09** — **구인글** 자리 드롭다운 경심 **메용20숍** 추가
 - **2026-11-08** — **구인글** 5인 `1+2+2`·6인 `1+3+2` 양식 활성 (헤더 줄 1자리·`layoutDistribution`)
 - **2026-11-08** — **구인글** 디스코드 이모지 — 소유자 **검정 누끼** 스프라이트로 `recruit-sprite-row`·개별 PNG 교체
@@ -708,4 +710,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-13 (구인글 프리셋·기본 설정X)*
+*Last updated: 2026-11-13 (구인글 프리셋 클라우드 공유)*
