@@ -1,0 +1,11 @@
+{
+  "name": "toonggongdae",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "slice-discord-emojis": "node scripts/slice-discord-recruit-emojis.mjs"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.35.5"
+  }
+}

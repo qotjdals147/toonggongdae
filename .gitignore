@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Secrets & local env (never commit values)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials.json
+secrets-backup/
+
+# Secret backup archives (USB/이동용 — Git 제외)
+*_비밀파일백업.zip
+
+# Build / caches
+dist/
+build/
+.cache/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
+
+# One-off patches (repo 정책)
+_patch_*.py

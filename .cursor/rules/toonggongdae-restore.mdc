@@ -1,0 +1,27 @@
+---
+description: PC 교체·신규 세션 — HANDOFF·RESTORE·규칙 필독, 구현 후 push
+alwaysApply: true
+---
+
+# 세션 시작 · 복구
+
+## 시작 (매 세션)
+
+1. **`HANDOFF.md`** 전체 맥락 (특히 §3 연동, §10 최근 이력)
+2. **`RESTORE.md`** — clone·Supabase·배포는 여기 참고
+3. **`.cursor/rules/toonggongdae-workflow.mdc`** · **`toonggongdae-integration.mdc`**
+
+## 질문 vs 구현
+
+`toonggongdae-workflow.mdc` 와 동일 — 질문만이면 답만, 구현 요청 시 §종료 체크.
+
+## 구현 종료 시 (생략 금지)
+
+1. `index.html` ↔ `maple-party-ledger.html` 미러 (해당 시)
+2. **`HANDOFF.md`** §10 + `Last updated`
+3. `git commit` (한국어, why)
+4. **`git push origin main`** — 사용자가 push 금지라고 한 경우만 제외
+
+## 비밀
+
+`.env`·service role·`*_비밀파일백업.zip` 은 **커밋 금지**. `CLOUD_CONFIG` anon 키는 이미 공개 배포 전제.
