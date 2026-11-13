@@ -40,6 +40,7 @@
   const POSITION_DEFAULT = '설정X';
   /** 예전 로컬 전용 키 — 1회 클라우드로 옮긴 뒤 제거 */
   const PRESET_LEGACY_LOCAL_KEY = 'discord_recruit_presets_v1';
+  const PRESET_LOCAL_BACKUP_KEY = 'discord_recruit_presets_v1_backup';
   const PRESET_MAX = 40;
 
   let presetGetList = null;
@@ -79,21 +80,56 @@
   function writePresetList(list) {
     var normalized = normalizePresetList(list);
     if (presetSetList) presetSetList(normalized);
+    mirrorPresetsToLocalBackup(normalized);
     if (presetFlushSave) presetFlushSave();
+  }
+
+  function mirrorPresetsToLocalBackup(list) {
+    try {
+      if (!list || !list.length) return;
+      localStorage.setItem(PRESET_LOCAL_BACKUP_KEY, JSON.stringify(list));
+    } catch (e) { /* quota */ }
+  }
+
+  function readLegacyLocalPresets() {
+    var keys = [PRESET_LEGACY_LOCAL_KEY, PRESET_LOCAL_BACKUP_KEY];
+    for (var ki = 0; ki < keys.length; ki++) {
+      try {
+        var raw = localStorage.getItem(keys[ki]);
+        if (!raw) continue;
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          return { storageKey: keys[ki], items: normalizePresetList(parsed) };
+        }
+      } catch (e) { /* ignore */ }
+    }
+    return null;
+  }
+
+  function mergePresetListsByName(base, incoming) {
+    var map = Object.create(null);
+    var i;
+    for (i = 0; i < base.length; i++) map[base[i].name] = base[i];
+    for (i = 0; i < incoming.length; i++) map[incoming[i].name] = incoming[i];
+    var merged = Object.keys(map).map(function(k) { return map[k]; });
+    merged.sort(function(a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+    return normalizePresetList(merged);
+  }
+
+  /** 브라우저 localStorage 예전/백업 키 → 클라우드 목록에 병합 */
+  function importLegacyLocalPresets() {
+    var legacy = readLegacyLocalPresets();
+    if (!legacy || !legacy.items.length) return { ok: false, added: 0 };
+    var current = readPresetList();
+    var merged = current.length ? mergePresetListsByName(current, legacy.items) : legacy.items.slice();
+    writePresetList(merged);
+    return { ok: true, added: legacy.items.length, total: merged.length, from: legacy.storageKey };
   }
 
   function tryMigrateLegacyLocalPresets() {
     if (!presetGetList || !presetSetList) return;
     if (readPresetList().length > 0) return;
-    try {
-      var raw = localStorage.getItem(PRESET_LEGACY_LOCAL_KEY);
-      if (!raw) return;
-      var parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || !parsed.length) return;
-      presetSetList(normalizePresetList(parsed));
-      localStorage.removeItem(PRESET_LEGACY_LOCAL_KEY);
-      if (presetFlushSave) presetFlushSave();
-    } catch (e) { /* ignore */ }
+    importLegacyLocalPresets();
   }
 
   const POSITION_GROUPS = [
@@ -131,6 +167,10 @@
             <div class="dr-preset-row">
               <input type="text" id="recruit-preset-name" class="dr-input" placeholder="저장 이름 (예: 블와둥 고정자리)" maxlength="48" autocomplete="off">
               <button type="button" class="btn-settle btn-sm" id="recruit-preset-save">현재 설정 저장</button>
+            </div>
+            <div class="dr-preset-row">
+              <button type="button" class="btn-light btn-sm" id="recruit-preset-recover">이 브라우저 백업에서 복구</button>
+              <span class="dr-hint">예전 기기 저장·<code>discord_recruit_presets_v1</code> 백업</span>
             </div>
             <p class="dr-preset-msg" id="recruit-preset-msg" hidden></p>
           </div>
@@ -1046,7 +1086,20 @@
   var presetSaveBtn = q('recruit-preset-save');
   var presetLoadBtn = q('recruit-preset-load');
   var presetDeleteBtn = q('recruit-preset-delete');
+  var presetRecoverBtn = q('recruit-preset-recover');
   if (presetSaveBtn) presetSaveBtn.addEventListener('click', saveCurrentPreset);
+  if (presetRecoverBtn) {
+    presetRecoverBtn.addEventListener('click', function() {
+      var res = importLegacyLocalPresets();
+      if (!res.ok) {
+        showPresetMsg('이 브라우저에 남은 백업이 없어요. (다른 PC·시크릿 창이면 복구 불가)', true);
+        return;
+      }
+      renderPresetPickList();
+      showPresetMsg('백업에서 ' + res.added + '개 병합됨 (총 ' + res.total + '개)');
+      setTimeout(function() { showPresetMsg(''); }, 3200);
+    });
+  }
   if (presetLoadBtn) {
     presetLoadBtn.addEventListener('click', function() {
       var id = presetPick ? presetPick.value : '';
@@ -1142,6 +1195,13 @@
   }
 
   syncFormFromState();
+  if (readPresetList().length === 0) {
+    var autoImp = importLegacyLocalPresets();
+    if (autoImp.ok && presetMsg) {
+      showPresetMsg('브라우저 백업에서 프리셋 ' + autoImp.added + '개를 불러왔어요');
+      setTimeout(function() { showPresetMsg(''); }, 2800);
+    }
+  }
   renderPresetPickList();
   paintPresetPickList = renderPresetPickList;
 
@@ -1195,5 +1255,6 @@
     closeModal,
     refreshPresetList,
     normalizePresetList,
+    importLegacyLocalPresets,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
