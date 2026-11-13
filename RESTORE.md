@@ -19,7 +19,9 @@ git clone https://github.com/qotjdals147/toonggongdae.git
 cd toonggongdae
 ```
 
-비공개(private) repo면 GitHub 로그인·`gh auth login` 또는 PAT로 인증합니다.
+**Pages 배포:** GitHub **Free** 는 **public** 저장소에서만 Pages 무료입니다. repo를 **private** 로 두면 사이트가 **404** 됩니다 (장부 데이터는 Supabase·로그인으로 보호).
+
+private clone이 필요하면 `gh auth login` 후 clone합니다.
 
 ## 3. Cursor에서 열기
 

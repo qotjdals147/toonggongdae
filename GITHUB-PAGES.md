@@ -11,7 +11,7 @@
 
 1. [github.com/new](https://github.com/new)
 2. Repository name: `toonggongdae` (원하는 이름)
-3. **Public** (Pages 무료는 Public 저장소 기준)
+3. **Public** (**필수** — Free 플랜은 **private repo 에 Pages 불가**. private 로 바꾸면 `github.io/...` **404**)
 4. README / .gitignore / license **체크 안 함** → **Create repository**
 
 ---

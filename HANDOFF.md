@@ -11,7 +11,7 @@
 
 | 항목 | 값 |
 |------|-----|
-| Repo | `https://github.com/qotjdals147/toonggongdae` (**private** 권장 · origin 이미 연결됨) |
+| Repo | `https://github.com/qotjdals147/toonggongdae` (**public** — Free 플랜 Pages 필수 · origin 연결됨) |
 | 로컬 | `C:\Users\qotjd\Downloads\퉁공대` |
 | **PC 교체** | [RESTORE.md](./RESTORE.md) · `.env.example` (키 이름만) · 비밀은 `퉁공대_비밀파일백업.zip` USB |
 | 배포 | GitHub Pages — [GITHUB-PAGES.md](./GITHUB-PAGES.md) |
@@ -412,6 +412,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-13** — fix: **Pages 404** — repo **private** 전환 시 Free 플랜 Pages 비활성 → **public** 복구·재배포
 - **2026-11-13** — **복구 키트** — `.gitignore` · `RESTORE.md` · `.env.example` · `package.json`(슬라이스 스크립트) · 규칙 `toonggongdae-restore.mdc` · 비밀 ZIP
 - **2026-11-13** — **구인글** 사냥터 프리셋 **클라우드(room) 공유** (`state.discordRecruitPresets`) · Realtime 프리셋만 부분 merge
 - **2026-11-13** — **구인글** 자리 기본 **설정X** · 사냥터 프리셋 저장/불러오기/삭제 (초기: localStorage → 1회 클라우드 이전)
@@ -712,4 +713,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-13 (RESTORE·gitignore·비공개 repo)*
+*Last updated: 2026-11-13 (Pages 404 → public 복구)*
