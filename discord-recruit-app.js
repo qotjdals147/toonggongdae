@@ -46,6 +46,8 @@
   let presetSetList = null;
   let presetFlushSave = null;
   let presetListDirty = false;
+  /** bindRecruitUi 안의 renderPresetPickList — 모달 밖에서 호출할 때만 사용 */
+  let paintPresetPickList = null;
   const POSITION_GROUPS = [
     { label: '경심', options: ['프리', '힐케어', '경심', '매미심', '비숍', '띱숍', '배달심', '메용20숍'] },
     { label: '좌우자리', options: ['좌', '좌1', '좌2', '좌3', '좌4', '우', '우1', '우2', '우3', '우4'] },
@@ -169,6 +171,7 @@
   }
 
   function bindRecruitUi() {
+  paintPresetPickList = null;
   // Layout options per party size
   var layoutOptions = {
     3: [{ key: '2+1', label: '2+1 양식' }],
@@ -1139,6 +1142,7 @@
 
   syncFormFromState();
   renderPresetPickList();
+  paintPresetPickList = renderPresetPickList;
 
   }
 
@@ -1152,7 +1156,10 @@
 
   function refreshPresetList() {
     presetListDirty = true;
-    if (root && presetPick) renderPresetPickList();
+    if (root && paintPresetPickList) {
+      paintPresetPickList();
+      presetListDirty = false;
+    }
   }
 
   function openModal() {
@@ -1163,7 +1170,10 @@
     }
     try {
       mountTemplate();
-      if (presetListDirty) renderPresetPickList();
+      if (presetListDirty && paintPresetPickList) {
+        paintPresetPickList();
+        presetListDirty = false;
+      }
     } catch (err) {
       console.error('[DiscordRecruitApp] mount failed', err);
       const el = $('discordRecruitApp');
