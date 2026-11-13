@@ -412,6 +412,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-13** — fix: **구인글** 전체 미동작 — `normalizePresetList`가 `bindRecruitUi` 내부만 정의·export 시 ReferenceError로 `DiscordRecruitApp` 로드 실패
 - **2026-11-13** — fix: **구인글** 모달 — `refreshPresetList`/`openModal`이 `bindRecruitUi` 스코프 밖에서 `presetPick` 참조 ReferenceError
 - **2026-11-13** — fix: **Pages 404** — repo **private** 전환 시 Free 플랜 Pages 비활성 → **public** 복구·재배포
 - **2026-11-13** — **복구 키트** — `.gitignore` · `RESTORE.md` · `.env.example` · `package.json`(슬라이스 스크립트) · 규칙 `toonggongdae-restore.mdc` · 비밀 ZIP
@@ -714,4 +715,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-13 (구인글 모달 preset 스코프 fix)*
+*Last updated: 2026-11-13 (구인글 normalizePresetList export fix)*

@@ -48,6 +48,54 @@
   let presetListDirty = false;
   /** bindRecruitUi 안의 renderPresetPickList — 모달 밖에서 호출할 때만 사용 */
   let paintPresetPickList = null;
+
+  function normalizePresetList(list) {
+    if (!Array.isArray(list)) return [];
+    var out = [];
+    for (var i = 0; i < list.length && out.length < PRESET_MAX; i++) {
+      var item = list[i];
+      if (!item || typeof item !== 'object') continue;
+      var name = String(item.name || '').trim();
+      if (!name) continue;
+      var data = item.data;
+      if (!data || typeof data !== 'object') continue;
+      out.push({
+        id: String(item.id || ('pr_' + Date.now() + '_' + i)),
+        name: name,
+        savedAt: typeof item.savedAt === 'number' ? item.savedAt : Date.now(),
+        data: data,
+      });
+    }
+    return out;
+  }
+
+  function readPresetList() {
+    if (presetGetList) {
+      return normalizePresetList(presetGetList());
+    }
+    return [];
+  }
+
+  function writePresetList(list) {
+    var normalized = normalizePresetList(list);
+    if (presetSetList) presetSetList(normalized);
+    if (presetFlushSave) presetFlushSave();
+  }
+
+  function tryMigrateLegacyLocalPresets() {
+    if (!presetGetList || !presetSetList) return;
+    if (readPresetList().length > 0) return;
+    try {
+      var raw = localStorage.getItem(PRESET_LEGACY_LOCAL_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) return;
+      presetSetList(normalizePresetList(parsed));
+      localStorage.removeItem(PRESET_LEGACY_LOCAL_KEY);
+      if (presetFlushSave) presetFlushSave();
+    } catch (e) { /* ignore */ }
+  }
+
   const POSITION_GROUPS = [
     { label: '경심', options: ['프리', '힐케어', '경심', '매미심', '비숍', '띱숍', '배달심', '메용20숍'] },
     { label: '좌우자리', options: ['좌', '좌1', '좌2', '좌3', '좌4', '우', '우1', '우2', '우3', '우4'] },
@@ -874,53 +922,6 @@
   var presetPick = q('recruit-preset-pick');
   var presetNameInput = q('recruit-preset-name');
   var presetMsg = q('recruit-preset-msg');
-
-  function normalizePresetList(list) {
-    if (!Array.isArray(list)) return [];
-    var out = [];
-    for (var i = 0; i < list.length && out.length < PRESET_MAX; i++) {
-      var item = list[i];
-      if (!item || typeof item !== 'object') continue;
-      var name = String(item.name || '').trim();
-      if (!name) continue;
-      var data = item.data;
-      if (!data || typeof data !== 'object') continue;
-      out.push({
-        id: String(item.id || ('pr_' + Date.now() + '_' + i)),
-        name: name,
-        savedAt: typeof item.savedAt === 'number' ? item.savedAt : Date.now(),
-        data: data,
-      });
-    }
-    return out;
-  }
-
-  function readPresetList() {
-    if (presetGetList) {
-      return normalizePresetList(presetGetList());
-    }
-    return [];
-  }
-
-  function writePresetList(list) {
-    var normalized = normalizePresetList(list);
-    if (presetSetList) presetSetList(normalized);
-    if (presetFlushSave) presetFlushSave();
-  }
-
-  function tryMigrateLegacyLocalPresets() {
-    if (!presetGetList || !presetSetList) return;
-    if (readPresetList().length > 0) return;
-    try {
-      var raw = localStorage.getItem(PRESET_LEGACY_LOCAL_KEY);
-      if (!raw) return;
-      var parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || !parsed.length) return;
-      presetSetList(normalizePresetList(parsed));
-      localStorage.removeItem(PRESET_LEGACY_LOCAL_KEY);
-      if (presetFlushSave) presetFlushSave();
-    } catch (e) { /* ignore */ }
-  }
 
   function showPresetMsg(text, isError) {
     if (!presetMsg) return;
