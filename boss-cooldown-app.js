@@ -40,6 +40,8 @@
       image: 'image/몬스터/파풀라투스.png',
       hint: '① NPC 재료(균열 조각) 수령 시각 24h · ② 맵 입장 시각 24h 별도 · 둘 다 끝나야 다시 들어가기 편해요. (일 2트 00시 초기화는 게임 안내)',
       papulatusDual: true,
+      materialIcon: 'image/아이템아이콘/차원균열의조각.png',
+      materialIconAlt: '차원 균열의 조각',
     },
     {
       id: 'zakumNormal',
@@ -833,6 +835,10 @@
       lane === 'map' ? '지금 맵 입장한 것으로 24h 쿨 시작' : '지금 NPC 재료 수령 기준 쿨 시작';
     const manualAria = lane === 'map' ? '맵 입장 시각' : 'NPC 재료 수령 시각';
     const laneMod = lane === 'map' ? 'boss-cd-lane-card--map' : 'boss-cd-lane-card--quest';
+    const materialIconHtml =
+      lane === 'quest' && bossDef.materialIcon
+        ? `<img class="boss-cd-material-icon" src="${escapeHtml(assetUrl(bossDef.materialIcon))}" alt="" width="28" height="28" decoding="async" draggable="false" title="${escapeHtml(bossDef.materialIconAlt || '입장 재료')}">`
+        : '';
 
     const tools = editable
       ? `
@@ -853,7 +859,7 @@
     return `
       <div class="boss-cd-lane-card boss-cd-timer-lane ${laneMod}" data-timer-lane="${laneAttr}" data-phase="${meta.phase}">
         <div class="boss-cd-lane-top">
-          <span class="boss-cd-lane-badge">${escapeHtml(laneLabel)}</span>
+          <span class="boss-cd-lane-badge boss-cd-lane-badge--with-icon">${materialIconHtml}${escapeHtml(laneLabel)}</span>
           <span class="boss-cd-status-pill ${meta.statusPillClass}">${escapeHtml(meta.statusPillText)}</span>
           <span class="boss-cd-timer boss-cd-timer--lane ${meta.timerClass}">${escapeHtml(meta.timerText)}</span>
         </div>

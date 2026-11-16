@@ -265,7 +265,7 @@ legacySummaryOnly (옛 회차 요약만)
 | bossId | 쿨 | UI 메모 |
 |--------|-----|---------|
 | `pianus` | 7일 | **꼬리비늘 퀘 완료** 체크 → 수령 NPC 힌트(켄타 vs 탐사대장 팽) |
-| `papulatus` | 24h×2 | **① NPC 재료** `completedAt`/`endsAt` · **② 맵 입장** `entryCompletedAt`/`entryEndsAt`/`entryPausedRemainingMs` · 기존 NPC만 도는 행은 1회 **입장+1h** 추정 보정(`entryDualLaneSeeded`) |
+| `papulatus` | 24h×2 | **① NPC 재료** `completedAt`/`endsAt` · UI **`image/아이템아이콘/차원균열의조각.png`** · **② 맵 입장** `entryCompletedAt`/… · 1회 **입장+1h** 보정(`entryDualLaneSeeded`) |
 | `zakumNormal` | 24h | **1트 입장** 시각만 · 일 2트(2트는 쿨 재시작 없음) |
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
@@ -412,6 +412,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-16** — **보스 쿨** 파풀 NPC 재료 줄에 **차원 균열의 조각** 아이콘 표시
 - **2026-11-16** — **보스 쿨** ▶·적용 등 타이머 액션 시 **스크롤 유지** (`refreshEntryUi` · render 시 scrollTop 복원)
 - **2026-11-16** — **보스 쿨** 시각 입력 — 모달 열 때 비가동 쿨은 입력칸 **now** · 가동 중은 기준 시각 유지
 - **2026-11-16** — **보스 쿨** 파풀 UI — 캐릭 카드·2열 레인(NPC/입장)·상태 pill·타이머 강조
@@ -720,4 +721,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-16 (보스 쿨 스크롤 유지)*
+*Last updated: 2026-11-16 (파풀 재료 아이콘)*
