@@ -432,15 +432,28 @@
     return `${bossId}:${entryId}${laneSuffix}`;
   }
 
+  function lanePhaseForManual(bossId, entry, lane) {
+    const def = BOSS_DEFS.find((b) => b.id === bossId);
+    if (def && def.papulatusDual) {
+      return timerPhaseLane(entry, lane === 'map' ? 'map' : 'quest');
+    }
+    return timerPhase(entry);
+  }
+
   function manualInputValue(bossId, entry, lane) {
-    const key = manualTimeDraftKey(bossId, entry.id, lane);
+    const laneKey = lane === 'map' ? 'map' : 'quest';
+    const key = manualTimeDraftKey(bossId, entry.id, laneKey);
     if (Object.prototype.hasOwnProperty.call(manualTimeDrafts, key)) {
       return manualTimeDrafts[key];
     }
-    const f = timerLaneFields(lane);
-  const at = entry[f.completedAt];
+    const phase = lanePhaseForManual(bossId, entry, laneKey);
+    if (phase === 'idle' || phase === 'ready') {
+      return toDatetimeLocalValue(Date.now());
+    }
+    const f = timerLaneFields(laneKey);
+    const at = entry[f.completedAt];
     if (at != null) return toDatetimeLocalValue(at);
-    return '';
+    return toDatetimeLocalValue(Date.now());
   }
 
   function captureManualDraftsFromDom() {
@@ -980,7 +993,8 @@
       (e) => {
         const inp = e.target.closest('input[data-boss-manual-time]');
         if (!inp) return;
-        manualTimeDrafts[manualTimeDraftKey(inp.dataset.bossManualTime, inp.dataset.entryId)] = inp.value;
+        const lane = inp.dataset.timerLane || 'quest';
+        manualTimeDrafts[manualTimeDraftKey(inp.dataset.bossManualTime, inp.dataset.entryId, lane)] = inp.value;
       },
       true
     );
@@ -992,6 +1006,9 @@
       alert('클라우드 로그인 후 보스 쿨타임을 사용할 수 있어요.');
       return;
     }
+    Object.keys(manualTimeDrafts).forEach((k) => {
+      delete manualTimeDrafts[k];
+    });
     ensureBossCooldownState();
     migrateActiveEntryRevisionsInPlace();
     mountShell();

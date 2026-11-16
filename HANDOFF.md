@@ -270,7 +270,7 @@ legacySummaryOnly (옛 회차 요약만)
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
 
-**타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만).
+**타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만) · **시각 입력칸:** 모달 **열 때** `쿨 없음`/`입장 가능`이면 **now** 표시(적용만으로 즉시 기록) · **쿨 중·일시정지**면 해당 `completedAt` 유지 · **적용**은 누르면 **항상** 입력 시각으로 쿨 재계산(돌고 있어도 
 
 **Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · 원격 JSON에 **`bossCooldown` 키 없으면 prev 유지**(구 클라 save가 목록 비우지 않음) · **`revision`** 최신 우선 · prev-only 행(`revision>0`·pending add) 유지 · **`tombstones`** · **`flushSave`**(적용·삭제·↻·▶) · `touchBossCooldownLocalSnapshot` · **보스 모달은 `modalBlocksRemote` 제외** · load 시 **`migrateActiveEntryRevisionsInPlace`**(revision 0 + active).
 
@@ -412,6 +412,7 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
+- **2026-11-16** — **보스 쿨** 시각 입력 — 모달 열 때 비가동 쿨은 입력칸 **now** · 가동 중은 기준 시각 유지
 - **2026-11-16** — **보스 쿨** 파풀 UI — 캐릭 카드·2열 레인(NPC/입장)·상태 pill·타이머 강조
 - **2026-11-16** — **보스 쿨** 파풀라투스 **NPC 재료·맵 입장** 이중 24h 타이머 · 기존 NPC 쿨 1회 입장 추정 마이그레이션
 - **2026-11-13** — **구인글** 프리셋 — 저장 시 `discord_recruit_presets_v1_backup` 로컬 미러 · 모달 **브라우저 백업 복구** 
@@ -718,4 +719,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-16 (파풀 쿨 UI 가시성)*
+*Last updated: 2026-11-16 (보스 쿨 시각 입력 now)*
