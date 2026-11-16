@@ -260,12 +260,12 @@ legacySummaryOnly (옛 회차 요약만)
 
 **전제:** **클라우드 로그인** (타이머와 동일) · 공대 **3명이 같은 타이머 목록** Realtime 공유.
 
-**표시:** 보스 탭 · **공대원별 1박스** · **캐릭당 1줄** — 닉 · ▶⏸↻ · 상태(`쿨 없음`/`입장 가능`) · 클리어 `datetime-local` · 적용 · **남은 시간**(mono) · (피아누스) 꼬리 · 삭제.
+**표시:** 보스 탭 · **공대원별 1박스** · **캐릭당 1줄**(파풀은 **NPC 재료** + **맵 입장** 2줄) — 닉 · ▶⏸↻ · 상태 · 시각 입력 · 적용 · **남은 시간** · (피아누스) 꼬리 · 삭제.
 
 | bossId | 쿨 | UI 메모 |
 |--------|-----|---------|
 | `pianus` | 7일 | **꼬리비늘 퀘 완료** 체크 → 수령 NPC 힌트(켄타 vs 탐사대장 팽) |
-| `papulatus` | 24h | **균열 조각 무료 NPC** 퀘 완료 기준만 (일 2입장 00시는 안내 문구) |
+| `papulatus` | 24h×2 | **① NPC 재료** `completedAt`/`endsAt` · **② 맵 입장** `entryCompletedAt`/`entryEndsAt`/`entryPausedRemainingMs` · 기존 NPC만 도는 행은 1회 **입장+1h** 추정 보정(`entryDualLaneSeeded`) |
 | `zakumNormal` | 24h | **1트 입장** 시각만 · 일 2트(2트는 쿨 재시작 없음) |
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
@@ -412,7 +412,8 @@ legacySummaryOnly (옛 회차 요약만)
 
 ## 10. 변경 이력 (에이전트가 구현할 때마다 **맨 위에 한 줄 추가**)
 
-- **2026-11-13** — **구인글** 프리셋 — 저장 시 `discord_recruit_presets_v1_backup` 로컬 미러 · 모달 **브라우저 백업 복구** 버튼
+- **2026-11-16** — **보스 쿨** 파풀라투스 **NPC 재료·맵 입장** 이중 24h 타이머 · 기존 NPC 쿨 1회 입장 추정 마이그레이션
+- **2026-11-13** — **구인글** 프리셋 — 저장 시 `discord_recruit_presets_v1_backup` 로컬 미러 · 모달 **브라우저 백업 복구** 
 - **2026-11-13** — fix: **구인글** 전체 미동작 — `normalizePresetList`가 `bindRecruitUi` 내부만 정의·export 시 ReferenceError로 `DiscordRecruitApp` 로드 실패
 - **2026-11-13** — fix: **구인글** 모달 — `refreshPresetList`/`openModal`이 `bindRecruitUi` 스코프 밖에서 `presetPick` 참조 ReferenceError
 - **2026-11-13** — fix: **Pages 404** — repo **private** 전환 시 Free 플랜 Pages 비활성 → **public** 복구·재배포
@@ -716,4 +717,4 @@ HANDOFF-only 변경(규칙 정리)도 §10 + Last updated.
 
 - 짧게 **무엇을 바꿨는지** + **commit hash** (push 성공 시)
 
-*Last updated: 2026-11-13 (구인글 프리셋 로컬 백업·복구)*
+*Last updated: 2026-11-16 (파풀 이중 쿨타임)*

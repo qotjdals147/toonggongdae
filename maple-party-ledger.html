@@ -3107,6 +3107,18 @@
     font-size: 12px;
     line-height: 1.3;
   }
+  .boss-cd-char-row--dual .boss-cd-char-line--lane {
+    padding-left: 16px;
+    border-top: 1px dashed var(--line);
+    background: color-mix(in srgb, var(--surface-muted) 35%, var(--surface));
+  }
+  .boss-cd-lane-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    min-width: 4.2em;
+    flex-shrink: 0;
+  }
   .boss-cd-char-name {
     font-weight: 700;
     font-size: 13px;
@@ -6756,6 +6768,9 @@
         state.bossCooldown = BossCooldownApp.mergeBossCooldown(prevBossCooldown, state.bossCooldown);
       }
       BossCooldownApp.ensureBossCooldownState();
+      if (BossCooldownApp.migrateActiveEntryRevisionsInPlace) {
+        BossCooldownApp.migrateActiveEntryRevisionsInPlace();
+      }
       try {
         bossCooldownRemoteSnapshot = JSON.parse(JSON.stringify(state.bossCooldown));
       } catch (e) {

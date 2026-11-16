@@ -19,6 +19,8 @@
   const MS_WEEK = 7 * MS_DAY;
   const MASTER_IDX = 2;
   const TICK_MS = 1000;
+  /** 파풀: NPC 재료 후 대략 입장 시각 추정(기존 데이터 1회 보정용) */
+  const PAPULATUS_ENTRY_OFFSET_MS = 3600000;
 
   const BOSS_DEFS = [
     {
@@ -36,7 +38,8 @@
       badge: '일간 2트',
       durationMs: MS_DAY,
       image: 'image/몬스터/파풀라투스.png',
-      hint: '균열 조각 무료 지급 NPC · 퀘스트 완료 시각부터 24h (일 2회 입장은 게임 00시 초기화).',
+      hint: '① NPC 재료(균열 조각) 수령 시각 24h · ② 맵 입장 시각 24h 별도 · 둘 다 끝나야 다시 들어가기 편해요. (일 2트 00시 초기화는 게임 안내)',
+      papulatusDual: true,
     },
     {
       id: 'zakumNormal',
@@ -114,6 +117,20 @@
           : null,
     };
     if (def && def.pianus) out.tailQuestDone = !!e.tailQuestDone;
+    if (bossId === 'papulatus') {
+      out.entryCompletedAt =
+        e.entryCompletedAt != null && Number.isFinite(Number(e.entryCompletedAt))
+          ? Number(e.entryCompletedAt)
+          : null;
+      out.entryEndsAt =
+        e.entryEndsAt != null && Number.isFinite(Number(e.entryEndsAt)) ? Number(e.entryEndsAt) : null;
+      out.entryPausedRemainingMs =
+        e.entryPausedRemainingMs != null && Number.isFinite(Number(e.entryPausedRemainingMs))
+          ? Math.max(0, Number(e.entryPausedRemainingMs))
+          : null;
+      out.entryDualLaneSeeded = !!e.entryDualLaneSeeded;
+      if (out.entryEndsAt != null && out.entryPausedRemainingMs != null) out.entryPausedRemainingMs = null;
+    }
     if (out.endsAt != null && out.pausedRemainingMs != null) out.pausedRemainingMs = null;
     if (e.revision != null && Number.isFinite(Number(e.revision))) {
       out.revision = Number(e.revision);
@@ -184,18 +201,48 @@
     return !!entry && (entry.endsAt != null || entry.pausedRemainingMs != null);
   }
 
+  function entryLaneTimerScore(entry) {
+    if (!entry) return -1;
+    if (entry.entryEndsAt != null && Number.isFinite(Number(entry.entryEndsAt))) return Number(entry.entryEndsAt);
+    if (entry.entryPausedRemainingMs != null) return Date.now() + Number(entry.entryPausedRemainingMs);
+    return 0;
+  }
+
+  function mergePapulatusEntryFields(picked, a, b) {
+    const entrySa = entryLaneTimerScore(a);
+    const entrySb = entryLaneTimerScore(b);
+    const entrySrc = entrySb > entrySa ? b : entrySa > entrySb ? a : picked;
+    if (entryLaneTimerScore(entrySrc) > 0) {
+      return {
+        ...picked,
+        entryCompletedAt: entrySrc.entryCompletedAt,
+        entryEndsAt: entrySrc.entryEndsAt,
+        entryPausedRemainingMs: entrySrc.entryPausedRemainingMs,
+        entryDualLaneSeeded: !!(picked.entryDualLaneSeeded || entrySrc.entryDualLaneSeeded),
+      };
+    }
+    if (entrySrc.entryDualLaneSeeded) {
+      return { ...picked, entryDualLaneSeeded: true };
+    }
+    return picked;
+  }
+
   /** Realtime·저장 — revision 최신 우선(적용·↻) · 없으면 endsAt score */
   function pickMergedEntry(a, b) {
     if (!a) return b;
     if (!b) return a;
     const ra = entryRevision(a);
     const rb = entryRevision(b);
+    let picked;
     if (ra > 0 || rb > 0) {
-      if (ra !== rb) return rb > ra ? b : a;
+      if (ra !== rb) {
+        picked = rb > ra ? b : a;
+        return mergePapulatusEntryFields(picked, a, b);
+      }
     }
     const sa = entryTimerScore(a);
     const sb = entryTimerScore(b);
-    let picked = sb > sa ? b : sa > sb ? a : b;
+    picked = sb > sa ? b : sa > sb ? a : b;
     const other = picked === a ? b : a;
     if (
       picked.endsAt != null &&
@@ -204,7 +251,77 @@
     ) {
       picked = { ...picked, completedAt: other.completedAt };
     }
-    return picked;
+    return mergePapulatusEntryFields(picked, a, b);
+  }
+
+  function timerLaneFields(lane) {
+    if (lane === 'map') {
+      return {
+        completedAt: 'entryCompletedAt',
+        endsAt: 'entryEndsAt',
+        pausedRemainingMs: 'entryPausedRemainingMs',
+      };
+    }
+    return { completedAt: 'completedAt', endsAt: 'endsAt', pausedRemainingMs: 'pausedRemainingMs' };
+  }
+
+  function remainingMsLane(entry, lane) {
+    if (!entry) return 0;
+    const f = timerLaneFields(lane);
+    const paused = entry[f.pausedRemainingMs];
+    const endsAt = entry[f.endsAt];
+    if (paused != null) return paused;
+    if (endsAt != null) return Math.max(0, endsAt - Date.now());
+    return 0;
+  }
+
+  function timerPhaseLane(entry, lane) {
+    const f = timerLaneFields(lane);
+    if (entry[f.pausedRemainingMs] != null && entry[f.endsAt] == null) return 'paused';
+    if (entry[f.endsAt] != null) {
+      if (entry[f.endsAt] - Date.now() > 0) return 'running';
+      return 'ready';
+    }
+    return 'idle';
+  }
+
+  function isTimerActiveLane(entry, lane) {
+    const f = timerLaneFields(lane);
+    return entry[f.endsAt] != null || entry[f.pausedRemainingMs] != null;
+  }
+
+  function migratePapulatusDualTimersInPlace() {
+    const st = getState();
+    if (!st.bossCooldown) return;
+    const bc = st.bossCooldown;
+    if (!bc.entries || !Array.isArray(bc.entries.papulatus)) return;
+    let changed = false;
+    bc.entries.papulatus.forEach((entry) => {
+      if (entry.entryDualLaneSeeded) return;
+      entry.entryDualLaneSeeded = true;
+      if (
+        entry.entryCompletedAt != null ||
+        entry.entryEndsAt != null ||
+        entry.entryPausedRemainingMs != null
+      ) {
+        return;
+      }
+      if (!isTimerActive(entry)) return;
+      const questAt = entry.completedAt;
+      if (questAt == null || !Number.isFinite(questAt)) return;
+      const entryStart = questAt + PAPULATUS_ENTRY_OFFSET_MS;
+      entry.entryCompletedAt = entryStart;
+      if (entry.endsAt != null) {
+        entry.entryEndsAt = entryStart + MS_DAY;
+      } else if (entry.pausedRemainingMs != null) {
+        const entryEnd = entryStart + MS_DAY;
+        const rem = Math.max(0, entryEnd - Date.now());
+        entry.entryPausedRemainingMs = rem > 0 ? rem : null;
+      }
+      touchEntryRevision(entry);
+      changed = true;
+    });
+    if (changed) scheduleSave();
   }
 
   /** 구 데이터(revision 0) + 돌아가는 타이머 → merge에서 밀리지 않게 */
@@ -212,9 +329,12 @@
     const bc = ensureBossCooldownState();
     BOSS_IDS.forEach((bossId) => {
       bc.entries[bossId].forEach((e) => {
-        if (entryRevision(e) === 0 && isTimerActive(e)) touchEntryRevision(e);
+        if (entryRevision(e) === 0 && (isTimerActive(e) || isTimerActiveLane(e, 'map'))) {
+          touchEntryRevision(e);
+        }
       });
     });
+    migratePapulatusDualTimersInPlace();
   }
 
   function mergeBossCooldown(prevRaw, nextRaw) {
@@ -307,16 +427,19 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  function manualTimeDraftKey(bossId, entryId) {
-    return `${bossId}:${entryId}`;
+  function manualTimeDraftKey(bossId, entryId, lane) {
+    const laneSuffix = lane === 'map' ? ':map' : '';
+    return `${bossId}:${entryId}${laneSuffix}`;
   }
 
-  function manualInputValue(bossId, entry) {
-    const key = manualTimeDraftKey(bossId, entry.id);
+  function manualInputValue(bossId, entry, lane) {
+    const key = manualTimeDraftKey(bossId, entry.id, lane);
     if (Object.prototype.hasOwnProperty.call(manualTimeDrafts, key)) {
       return manualTimeDrafts[key];
     }
-    if (entry.completedAt != null) return toDatetimeLocalValue(entry.completedAt);
+    const f = timerLaneFields(lane);
+  const at = entry[f.completedAt];
+    if (at != null) return toDatetimeLocalValue(at);
     return '';
   }
 
@@ -326,7 +449,8 @@
     root.querySelectorAll('input[data-boss-manual-time]').forEach((inp) => {
       const bossId = inp.dataset.bossManualTime;
       const entryId = inp.dataset.entryId;
-      if (bossId && entryId) manualTimeDrafts[manualTimeDraftKey(bossId, entryId)] = inp.value;
+      const lane = inp.dataset.timerLane || 'quest';
+      if (bossId && entryId) manualTimeDrafts[manualTimeDraftKey(bossId, entryId, lane)] = inp.value;
     });
   }
 
@@ -358,54 +482,58 @@
     return groups;
   }
 
-  function startCooldown(bossId, entryId) {
+  function startCooldown(bossId, entryId, lane) {
     const def = BOSS_DEFS.find((b) => b.id === bossId);
     const entry = findEntry(bossId, entryId);
     if (!def || !entry || !canEditMember(entry.memberIdx)) return;
+    const f = timerLaneFields(lane || 'quest');
     const now = Date.now();
-    entry.completedAt = now;
-    entry.endsAt = now + def.durationMs;
-    entry.pausedRemainingMs = null;
+    entry[f.completedAt] = now;
+    entry[f.endsAt] = now + def.durationMs;
+    entry[f.pausedRemainingMs] = null;
     touchEntryRevision(entry);
-    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, lane || 'quest')];
     syncLocalSnapshot();
     render(true);
     flushSave();
   }
 
-  function pauseCooldown(bossId, entryId) {
+  function pauseCooldown(bossId, entryId, lane) {
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
-    if (entry.endsAt == null) return;
-    const rem = Math.max(0, entry.endsAt - Date.now());
-    entry.pausedRemainingMs = rem;
-    entry.endsAt = null;
+    const f = timerLaneFields(lane || 'quest');
+    if (entry[f.endsAt] == null) return;
+    const rem = Math.max(0, entry[f.endsAt] - Date.now());
+    entry[f.pausedRemainingMs] = rem;
+    entry[f.endsAt] = null;
     touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
     render();
   }
 
-  function resumeCooldown(bossId, entryId) {
+  function resumeCooldown(bossId, entryId, lane) {
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
-    if (entry.pausedRemainingMs == null) return;
-    entry.endsAt = Date.now() + entry.pausedRemainingMs;
-    entry.pausedRemainingMs = null;
+    const f = timerLaneFields(lane || 'quest');
+    if (entry[f.pausedRemainingMs] == null) return;
+    entry[f.endsAt] = Date.now() + entry[f.pausedRemainingMs];
+    entry[f.pausedRemainingMs] = null;
     touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
     render();
   }
 
-  function resetCooldown(bossId, entryId) {
+  function resetCooldown(bossId, entryId, lane) {
     const entry = findEntry(bossId, entryId);
     if (!entry || !canEditMember(entry.memberIdx)) return;
-    entry.endsAt = null;
-    entry.completedAt = null;
-    entry.pausedRemainingMs = null;
+    const f = timerLaneFields(lane || 'quest');
+    entry[f.endsAt] = null;
+    entry[f.completedAt] = null;
+    entry[f.pausedRemainingMs] = null;
     touchEntryRevision(entry);
-    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, lane || 'quest')];
     syncLocalSnapshot();
     render(true);
     flushSave();
@@ -424,7 +552,8 @@
     pendingBossEntryDeletes.add(entryId);
     const idx = list.findIndex((x) => x.id === entryId);
     if (idx >= 0) list.splice(idx, 1);
-    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, 'quest')];
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, 'map')];
     syncLocalSnapshot();
     render(true);
     flushSave();
@@ -483,7 +612,7 @@
     return new Date(s).getTime();
   }
 
-  function applyManualCompleteTime(bossId, entryId) {
+  function applyManualCompleteTime(bossId, entryId, lane) {
     const def = BOSS_DEFS.find((b) => b.id === bossId);
     const entry = findEntry(bossId, entryId);
     if (!entry) return;
@@ -491,35 +620,38 @@
       alert('이 캐릭터는 수정할 권한이 없어요.');
       return;
     }
+    const laneKey = lane || 'quest';
     const root = $('bossCooldownApp');
     const input = root
       ? root.querySelector(
-          `input[data-boss-manual-time="${bossId}"][data-entry-id="${entryId}"]`
+          `input[data-boss-manual-time="${bossId}"][data-entry-id="${entryId}"][data-timer-lane="${laneKey}"]`
         )
       : null;
+    const timeLabel = laneKey === 'map' ? '입장' : '완료';
     if (!input || !input.value) {
-      alert('클리어 시각을 입력한 뒤 적용해 주세요.');
+      alert(timeLabel + ' 시각을 입력한 뒤 적용해 주세요.');
       if (input) input.focus();
       return;
     }
     const started = parseDatetimeLocalMs(input.value);
     if (!Number.isFinite(started)) {
-      alert('완료 시각 형식을 확인해 주세요.');
+      alert('시각 형식을 확인해 주세요.');
       return;
     }
-    entry.completedAt = started;
-    entry.endsAt = started + def.durationMs;
-    entry.pausedRemainingMs = null;
+    const f = timerLaneFields(laneKey);
+    entry[f.completedAt] = started;
+    entry[f.endsAt] = started + def.durationMs;
+    entry[f.pausedRemainingMs] = null;
     touchEntryRevision(entry);
-    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId)];
+    delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, laneKey)];
     syncLocalSnapshot();
     render(true);
     flushSave();
   }
 
-  function statusMetaForEntry(entry) {
-    const phase = timerPhase(entry);
-    const rem = remainingMs(entry);
+  function statusMetaForEntry(entry, lane) {
+    const phase = lane ? timerPhaseLane(entry, lane) : timerPhase(entry);
+    const rem = lane ? remainingMsLane(entry, lane) : remainingMs(entry);
     let phaseClass = 'boss-cd-phase--idle';
     let phaseText = '쿨 없음';
     let timerClass = 'boss-cd-timer--empty';
@@ -559,27 +691,42 @@
       entriesForBoss(bossDef.id).forEach((entry) => {
         const card = root.querySelector(`.boss-cd-char-row[data-entry-id="${entry.id}"]`);
         if (!card) return;
-        const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry);
-        const phaseEl = card.querySelector('.boss-cd-phase');
-        if (phaseEl) {
-          phaseEl.textContent = phaseText;
-          phaseEl.className = `boss-cd-phase ${phaseClass}`;
-        }
-        const timerEl = card.querySelector('.boss-cd-timer');
-        if (timerEl) {
-          timerEl.textContent = timerText;
-          timerEl.className = `boss-cd-timer ${timerClass}`;
-        }
+        const lanes = bossDef.papulatusDual ? ['quest', 'map'] : [null];
+        lanes.forEach((lane) => {
+          const sel = lane
+            ? `.boss-cd-timer-lane[data-timer-lane="${lane}"]`
+            : '.boss-cd-timer-lane--single';
+          const block = card.querySelector(sel);
+          if (!block) return;
+          const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry, lane || undefined);
+          const phaseEl = block.querySelector('.boss-cd-phase');
+          if (phaseEl) {
+            phaseEl.textContent = phaseText;
+            phaseEl.className = `boss-cd-phase ${phaseClass}`;
+          }
+          const timerEl = block.querySelector('.boss-cd-timer');
+          if (timerEl) {
+            timerEl.textContent = timerText;
+            timerEl.className = `boss-cd-timer ${timerClass}`;
+          }
+        });
       });
     });
   }
 
-  function charRowHtml(bossDef, entry) {
-    const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry);
-    const editable = canEditMember(entry.memberIdx);
+  function timerLaneLineHtml(bossDef, entry, lane, laneLabel, opts) {
+    const editable = opts.editable;
+    const showDelete = !!opts.showDelete;
+    const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry, lane);
+    const laneAttr = lane === 'map' ? 'map' : 'quest';
+    const playTitle =
+      lane === 'map' ? '지금 맵 입장한 것으로 24h 쿨 시작' : '지금 NPC 재료 수령 기준 쿨 시작';
+    const manualAria = lane === 'map' ? '맵 입장 시각' : 'NPC 재료 수령 시각';
+    const blockClass = lane ? `boss-cd-timer-lane` : `boss-cd-timer-lane boss-cd-timer-lane--single`;
+    const laneData = lane ? ` data-timer-lane="${laneAttr}"` : '';
 
     let pianusInline = '';
-    if (bossDef.pianus) {
+    if (bossDef.pianus && lane !== 'map') {
       pianusInline = `
         <label class="boss-cd-pianus-inline${editable ? '' : ' boss-cd-flag--readonly'}" title="${escapeHtml(pianusNpcHint(entry))}">
           <input type="checkbox" data-boss-tail="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" ${entry.tailQuestDone ? 'checked' : ''} ${editable ? '' : 'disabled'}>
@@ -587,28 +734,48 @@
         </label>`;
     }
 
-    const line = editable
+    const nameCell = opts.showName
+      ? `<span class="boss-cd-char-name" title="캐릭">${escapeHtml(entry.charName)}</span>`
+      : laneLabel
+        ? `<span class="boss-cd-lane-label">${escapeHtml(laneLabel)}</span>`
+        : '';
+
+    const inner = editable
       ? `
-        <span class="boss-cd-char-name" title="캐릭">${escapeHtml(entry.charName)}</span>
-        <div class="boss-cd-controls" role="group" aria-label="타이머">
-          <button type="button" class="boss-cd-ctl" data-act="play" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="지금 클리어한 것으로 쿨 시작" aria-label="지금 클리어 기준 쿨 시작">▶</button>
-          <button type="button" class="boss-cd-ctl" data-act="pause" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
-          <button type="button" class="boss-cd-ctl" data-act="reset" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
+        ${nameCell}
+        <div class="boss-cd-controls" role="group" aria-label="${escapeHtml(laneLabel || '타이머')}">
+          <button type="button" class="boss-cd-ctl" data-act="play" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="${escapeHtml(playTitle)}" aria-label="${escapeHtml(playTitle)}">▶</button>
+          <button type="button" class="boss-cd-ctl" data-act="pause" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="일시정지" aria-label="일시정지">⏸</button>
+          <button type="button" class="boss-cd-ctl" data-act="reset" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="초기화" aria-label="초기화">↻</button>
         </div>
         <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
-        <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" value="${escapeHtml(manualInputValue(bossDef.id, entry))}" aria-label="클리어 시각">
-        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="입력한 클리어 시각 + 보스 쿨 길이로 남은 시간 계산">적용</button>
+        <input type="datetime-local" class="boss-cd-manual-input" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" data-timer-lane="${laneAttr}" value="${escapeHtml(manualInputValue(bossDef.id, entry, laneAttr))}" aria-label="${escapeHtml(manualAria)}">
+        <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="입력 시각 + 24h 쿨">적용</button>
         <span class="boss-cd-timer ${timerClass}">${escapeHtml(timerText)}</span>
         ${pianusInline}
-        <button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">삭제</button>`
+        ${showDelete ? `<button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">삭제</button>` : ''}`
       : `
-        <span class="boss-cd-char-name">${escapeHtml(entry.charName)}</span>
+        ${nameCell}
         <span class="boss-cd-phase ${phaseClass}">${escapeHtml(phaseText)}</span>
         <span class="boss-cd-timer ${timerClass}">${escapeHtml(timerText)}</span>`;
 
+    return `<div class="${blockClass} boss-cd-char-line${lane && !opts.showName ? ' boss-cd-char-line--lane' : ''}"${laneData}>${inner}</div>`;
+  }
+
+  function charRowHtml(bossDef, entry) {
+    const editable = canEditMember(entry.memberIdx);
+
+    if (bossDef.papulatusDual) {
+      return `
+      <div class="boss-cd-char-row boss-cd-char-row--dual" data-entry-id="${escapeHtml(entry.id)}">
+        ${timerLaneLineHtml(bossDef, entry, 'quest', 'NPC 재료', { editable, showName: true, showDelete: false })}
+        ${timerLaneLineHtml(bossDef, entry, 'map', '맵 입장', { editable, showName: false, showDelete: editable })}
+      </div>`;
+    }
+
     return `
       <div class="boss-cd-char-row" data-entry-id="${escapeHtml(entry.id)}">
-        <div class="boss-cd-char-line">${line}</div>
+        ${timerLaneLineHtml(bossDef, entry, null, null, { editable, showName: true, showDelete: editable })}
       </div>`;
   }
 
@@ -708,13 +875,15 @@
       const act = actBtn.dataset.act;
       const bossId = actBtn.dataset.bossId;
       const entryId = actBtn.dataset.entryId;
+      const lane = actBtn.dataset.timerLane || 'quest';
       if (act === 'play') {
         const entry = findEntry(bossId, entryId);
-        if (entry && entry.pausedRemainingMs != null) resumeCooldown(bossId, entryId);
-        else startCooldown(bossId, entryId);
-      } else if (act === 'pause') pauseCooldown(bossId, entryId);
-      else if (act === 'reset') resetCooldown(bossId, entryId);
-      else if (act === 'manual-apply') applyManualCompleteTime(bossId, entryId);
+        const f = timerLaneFields(lane);
+        if (entry && entry[f.pausedRemainingMs] != null) resumeCooldown(bossId, entryId, lane);
+        else startCooldown(bossId, entryId, lane);
+      } else if (act === 'pause') pauseCooldown(bossId, entryId, lane);
+      else if (act === 'reset') resetCooldown(bossId, entryId, lane);
+      else if (act === 'manual-apply') applyManualCompleteTime(bossId, entryId, lane);
       else if (act === 'delete') {
         e.preventDefault();
         e.stopPropagation();
@@ -808,5 +977,6 @@
     mergeBossCooldown,
     ensureBossCooldownState,
     clearBossCooldownPendingSync,
+    migrateActiveEntryRevisionsInPlace,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
