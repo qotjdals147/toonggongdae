@@ -270,7 +270,7 @@ legacySummaryOnly (옛 회차 요약만)
 | `zakumChaos` | 7일 | 1트 입장 |
 | `horntailNormal` | 24h | 입장 시각 |
 
-**타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만) · **시각 입력칸:** 모달 **열 때** `쿨 없음`/`입장 가능`이면 **now** 표시(적용만으로 즉시 기록) · **쿨 중·일시정지**면 해당 `completedAt` 유지 · **적용**은 누르면 **항상** 입력 시각으로 쿨 재계산(돌고 있어도 
+**타이머:** `completedAt` + `endsAt`(= completedAt + 보스 쿨) · **▶** = `completedAt`·`endsAt`을 **지금** 기준(일시정지 중이면 재개) · **클리어 시각+적용** = 입력 시각을 `completedAt`으로 저장 후 `endsAt` 계산 · `endsAt`이 **미래**면 오른쪽 **남은 시간** 카운트다운 · **과거**면 **입장 가능**(카운트다운 없음) · 입력만 하고 적용 안 하면 타이머 안 걸림 · **▶와 입력칸은 연동 안 함** · **⏸** / **↻** · UI **「시작」버튼 없음**(▶만) · **시각 입력칸:** 모달 **열 때** `쿨 없음`/`입장 가능`이면 **now** 표시(적용만으로 즉시 기록) · **쿨 중·일시정지**면 해당 `completedAt` 유지 · **적용**은 누르면 **항상** 입력 시각으로 쿨 재계산(쿨 중이어도 덮어씀). 
 
 **Realtime·저장:** `mergeBossCooldown` — **`applyStateFromRemote`만** · 원격 JSON에 **`bossCooldown` 키 없으면 prev 유지**(구 클라 save가 목록 비우지 않음) · **`revision`** 최신 우선 · prev-only 행(`revision>0`·pending add) 유지 · **`tombstones`** · **`flushSave`**(적용·삭제·↻·▶) · `touchBossCooldownLocalSnapshot` · **보스 모달은 `modalBlocksRemote` 제외** · load 시 **`migrateActiveEntryRevisionsInPlace`**(revision 0 + active).
 
