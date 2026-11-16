@@ -507,7 +507,7 @@
     touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, lane || 'quest')];
     syncLocalSnapshot();
-    render(true);
+    refreshEntryUi(bossId, entryId);
     flushSave();
   }
 
@@ -522,7 +522,7 @@
     touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
-    render();
+    refreshEntryUi(bossId, entryId);
   }
 
   function resumeCooldown(bossId, entryId, lane) {
@@ -535,7 +535,7 @@
     touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
-    render();
+    refreshEntryUi(bossId, entryId);
   }
 
   function resetCooldown(bossId, entryId, lane) {
@@ -548,7 +548,7 @@
     touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, lane || 'quest')];
     syncLocalSnapshot();
-    render(true);
+    refreshEntryUi(bossId, entryId);
     flushSave();
   }
 
@@ -593,7 +593,7 @@
     if (nameInput) nameInput.value = '';
     syncLocalSnapshot();
     scheduleSave();
-    render();
+    render(false, { preserveScroll: true });
   }
 
   function setTailQuestDone(bossId, entryId, checked) {
@@ -603,7 +603,6 @@
     touchEntryRevision(entry);
     syncLocalSnapshot();
     scheduleSave();
-    render();
   }
 
   function parseDatetimeLocalMs(value) {
@@ -658,7 +657,7 @@
     touchEntryRevision(entry);
     delete manualTimeDrafts[manualTimeDraftKey(bossId, entryId, laneKey)];
     syncLocalSnapshot();
-    render(true);
+    refreshEntryUi(bossId, entryId);
     flushSave();
   }
 
@@ -701,6 +700,41 @@
     if (!active || !root.contains(active)) return false;
     const tag = active.tagName;
     return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+  }
+
+  function bossCdScrollEl() {
+    const root = $('bossCooldownApp');
+    return root ? root.querySelector('.boss-cd-scroll') : null;
+  }
+
+  function saveBossCdScrollTop() {
+    const el = bossCdScrollEl();
+    return el ? el.scrollTop : 0;
+  }
+
+  function restoreBossCdScrollTop(scrollTop) {
+    const el = bossCdScrollEl();
+    if (!el || scrollTop <= 0) return;
+    el.scrollTop = scrollTop;
+    requestAnimationFrame(function() {
+      el.scrollTop = scrollTop;
+    });
+  }
+
+  /** 타이머 액션 — 전체 render 없이 숫자·시각 칸만 갱신(스크롤 유지) */
+  function refreshEntryUi(bossId, entryId) {
+    const def = BOSS_DEFS.find((b) => b.id === bossId);
+    const entry = findEntry(bossId, entryId);
+    const root = $('bossCooldownApp');
+    if (!def || !entry || !root) return;
+    const lanes = def.papulatusDual ? ['quest', 'map'] : ['quest'];
+    lanes.forEach(function(lane) {
+      const inp = root.querySelector(
+        'input[data-boss-manual-time="' + bossId + '"][data-entry-id="' + entryId + '"][data-timer-lane="' + lane + '"]'
+      );
+      if (inp) inp.value = manualInputValue(bossId, entry, lane);
+    });
+    updateTimers();
   }
 
   function updateTimers() {
@@ -909,13 +943,16 @@
       </div>`;
   }
 
-  function render(force) {
+  function render(force, options) {
+    options = options || {};
     const root = $('bossCooldownApp');
     if (!root || !mounted) return;
     if (!force && isAddFieldFocused()) {
       updateTimers();
       return;
     }
+    const preserveScroll = options.preserveScroll !== false;
+    const scrollTop = preserveScroll ? saveBossCdScrollTop() : 0;
     captureManualDraftsFromDom();
     const tabs = BOSS_DEFS.map((b) => {
       const count = entriesForBoss(b.id).length;
@@ -929,6 +966,7 @@
       <div class="boss-cd-tabs" role="tablist">${tabs}</div>
       <div class="boss-cd-scroll">${panels}</div>
       <div class="boss-cd-add-dock">${addDock}</div>`;
+    if (preserveScroll) restoreBossCdScrollTop(scrollTop);
   }
 
   function onRootClick(e) {
