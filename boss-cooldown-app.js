@@ -656,21 +656,29 @@
     let phaseText = '쿨 없음';
     let timerClass = 'boss-cd-timer--empty';
     let timerText = '';
+    let statusPillClass = 'boss-cd-status-pill--idle';
+    let statusPillText = '쿨 없음';
     if (phase === 'running') {
       phaseText = '';
       phaseClass = 'boss-cd-phase--empty';
       timerClass = 'boss-cd-timer--run';
       timerText = formatDuration(rem);
+      statusPillClass = 'boss-cd-status-pill--run';
+      statusPillText = '쿨 중';
     } else if (phase === 'paused') {
       phaseText = '⏸';
       phaseClass = 'boss-cd-phase--pause';
       timerClass = 'boss-cd-timer--pause';
       timerText = formatDuration(rem);
+      statusPillClass = 'boss-cd-status-pill--pause';
+      statusPillText = '일시정지';
     } else if (phase === 'ready') {
       phaseText = '입장 가능';
       phaseClass = 'boss-cd-phase--ready';
+      statusPillClass = 'boss-cd-status-pill--ready';
+      statusPillText = '입장 가능';
     }
-    return { phase, phaseClass, phaseText, timerClass, timerText };
+    return { phase, phaseClass, phaseText, timerClass, timerText, statusPillClass, statusPillText };
   }
 
   function isAddFieldFocused() {
@@ -698,7 +706,16 @@
             : '.boss-cd-timer-lane--single';
           const block = card.querySelector(sel);
           if (!block) return;
-          const { phaseClass, phaseText, timerClass, timerText } = statusMetaForEntry(entry, lane || undefined);
+          const meta = statusMetaForEntry(entry, lane || undefined);
+          const { phaseClass, phaseText, timerClass, timerText, statusPillClass, statusPillText, phase } = meta;
+          if (block.classList.contains('boss-cd-lane-card')) {
+            block.dataset.phase = phase;
+          }
+          const pillEl = block.querySelector('.boss-cd-status-pill');
+          if (pillEl) {
+            pillEl.textContent = statusPillText;
+            pillEl.className = `boss-cd-status-pill ${statusPillClass}`;
+          }
           const phaseEl = block.querySelector('.boss-cd-phase');
           if (phaseEl) {
             phaseEl.textContent = phaseText;
@@ -762,14 +779,57 @@
     return `<div class="${blockClass} boss-cd-char-line${lane && !opts.showName ? ' boss-cd-char-line--lane' : ''}"${laneData}>${inner}</div>`;
   }
 
+  function papulatusLaneCardHtml(bossDef, entry, lane, laneLabel, editable) {
+    const laneAttr = lane === 'map' ? 'map' : 'quest';
+    const meta = statusMetaForEntry(entry, lane);
+    const playTitle =
+      lane === 'map' ? '지금 맵 입장한 것으로 24h 쿨 시작' : '지금 NPC 재료 수령 기준 쿨 시작';
+    const manualAria = lane === 'map' ? '맵 입장 시각' : 'NPC 재료 수령 시각';
+    const laneMod = lane === 'map' ? 'boss-cd-lane-card--map' : 'boss-cd-lane-card--quest';
+
+    const tools = editable
+      ? `
+        <div class="boss-cd-lane-tools">
+          <div class="boss-cd-controls" role="group" aria-label="${escapeHtml(laneLabel)}">
+            <button type="button" class="boss-cd-ctl" data-act="play" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="${escapeHtml(playTitle)}">▶</button>
+            <button type="button" class="boss-cd-ctl" data-act="pause" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="일시정지">⏸</button>
+            <button type="button" class="boss-cd-ctl" data-act="reset" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" title="초기화">↻</button>
+          </div>
+          <input type="datetime-local" class="boss-cd-manual-input boss-cd-manual-input--lane" data-boss-manual-time="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}" data-timer-lane="${laneAttr}" value="${escapeHtml(manualInputValue(bossDef.id, entry, laneAttr))}" aria-label="${escapeHtml(manualAria)}">
+          <button type="button" class="btn-light btn-sm boss-cd-apply-btn" data-act="manual-apply" data-timer-lane="${laneAttr}" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">적용</button>
+        </div>`
+      : `
+        <div class="boss-cd-lane-tools boss-cd-lane-tools--readonly">
+          <span class="boss-cd-phase ${meta.phaseClass}">${escapeHtml(meta.phaseText)}</span>
+        </div>`;
+
+    return `
+      <div class="boss-cd-lane-card boss-cd-timer-lane ${laneMod}" data-timer-lane="${laneAttr}" data-phase="${meta.phase}">
+        <div class="boss-cd-lane-top">
+          <span class="boss-cd-lane-badge">${escapeHtml(laneLabel)}</span>
+          <span class="boss-cd-status-pill ${meta.statusPillClass}">${escapeHtml(meta.statusPillText)}</span>
+          <span class="boss-cd-timer boss-cd-timer--lane ${meta.timerClass}">${escapeHtml(meta.timerText)}</span>
+        </div>
+        ${tools}
+      </div>`;
+  }
+
   function charRowHtml(bossDef, entry) {
     const editable = canEditMember(entry.memberIdx);
 
     if (bossDef.papulatusDual) {
       return `
       <div class="boss-cd-char-row boss-cd-char-row--dual" data-entry-id="${escapeHtml(entry.id)}">
-        ${timerLaneLineHtml(bossDef, entry, 'quest', 'NPC 재료', { editable, showName: true, showDelete: false })}
-        ${timerLaneLineHtml(bossDef, entry, 'map', '맵 입장', { editable, showName: false, showDelete: editable })}
+        <div class="boss-cd-char-card">
+          <header class="boss-cd-char-head">
+            <span class="boss-cd-char-name" title="캐릭">${escapeHtml(entry.charName)}</span>
+            ${editable ? `<button type="button" class="btn-linkish boss-cd-del" data-act="delete" data-boss-id="${bossDef.id}" data-entry-id="${escapeHtml(entry.id)}">삭제</button>` : ''}
+          </header>
+          <div class="boss-cd-dual-lanes">
+            ${papulatusLaneCardHtml(bossDef, entry, 'quest', 'NPC 재료', editable)}
+            ${papulatusLaneCardHtml(bossDef, entry, 'map', '맵 입장', editable)}
+          </div>
+        </div>
       </div>`;
     }
 
